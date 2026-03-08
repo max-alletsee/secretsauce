@@ -1,4 +1,6 @@
-# Mealtime Flow — CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -15,6 +17,70 @@ Mealtime Flow is a recipe management and meal planning web application. Users ca
 - **Testing:** pytest (backend), Vitest (frontend unit), Playwright (end-to-end)
 - **Deployment:** Docker Compose
 - **Reverse Proxy:** Nginx
+
+## Development Commands
+
+### Backend
+```bash
+cd backend
+
+# Start dev server (hot-reload)
+uvicorn app.main:app --reload --port 8000
+
+# Run all tests
+pytest --cov=app --cov-report=term-missing
+
+# Run a single test file or test by name
+pytest tests/unit/test_recipe_import_service.py
+pytest -k "test_import_from_url"
+
+# Lint / type-check
+ruff check app/
+mypy app/
+
+# Database migrations
+alembic revision --autogenerate -m "description"
+alembic upgrade head
+alembic downgrade -1
+```
+
+### Frontend
+```bash
+cd frontend
+
+# Start dev server
+npm run dev
+
+# Run unit tests
+npm run test:unit
+
+# Run a single test file
+npx vitest run src/stores/useRecipeStore.test.ts
+
+# Type-check
+npm run type-check
+
+# Lint
+npm run lint
+
+# Build for production
+npm run build
+```
+
+### Full stack (Docker)
+```bash
+# Start production stack
+docker compose up --build
+
+# Start test stack (used for Playwright e2e tests)
+docker compose -f docker-compose.test.yml up -d
+
+# Run e2e tests (requires test stack running)
+cd frontend && npx playwright test
+
+# Run a single e2e test
+npx playwright test e2e/recipes.spec.ts
+```
 
 ## Project Structure
 
