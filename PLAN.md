@@ -2,7 +2,16 @@
 
 ## Overview
 
-Greenfield build of a recipe management and meal planning web app. 20 tasks across 10 phases, ordered by dependency. Backend (FastAPI/PostgreSQL) and frontend (Vue 3/TypeScript) are developed in parallel where possible.
+Greenfield build of a recipe management and meal planning web app. 19 tasks across 9 phases (+ testing/polish), ordered by dependency. Backend (FastAPI/PostgreSQL) and frontend (Vue 3/TypeScript) built sequentially in Phase 0, then parallelized where possible.
+
+### Key Tooling Decisions
+- **Backend package manager:** uv (Rust-based, lockfile support)
+- **Frontend package manager:** pnpm
+- **Frontend UI library:** PrimeVue (unstyled mode — we control all styling)
+- **Local dev database:** Postgres via Docker (`docker-compose.dev.yml` runs only Postgres)
+- **Dev workflow:** Backend + frontend run natively on host; Postgres in Docker
+- **App structure:** Module-level `app = FastAPI(...)` (not factory function)
+- **Phase 0 approach:** Sequential with verified checkpoints (backend → frontend → Docker)
 
 ---
 
@@ -11,40 +20,131 @@ Greenfield build of a recipe management and meal planning web app. 20 tasks acro
 ### Task #1 — Backend project scaffolding
 **Status:** Ready (no blockers)
 
-- Create `backend/` directory with `app/` package and all subdirectories (`api/routes`, `models`, `schemas`, `services`, `core`, `tasks`)
-- Create `requirements.txt` with all dependencies: fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, sqlmodel, alembic, fastapi-users[sqlalchemy], pydantic-settings, instructor, openai, httpx, slowapi, cryptography, python-multipart, ruff, mypy, pytest, pytest-cov, pytest-asyncio
-- Create `app/main.py` — FastAPI app factory, CORS setup, router includes, startup/shutdown events
-- Create `app/core/config.py` — Pydantic Settings (all env vars from CLAUDE.md)
-- Create `app/core/database.py` — async engine, session factory, Base
-- Create `app/core/constants.py` — enums (visibility, meal_type, source, status) and pre-built tag lists
-- Create `GET /health` endpoint returning `{"status": "ok", "db": "connected"}`
+**Setup:**
+- `uv init` in `backend/`, Python 3.12+ target
+- `pyproject.toml` with grouped dependencies:
+  - Core: fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, sqlmodel, alembic, pydantic-settings, httpx, python-multipart
+  - Auth: fastapi-users[sqlalchemy], bcrypt, cryptography
+  - AI / OpenRouter: instructor, openai (used as OpenAI-compatible HTTP client for OpenRouter API)
+  - Rate limiting: slowapi
+  - Dev: ruff, mypy, pytest, pytest-cov, pytest-asyncio
+- `uv.lock` committed for reproducible installs
+
+**App structure:**
+```
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py              # app = FastAPI(...), CORS, router includes, lifespan events
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── deps.py          # get_db (async session generator)
+│   │   └── routes/
+│   │       ├── __init__.py
+│   │       └── health.py    # GET /health with DB connectivity check
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py        # Settings(BaseSettings) — all env vars
+│   │   ├── database.py      # async engine, async_sessionmaker, Base
+│   │   └── constants.py     # enums + tag lists (empty structure, ready for Phase 1)
+│   ├── models/
+│   │   └── __init__.py
+│   ├── schemas/
+│   │   └── __init__.py
+│   ├── services/
+│   │   └── __init__.py
+│   └── tasks/
+│       └── __init__.py
+├── alembic/
+│   ├── env.py               # configured for async SQLAlchemy + SQLModel metadata
+│   ├── script.py.mako
+│   └── versions/
+├── alembic.ini
+├── pyproject.toml
+└── uv.lock
+```
+
+**Key details:**
+- Module-level `app = FastAPI(...)`, not factory function
+- `GET /health` returns `{"status": "ok", "db": "connected"}` via `SELECT 1`; returns 503 with `{"status": "error", "db": "disconnected"}` if DB unreachable
+- Pydantic Settings reads env vars with `.env` file support (all vars from CLAUDE.md spec)
+- Use FastAPI `lifespan` context manager (not deprecated `on_event`) — skeleton only
 - Create `backend/Dockerfile`
-- Initialize Alembic with `alembic/env.py` configured for async SQLAlchemy
 
 ### Task #2 — Frontend project scaffolding
 **Status:** Ready (no blockers)
 
-- Initialize Vite project with Vue 3 + TypeScript template
-- Install dependencies: vue, vue-router, pinia, axios, vuedraggable
-- Install dev dependencies: vitest, @vue/test-utils, playwright, typescript, eslint, prettier
-- Create directory structure: `src/{views, components, composables, stores, api, router, types, assets}`
-- Create `api/client.ts` — axios instance, auth interceptor, 401 refresh interceptor
-- Create `router/index.ts` — placeholder routes and auth guard skeleton
-- Create `stores/useUserStore.ts` — skeleton with isAuthenticated/isSuperuser
-- Create `vite.config.ts` with proxy to backend `/api` → localhost:8000
-- Create `tsconfig.json` with path aliases (`@/` → `src/`)
+**Setup:**
+- `pnpm create vue@latest` with TypeScript, Vue Router, Pinia presets
+- Add dependencies: axios, vuedraggable, primevue (unstyled mode)
+- Add dev dependencies: vitest, @vue/test-utils, @playwright/test, eslint, prettier
+- `pnpm-lock.yaml` committed
+
+**App structure:**
+```
+frontend/
+├── src/
+│   ├── App.vue               # root component, PrimeVue provider
+│   ├── main.ts               # createApp, install router/pinia/primevue
+│   ├── views/
+│   │   └── HomeView.vue      # placeholder page, calls GET /api/v1/health to verify proxy
+│   ├── components/           # empty, ready for Phase 2
+│   ├── composables/          # empty
+│   ├── stores/
+│   │   └── useUserStore.ts   # skeleton: isAuthenticated, isSuperuser (hardcoded false)
+│   ├── api/
+│   │   └── client.ts         # axios instance, baseURL /api/v1, auth + 401 interceptor skeletons
+│   ├── router/
+│   │   └── index.ts          # routes: / → HomeView, auth guard skeleton (inactive until Phase 1)
+│   ├── types/                # empty, ready for Phase 1
+│   └── assets/
+│       └── main.css          # CSS reset via PrimeVue, base variables, mobile-first defaults
+├── e2e/                      # empty, ready for Phase 10
+├── index.html
+├── vite.config.ts            # proxy: /api → http://localhost:8000
+├── tsconfig.json             # paths: @/ → src/
+├── package.json
+└── pnpm-lock.yaml
+```
+
+**Key details:**
+- PrimeVue unstyled mode enabled globally — no preset theme, all styling via scoped CSS
+- PrimeVue components imported individually (tree-shakeable), not globally registered
+- Vite proxy: `/api` → `http://localhost:8000` for dev (no CORS issues)
+- HomeView calls `GET /api/v1/health` on mount and displays status — proves frontend-to-backend wiring
 - Create `frontend/Dockerfile`
-- Set up Vitest config and Playwright config
 
 ### Task #3 — Docker Compose & Nginx setup
 **Status:** Ready (no blockers)
 
-- Create `docker-compose.yml` (production) with backend, frontend, postgres, nginx services
-- Create `docker-compose.test.yml` for test environment with test database
-- Create `nginx/nginx.conf` routing `/api/*` → backend:8000, `/*` → frontend
-- Create `.env.example` with all required/optional env vars documented
-- Create `.gitignore` (Python, Node, .env, uploads, postgres data, certs)
-- Verify the full stack boots with `docker compose up --build`
+**Three compose files:**
+
+**`docker-compose.dev.yml`** — local development, Postgres only:
+- postgres:16 on port 5432, user/pass/db = mealtime
+- Volume for data persistence, healthcheck with pg_isready
+- Backend + frontend run natively on host (not containerized in dev)
+
+**`docker-compose.yml`** — production with all four services:
+- backend, frontend, postgres, nginx as spec'd in CLAUDE.md
+- Backend and frontend each have a Dockerfile
+- Postgres with persistent volume + healthcheck
+- Nginx on ports 80/443
+
+**`docker-compose.test.yml`** — test environment:
+- Same as production but with separate `mealtime_test` database
+- No Nginx, ports exposed directly for test runners
+
+**Nginx (`nginx/nginx.conf`):**
+- `/api/` → proxy to `backend:8000`
+- `/` → serve frontend static build (or proxy to frontend container)
+- TLS termination config (placeholder, certs from `./certs/`)
+- HTTP → HTTPS redirect
+
+**Root files:**
+- `.env.example` — documented template with all required + optional env vars
+- `.gitignore` — Python (__pycache__, .venv, *.pyc), Node (node_modules, dist), .env, uploads, pgdata, certs
+
+**Verification:** `docker compose up --build` starts all services. Nginx serves frontend at `https://localhost`, health check passes at `https://localhost/api/v1/health`.
 
 ---
 
