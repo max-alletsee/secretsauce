@@ -333,10 +333,10 @@ The MVP includes:
 - Meal plan creation (manual + AI-assisted)
 - Meal plan execution logging (actual vs. planned, carryover creation)
 - Shopping list generation from meal plans
-- Export recipes as PDF
 - Admin dashboard (user management)
 
 Deferred from MVP:
+- Export recipes as PDF
 - Apple/Facebook OAuth (add after MVP)
 - Self-learning popularity/recommendation engine (track RecipeCookLog data from day one, build recommendations later)
 - Unit conversion (gram ↔ cups ↔ ounces)
