@@ -25,7 +25,7 @@ Greenfield build of a recipe management and meal planning web app. 19 tasks acro
 - `pyproject.toml` with grouped dependencies:
   - Core: fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, sqlmodel, alembic, pydantic-settings, httpx, python-multipart
   - Auth: fastapi-users[sqlalchemy], bcrypt, cryptography
-  - AI / OpenRouter: instructor, openai (used as OpenAI-compatible HTTP client for OpenRouter API)
+  - AI / OpenRouter: openrouter (native Python SDK, `uv add openrouter`)
   - Rate limiting: slowapi
   - Dev: ruff, mypy, pytest, pytest-cov, pytest-asyncio
 - `uv.lock` committed for reproducible installs
@@ -239,7 +239,7 @@ frontend/
 ### Task #9 — AI service setup and recipe import backend
 **Blocked by:** #7
 
-- Create `app/services/ai_service.py` — OpenRouter client via instructor library (AsyncOpenAI + instructor.from_openai, JSON mode)
+- Create `app/services/ai_service.py` — OpenRouter native client (`AsyncOpenRouter`) with a shared `call_ai_structured()` helper that uses `response_format` JSON schema + `model_validate_json()` for structured outputs
 - Create `app/schemas/ai_responses.py` — RecipeImportResponse Pydantic model (title, description, ingredients[], steps[], servings, prep_time, cook_time, waiting_time, tags, source)
 - Create `app/services/recipe_import.py`:
   - `process_url_import()` — fetch URL via httpx, extract content, AI call to parse, validate, create draft or mark needs_review

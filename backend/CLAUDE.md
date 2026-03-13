@@ -30,29 +30,38 @@ Use fastapi-users with JWT strategy:
 ## AI Integration
 
 ### Provider
-OpenRouter API via the `instructor` library with OpenAI-compatible client.
+OpenRouter native Python SDK (`openrouter` package, installed via `uv add openrouter`). Do NOT use the `openai` package or `instructor` library.
 
 ```python
-import instructor
-from openai import AsyncOpenAI
+from openrouter import AsyncOpenRouter
 
-client = instructor.from_openai(
-    AsyncOpenAI(base_url="https://openrouter.ai/api/v1", api_key=settings.OPENROUTER_API_KEY),
-    mode=instructor.Mode.JSON,
-)
+client = AsyncOpenRouter(api_key=settings.OPENROUTER_API_KEY)
 ```
 
 ### Structured Outputs
-All AI calls use Pydantic response models as `response_model` parameter. Define expected output schemas in `app/schemas/ai_responses.py`.
+All AI calls use OpenRouter's native `response_format` with JSON schema derived from Pydantic models. Define expected output schemas in `app/schemas/ai_responses.py`.
 
-When calling OpenRouter, always set `require_parameters=True` in the provider config to ensure the request routes only to providers that support structured outputs:
 ```python
-response = await client.create(
-    model="openai/gpt-4o",
-    response_model=RecipeImportResponse,
-    messages=[...],
-    extra_body={"provider": {"require_parameters": True}},
-)
+from openrouter import AsyncOpenRouter
+
+async def call_ai_structured(
+    messages: list[dict],
+    response_model: type[BaseModel],
+    model: str = settings.AI_MODEL,
+) -> BaseModel:
+    response = await client.chat.send_async(
+        model=model,
+        messages=messages,
+        response_format={
+            "type": "json_schema",
+            "json_schema": {
+                "name": response_model.__name__,
+                "schema": response_model.model_json_schema(),
+                "strict": True,
+            },
+        },
+    )
+    return response_model.model_validate_json(response.choices[0].message.content)
 ```
 
 ### Fallback and Error Handling
