@@ -1,0 +1,21 @@
+# docker-compose.dev.yml — Local development: Postgres only
+# Backend and frontend run natively on host.
+services:
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: mealtime
+      POSTGRES_PASSWORD: mealtime
+      POSTGRES_DB: mealtime
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "mealtime"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata_dev:
