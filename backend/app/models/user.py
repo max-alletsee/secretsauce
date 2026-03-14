@@ -1,8 +1,9 @@
 # backend/app/models/user.py
 import uuid
 from datetime import datetime, timezone
+from typing import Any, Literal
 
-from sqlalchemy import Column, DateTime, text
+from sqlalchemy import Column, DateTime, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -20,26 +21,29 @@ class User(SQLModel, table=True):
 
     # Profile fields
     display_name: str | None = Field(default=None, max_length=255)
-    dietary_restrictions: dict = Field(
+    dietary_restrictions: dict[str, Any] = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default=text("'{}'::jsonb")),
     )
-    allergies: dict = Field(
+    allergies: dict[str, Any] = Field(
         default_factory=dict,
         sa_column=Column(JSONB, nullable=False, server_default=text("'{}'::jsonb")),
     )
-    preferred_units: str = Field(default="metric")
-    favorite_cuisines: list = Field(
+    preferred_units: Literal["metric", "imperial"] = Field(
+        default="metric",
+        sa_column=Column(String(10), nullable=False, server_default="metric"),
+    )
+    favorite_cuisines: list[str] = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
-    disliked_ingredients: list = Field(
+    disliked_ingredients: list[str] = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
     default_servings: int = Field(default=2)
     meal_plan_system_prompt: str | None = Field(default=None)
-    auth_providers: list = Field(
+    auth_providers: list[dict[str, Any]] = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
@@ -49,5 +53,9 @@ class User(SQLModel, table=True):
     )
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True), nullable=False),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
