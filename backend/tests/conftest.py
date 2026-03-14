@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -5,6 +7,7 @@ from sqlmodel import SQLModel
 
 from app.main import app
 from app.api.deps import get_db
+from app.models import user as _user_models  # noqa: F401 — registers User table in SQLModel.metadata
 
 TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
 
@@ -36,3 +39,8 @@ async def client(db_engine):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+def unique_email(prefix: str = "test") -> str:
+    """Generate a unique email per call to avoid DB uniqueness conflicts across tests."""
+    return f"{prefix}+{uuid.uuid4().hex[:8]}@example.com"
