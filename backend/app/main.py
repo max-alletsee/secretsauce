@@ -1,10 +1,13 @@
+# backend/app/main.py
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
 from app.api.routes import health
+from app.api.routes.users import auth_router, users_router
+from app.core.config import settings
+from app.core.rate_limit import rate_limit_middleware
 
 
 @asynccontextmanager
@@ -18,6 +21,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Note: Starlette middleware runs in reverse declaration order (last declared = outermost).
+# rate_limit_middleware is declared last so it executes first on incoming requests.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -25,5 +30,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.middleware("http")(rate_limit_middleware)
 
 app.include_router(health.router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
