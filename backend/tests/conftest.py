@@ -7,6 +7,7 @@ from sqlmodel import SQLModel
 
 from app.main import app
 from app.api.deps import get_db
+from app.core import rate_limit as _rate_limit_module
 from app.models import user as _user_models  # noqa: F401 — registers User table in SQLModel.metadata
 
 TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
@@ -39,6 +40,12 @@ async def client(db_engine):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def clear_rate_limit_state():
+    """Reset in-memory rate-limit counters before every test to prevent test bleed-through."""
+    _rate_limit_module._auth_attempts.clear()
 
 
 def unique_email(prefix: str = "test") -> str:
