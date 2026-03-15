@@ -1,6 +1,9 @@
 # Worktrees
 .worktrees/
 
+# Superpowers brainstorming
+.superpowers/
+
 # Python
 __pycache__/
 *.pyc
