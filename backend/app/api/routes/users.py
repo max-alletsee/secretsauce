@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from httpx_oauth.clients.google import GoogleOAuth2
+from httpx_oauth.clients.google import GoogleOAuth2  # used in conditional Google OAuth block below
 
 from app.core.config import settings
 from app.core.security import (
@@ -25,17 +25,18 @@ auth_router.include_router(fastapi_users.get_reset_password_router())
 auth_router.include_router(fastapi_users.get_verify_router(UserRead))
 
 # Google OAuth — only registered when credentials are configured
-_google_oauth_client = GoogleOAuth2(
-    client_id=settings.GOOGLE_CLIENT_ID,
-    client_secret=settings.GOOGLE_CLIENT_SECRET,
-)
-
 if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
+    _google_oauth_client = GoogleOAuth2(
+        client_id=settings.GOOGLE_CLIENT_ID,
+        client_secret=settings.GOOGLE_CLIENT_SECRET,
+    )
     auth_router.include_router(
         fastapi_users.get_oauth_router(
             _google_oauth_client,
             auth_backend,
-            settings.SECRET_KEY,
+            # state_secret signs the OAuth CSRF state token.
+            # MVP: reuses SECRET_KEY for simplicity. Add GOOGLE_OAUTH_STATE_SECRET before launch.
+            settings.SECRET_KEY,  # state_secret
             associate_by_email=True,
             is_verified_by_default=True,
         ),
