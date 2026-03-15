@@ -1,7 +1,7 @@
 # backend/app/schemas/user.py
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi_users import schemas
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     display_name: str | None
     dietary_restrictions: dict[str, Any]
     allergies: dict[str, Any]
-    preferred_units: str
+    preferred_units: Literal["metric", "imperial"]
     favorite_cuisines: list[str]
     disliked_ingredients: list[str]
     default_servings: int
@@ -28,7 +28,7 @@ class UserUpdate(schemas.BaseUserUpdate):
     display_name: str | None = None
     dietary_restrictions: dict[str, Any] | None = None
     allergies: dict[str, Any] | None = None
-    preferred_units: str | None = None
+    preferred_units: Literal["metric", "imperial"] | None = None
     favorite_cuisines: list[str] | None = None
     disliked_ingredients: list[str] | None = None
     default_servings: int | None = None
