@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from httpx_oauth.clients.google import GoogleOAuth2
 
 from app.core.config import settings
 from app.core.security import (
@@ -22,6 +23,24 @@ auth_router.include_router(fastapi_users.get_auth_router(auth_backend), prefix="
 auth_router.include_router(fastapi_users.get_register_router(UserRead, UserCreate))
 auth_router.include_router(fastapi_users.get_reset_password_router())
 auth_router.include_router(fastapi_users.get_verify_router(UserRead))
+
+# Google OAuth — only registered when credentials are configured
+_google_oauth_client = GoogleOAuth2(
+    client_id=settings.GOOGLE_CLIENT_ID,
+    client_secret=settings.GOOGLE_CLIENT_SECRET,
+)
+
+if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
+    auth_router.include_router(
+        fastapi_users.get_oauth_router(
+            _google_oauth_client,
+            auth_backend,
+            settings.SECRET_KEY,
+            associate_by_email=True,
+            is_verified_by_default=True,
+        ),
+        prefix="/google",
+    )
 
 # get_users_router provides GET /me, PATCH /me, and superuser-only /{id} routes
 users_router = fastapi_users.get_users_router(UserRead, UserUpdate)

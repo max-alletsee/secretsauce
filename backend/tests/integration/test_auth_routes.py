@@ -119,3 +119,9 @@ async def test_refresh_with_invalid_token_fails(client):
         json={"refresh_token": "not-a-valid-token"},
     )
     assert response.status_code == 401
+
+
+async def test_google_oauth_routes_absent_without_credentials(client):
+    """Without GOOGLE_CLIENT_ID set, Google OAuth routes must not be registered."""
+    response = await client.get("/api/v1/auth/google/authorize")
+    assert response.status_code == 404

@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.135.1",
     "fastapi-users[sqlalchemy]>=15.0.4",
     "httpx>=0.28.1",
+    "httpx-oauth[google]>=0.16.1",
     "openrouter>=0.7.11",
     "pydantic-settings>=2.13.1",
     "python-multipart>=0.0.22",
