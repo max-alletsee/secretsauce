@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health
+from app.api.routes import health, recipes
 from app.api.routes.users import auth_router, users_router
 from app.core.config import settings
 from app.core.rate_limit import rate_limit_middleware
@@ -35,3 +35,4 @@ app.middleware("http")(rate_limit_middleware)
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
+app.include_router(recipes.router, prefix="/api/v1/recipes", tags=["recipes"])
