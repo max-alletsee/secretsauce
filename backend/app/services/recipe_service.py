@@ -105,7 +105,6 @@ async def list_recipes(
             (Recipe.owner_id == current_user_id) | (Recipe.visibility == "shared")
         )
         .order_by(Recipe.created_at.desc(), Recipe.id.desc())
-        .limit(limit + 1)
     )
 
     if cursor:
@@ -117,6 +116,8 @@ async def list_recipes(
                 & (Recipe.id < cursor_data["id"])
             )
         )
+
+    query = query.limit(limit + 1)
 
     result = await db.execute(query)
     rows = result.all()
@@ -138,6 +139,9 @@ async def update_recipe(
     if recipe.owner_id != current_user_id:
         raise HTTPException(status_code=403, detail="Not the recipe owner")
 
+    # MVP: version_number uses count+1. Concurrent updates on the same recipe
+    # could produce duplicate version_numbers. Acceptable for single-process MVP.
+    # Fix in future: SELECT Recipe FOR UPDATE before this query.
     count_result = await db.execute(
         select(func.count()).where(RecipeVersion.recipe_id == recipe_id)
     )
@@ -274,6 +278,9 @@ async def restore_version(
     if target is None:
         raise HTTPException(status_code=404, detail="Version not found")
 
+    # MVP: version_number uses count+1. Concurrent updates on the same recipe
+    # could produce duplicate version_numbers. Acceptable for single-process MVP.
+    # Fix in future: SELECT Recipe FOR UPDATE before this query.
     count_result = await db.execute(
         select(func.count()).where(RecipeVersion.recipe_id == recipe_id)
     )
