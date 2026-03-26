@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/github/mealtimeflow/.worktrees/phase0-scaffolding/backend && uv init --python 3.12 2>&1)",
+      "Bash(cd /c/github/mealtimeflow/backend && uv run python -c \"from fastapi_users.db import SQLAlchemyUserDatabase; print\\('SQLAlchemyUserDatabase: OK'\\)\" 2>&1)",
+      "Bash(docker info:*)",
+      "Bash(docker context:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(uv run:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

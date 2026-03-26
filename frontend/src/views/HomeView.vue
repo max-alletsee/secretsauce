@@ -19,7 +19,7 @@ onMounted(async () => {
 
 <template>
   <main>
-    <h1>Mealtime Flow</h1>
+    <h1>secretsauce.food</h1>
     <p v-if="status === 'loading'">Checking backend connection...</p>
     <p v-else-if="status === 'ok'">Backend: connected (db: {{ dbStatus }})</p>
     <p v-else>Backend: error (db: {{ dbStatus }})</p>

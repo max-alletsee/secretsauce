@@ -16,7 +16,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Mealtime Flow API",
+    title="secretsauce.food API",
     version="0.1.0",
     lifespan=lifespan,
 )

@@ -24,7 +24,7 @@
 - `pyproject.toml` with grouped dependencies:
   - **Core:** fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, sqlmodel, alembic, pydantic-settings, httpx, python-multipart
   - **Auth:** fastapi-users[sqlalchemy], bcrypt, cryptography
-  - **AI / OpenRouter:** instructor, openai (OpenAI-compatible client pointed at OpenRouter API)
+  - **AI / OpenRouter:** openrouter (native Python SDK, `uv add openrouter`; structured outputs via `response_format` JSON schema + Pydantic `model_validate_json()`)
   - **Rate limiting:** slowapi
   - **Dev:** ruff, mypy, pytest, pytest-cov, pytest-asyncio
 - `uv.lock` committed for reproducible installs
@@ -123,7 +123,7 @@ frontend/
 ### Compose files
 
 **`docker-compose.dev.yml`** — local development, Postgres only:
-- postgres:16 on port 5432, user/pass/db = mealtime
+- postgres:16 on port 5432, user/pass/db = secretsauce
 - Volume for data persistence, healthcheck with `pg_isready`
 - Backend and frontend run natively on host (not containerized in dev)
 
@@ -134,7 +134,7 @@ frontend/
 - Nginx on ports 80 and 443
 
 **`docker-compose.test.yml`** — test environment:
-- Same as production but with separate `mealtime_test` database
+- Same as production but with separate `secretsauce_test` database
 - No Nginx, ports exposed directly for test runners
 
 ### Nginx

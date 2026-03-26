@@ -6,13 +6,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: mealtime
-      POSTGRES_PASSWORD: mealtime
-      POSTGRES_DB: mealtime
+      POSTGRES_USER: secretsauce
+      POSTGRES_PASSWORD: secretsauce
+      POSTGRES_DB: secretsauce
     volumes:
       - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "mealtime"]
+      test: ["CMD", "pg_isready", "-U", "secretsauce"]
       interval: 5s
       timeout: 5s
       retries: 5

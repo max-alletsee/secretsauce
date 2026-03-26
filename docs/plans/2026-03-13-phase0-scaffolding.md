@@ -117,7 +117,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     OPENROUTER_API_KEY: str
-    UPLOAD_DIR: str = "/tmp/mealtime-uploads"
+    UPLOAD_DIR: str = "/tmp/secretsauce-uploads"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     # Optional with defaults
@@ -239,10 +239,10 @@ Expected: `OK` (will fail if DATABASE_URL missing — create a `.env` first):
 
 ```bash
 # backend/.env (for local dev)
-echo 'DATABASE_URL=postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime
+echo 'DATABASE_URL=postgresql+asyncpg://secretsauce:secretsauce@localhost:5432/secretsauce
 SECRET_KEY=dev-secret-key-change-in-production
 OPENROUTER_API_KEY=sk-or-placeholder
-UPLOAD_DIR=/tmp/mealtime-uploads
+UPLOAD_DIR=/tmp/secretsauce-uploads
 CORS_ORIGINS=["http://localhost:5173"]' > backend/.env
 ```
 
@@ -308,7 +308,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Mealtime Flow API",
+    title="secretsauce.food API",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -328,10 +328,10 @@ app.include_router(health.router, prefix="/api/v1")
 
 ```bash
 # Temporary: start Postgres directly for testing
-docker run -d --name mealtime-pg \
-  -e POSTGRES_USER=mealtime \
-  -e POSTGRES_PASSWORD=mealtime \
-  -e POSTGRES_DB=mealtime \
+docker run -d --name secretsauce-pg \
+  -e POSTGRES_USER=secretsauce \
+  -e POSTGRES_PASSWORD=secretsauce \
+  -e POSTGRES_DB=secretsauce \
   -p 5432:5432 \
   postgres:16
 ```
@@ -379,7 +379,7 @@ from sqlmodel import SQLModel
 from app.main import app
 from app.api.deps import get_db
 
-TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
+TEST_DATABASE_URL = "postgresql+asyncpg://secretsauce:secretsauce@localhost:5432/secretsauce_test"
 
 test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 test_session_factory = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
@@ -443,19 +443,19 @@ async def test_health_returns_ok_when_db_connected(client):
     assert data["db"] == "connected"
 ```
 
-**Step 4: Run test to verify it fails (before mealtime_test db exists)**
+**Step 4: Run test to verify it fails (before secretsauce_test db exists)**
 
 ```bash
 cd backend
 uv run pytest tests/test_health.py -v
 ```
 
-Expected: FAIL or connection error (mealtime_test DB doesn't exist yet).
+Expected: FAIL or connection error (secretsauce_test DB doesn't exist yet).
 
 **Step 5: Create test database**
 
 ```bash
-docker exec mealtime-pg psql -U mealtime -c "CREATE DATABASE mealtime_test;"
+docker exec secretsauce-pg psql -U secretsauce -c "CREATE DATABASE secretsauce_test;"
 ```
 
 **Step 6: Run test to verify it passes**
@@ -618,7 +618,7 @@ CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "800
 
 ```bash
 cd backend
-docker build -t mealtime-backend .
+docker build -t secretsauce-backend .
 ```
 
 Expected: Build succeeds.
@@ -819,7 +819,7 @@ onMounted(async () => {
 
 <template>
   <main>
-    <h1>Mealtime Flow</h1>
+    <h1>secretsauce.food</h1>
     <p v-if="status === 'loading'">Checking backend connection...</p>
     <p v-else-if="status === 'ok'">Backend: connected (db: {{ dbStatus }})</p>
     <p v-else>Backend: error (db: {{ dbStatus }})</p>
@@ -961,7 +961,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 ```bash
 cd frontend
-docker build -t mealtime-frontend .
+docker build -t secretsauce-frontend .
 ```
 
 Expected: Build succeeds.
@@ -996,13 +996,13 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: mealtime
-      POSTGRES_PASSWORD: mealtime
-      POSTGRES_DB: mealtime
+      POSTGRES_USER: secretsauce
+      POSTGRES_PASSWORD: secretsauce
+      POSTGRES_DB: secretsauce
     volumes:
       - pgdata_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "mealtime"]
+      test: ["CMD", "pg_isready", "-U", "secretsauce"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -1083,13 +1083,13 @@ services:
     image: postgres:16
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mealtime}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mealtime}
-      POSTGRES_DB: ${POSTGRES_DB:-mealtime}
+      POSTGRES_USER: ${POSTGRES_USER:-secretsauce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretsauce}
+      POSTGRES_DB: ${POSTGRES_DB:-secretsauce}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-mealtime}"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-secretsauce}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -1121,10 +1121,10 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://mealtime:mealtime@postgres_test:5432/mealtime_test
+      DATABASE_URL: postgresql+asyncpg://secretsauce:secretsauce@postgres_test:5432/secretsauce_test
       SECRET_KEY: test-secret-key
       OPENROUTER_API_KEY: sk-or-test-placeholder
-      UPLOAD_DIR: /tmp/mealtime-uploads
+      UPLOAD_DIR: /tmp/secretsauce-uploads
       CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
       - "8000:8000"
@@ -1135,13 +1135,13 @@ services:
   postgres_test:
     image: postgres:16
     environment:
-      POSTGRES_USER: mealtime
-      POSTGRES_PASSWORD: mealtime
-      POSTGRES_DB: mealtime_test
+      POSTGRES_USER: secretsauce
+      POSTGRES_PASSWORD: secretsauce
+      POSTGRES_DB: secretsauce_test
     ports:
       - "5433:5432"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "mealtime"]
+      test: ["CMD", "pg_isready", "-U", "secretsauce"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -1156,16 +1156,16 @@ volumes:
 # .env.example — Copy to .env and fill in values
 
 # Required
-DATABASE_URL=postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime
+DATABASE_URL=postgresql+asyncpg://secretsauce:secretsauce@localhost:5432/secretsauce
 SECRET_KEY=change-me-to-a-random-32-byte-hex-string
 OPENROUTER_API_KEY=sk-or-your-key-here
-UPLOAD_DIR=/tmp/mealtime-uploads
+UPLOAD_DIR=/tmp/secretsauce-uploads
 CORS_ORIGINS=["http://localhost:5173"]
 
 # Postgres (used by docker-compose.yml)
-POSTGRES_USER=mealtime
-POSTGRES_PASSWORD=mealtime
-POSTGRES_DB=mealtime
+POSTGRES_USER=secretsauce
+POSTGRES_PASSWORD=secretsauce
+POSTGRES_DB=secretsauce
 
 # Google OAuth (required for Phase 1)
 # GOOGLE_CLIENT_ID=your-client-id
@@ -1208,7 +1208,7 @@ frontend/.vite/
 pgdata/
 
 # Uploads
-/tmp/mealtime-uploads/
+/tmp/secretsauce-uploads/
 
 # TLS certs
 certs/
@@ -1225,7 +1225,7 @@ Thumbs.db
 **Step 7: Stop the temporary Postgres container from Task 3 and start via dev compose**
 
 ```bash
-docker stop mealtime-pg && docker rm mealtime-pg
+docker stop secretsauce-pg && docker rm secretsauce-pg
 docker compose -f docker-compose.dev.yml up -d
 ```
 

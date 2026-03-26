@@ -1,4 +1,4 @@
-# Mealtime Flow — MVP Implementation Plan
+# secretsauce.food — MVP Implementation Plan
 
 ## Overview
 
@@ -120,7 +120,7 @@ frontend/
 **Three compose files:**
 
 **`docker-compose.dev.yml`** — local development, Postgres only:
-- postgres:16 on port 5432, user/pass/db = mealtime
+- postgres:16 on port 5432, user/pass/db = secretsauce
 - Volume for data persistence, healthcheck with pg_isready
 - Backend + frontend run natively on host (not containerized in dev)
 
@@ -131,7 +131,7 @@ frontend/
 - Nginx on ports 80/443
 
 **`docker-compose.test.yml`** — test environment:
-- Same as production but with separate `mealtime_test` database
+- Same as production but with separate `secretsauce_test` database
 - No Nginx, ports exposed directly for test runners
 
 **Nginx (`nginx/nginx.conf`):**
@@ -201,7 +201,7 @@ frontend/
   - `delete_recipe()` — owner only
   - `list_recipes()` — cursor-based pagination with owner filter
   - `get_versions()` — list all versions of a recipe
-  - `restore_version()` — set current_version_id to a previous version
+  - `restore_version()` — create new RecipeVersion copying target version's content, update current_version_id (append-only history)
 - Create `app/api/routes/recipes.py`:
   - `GET /api/v1/recipes` (list, paginated)
   - `POST /api/v1/recipes` (create)

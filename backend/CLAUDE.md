@@ -78,7 +78,7 @@ async def call_ai_structured(
 5. Validation: check all required fields are present and sensible (e.g., prep_time > 0, ingredients list non-empty).
 6. If valid, create recipe in draft state. User reviews and confirms.
 7. If invalid or AI extraction fails, mark as `needs_review` with the partial data and raw source.
-8. Uploaded images are stored temporarily in `UPLOAD_DIR` (configured via env var, default `/tmp/mealtime-uploads/`). A daily cleanup task deletes files older than 24 hours. Only the resulting database entry is kept.
+8. Uploaded images are stored temporarily in `UPLOAD_DIR` (configured via env var, default `/tmp/secretsauce-uploads/`). A daily cleanup task deletes files older than 24 hours. Only the resulting database entry is kept.
 
 ### Meal Plan Generation
 1. Build system prompt from: user preferences (dietary restrictions, allergies, cuisines, disliked ingredients, default servings), the user's custom `meal_plan_system_prompt`, and unresolved carryover meals.

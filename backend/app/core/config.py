@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     SECRET_KEY: str
     OPENROUTER_API_KEY: str
-    UPLOAD_DIR: str = "/tmp/mealtime-uploads"
+    UPLOAD_DIR: str = "/tmp/secretsauce-uploads"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     # Optional with defaults

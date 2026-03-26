@@ -21,13 +21,13 @@ services:
     image: postgres:16
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mealtime}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mealtime}
-      POSTGRES_DB: ${POSTGRES_DB:-mealtime}
+      POSTGRES_USER: ${POSTGRES_USER:-secretsauce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretsauce}
+      POSTGRES_DB: ${POSTGRES_DB:-secretsauce}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-mealtime}"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-secretsauce}"]
       interval: 10s
       timeout: 5s
       retries: 5

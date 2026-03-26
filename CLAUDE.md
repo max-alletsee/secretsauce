@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mealtime Flow is a recipe management and meal planning web application. Users can import recipes, maintain a recipe collection, and get AI-assisted meal plans. Target users are friends and family — enthusiastic home cooks and busy families planning weekly meals, frequently using phones alongside cookbooks.
+secretsauce.food is a recipe management and meal planning web application. Users can import recipes, maintain a recipe collection, and get AI-assisted meal plans. Target users are friends and family — enthusiastic home cooks and busy families planning weekly meals, frequently using phones alongside cookbooks.
 
 ## Tech Stack
 
@@ -85,7 +85,7 @@ npx playwright test e2e/recipes.spec.ts
 ## Project Structure
 
 ```
-mealtime-flow/
+secretsauce.food/
 ├── backend/
 │   ├── app/
 │   │   ├── api/
@@ -237,10 +237,10 @@ All configuration via environment variables, loaded through Pydantic Settings in
 
 Required env vars:
 ```
-DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/mealtime
+DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/secretsauce
 SECRET_KEY=<random-32-byte-hex>
 OPENROUTER_API_KEY=<key>
-UPLOAD_DIR=/tmp/mealtime-uploads
+UPLOAD_DIR=/tmp/secretsauce-uploads
 CORS_ORIGINS=["http://localhost:5173"]
 ```
 
@@ -282,7 +282,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-LINE", "pg_isready -U mealtime"]
+      test: ["CMD-LINE", "pg_isready -U secretsauce"]
       interval: 10s
       retries: 5
     restart: unless-stopped
