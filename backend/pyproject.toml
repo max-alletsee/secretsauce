@@ -38,6 +38,13 @@ asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 
+[tool.coverage.run]
+concurrency = ["thread", "greenlet"]
+source = ["app"]
+
+[tool.coverage.report]
+omit = ["*/tests/*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
