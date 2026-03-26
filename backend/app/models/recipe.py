@@ -3,8 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-import sqlalchemy as sa
-from sqlalchemy import Column, DateTime, ForeignKey, Index, String, text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Uuid, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -19,7 +18,7 @@ class Recipe(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID = Field(
         sa_column=Column(
-            sa.Uuid(),
+            Uuid(),
             ForeignKey("users.id", name="fk_recipes_owner_id"),
             nullable=False,
             index=True,
@@ -27,12 +26,10 @@ class Recipe(SQLModel, table=True):
     )
     # use_alter=True breaks the circular FK between recipes ↔ recipe_versions.
     # Alembic emits this as a separate CREATE CONSTRAINT after both tables exist.
-    # NOTE: async sessions using session.execute(update(...)) do NOT fire onupdate.
-    # Always set updated_at explicitly in service layer on every write.
     current_version_id: uuid.UUID | None = Field(
         default=None,
         sa_column=Column(
-            sa.Uuid(),
+            Uuid(),
             ForeignKey(
                 "recipe_versions.id",
                 use_alter=True,
@@ -49,6 +46,8 @@ class Recipe(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
+    # NOTE: async sessions using session.execute(update(...)) do NOT fire onupdate.
+    # Always set updated_at explicitly in the service layer on every write.
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(
@@ -69,11 +68,15 @@ class RecipeVersion(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     recipe_id: uuid.UUID = Field(
         sa_column=Column(
-            sa.Uuid(),
+            Uuid(),
             ForeignKey("recipes.id", name="fk_recipe_versions_recipe_id"),
             nullable=False,
         )
     )
+    # version_number is assigned sequentially by the service layer within a transaction.
+    # No DB-level unique constraint — the service's count+1 pattern is sufficient for MVP
+    # single-process deployment. Add a UniqueConstraint("recipe_id", "version_number") if
+    # concurrent writes become a concern.
     version_number: int = Field(default=1)
     title: str = Field(max_length=500)
     description: str | None = Field(default=None)
@@ -95,7 +98,7 @@ class RecipeVersion(SQLModel, table=True):
     )
     recipe_source: dict[str, Any] | None = Field(
         default=None,
-        sa_column=Column(JSONB, nullable=True),
+        sa_column=Column(JSONB),
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
@@ -103,7 +106,7 @@ class RecipeVersion(SQLModel, table=True):
     )
     created_by: uuid.UUID = Field(
         sa_column=Column(
-            sa.Uuid(),
+            Uuid(),
             ForeignKey("users.id", name="fk_recipe_versions_created_by"),
             nullable=False,
         )
