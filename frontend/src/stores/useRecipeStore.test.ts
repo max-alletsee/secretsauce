@@ -175,6 +175,18 @@ describe('useRecipeStore', () => {
     expect(recipesApi.deleteRecipe).toHaveBeenCalledWith('r1')
   })
 
+  it('deleteRecipe clears currentRecipe if it was the deleted recipe', async () => {
+    vi.mocked(recipesApi.deleteRecipe).mockResolvedValueOnce({} as any)
+
+    const store = useRecipeStore()
+    store.currentRecipe = mockRecipe
+    store.recipes = [mockRecipe]
+
+    await store.deleteRecipe('r1')
+
+    expect(store.currentRecipe).toBeNull()
+  })
+
   it('fetchVersions populates versions list', async () => {
     const v2 = { ...mockVersion, id: 'v2', version_number: 2, title: 'Updated' }
     vi.mocked(recipesApi.getVersions).mockResolvedValueOnce({

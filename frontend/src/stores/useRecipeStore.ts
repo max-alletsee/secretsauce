@@ -53,29 +53,55 @@ export const useRecipeStore = defineStore('recipes', () => {
   }
 
   async function createRecipe(payload: RecipeCreatePayload): Promise<Recipe> {
-    const { data } = await recipesApi.createRecipe(payload)
-    return data
+    loading.value = true
+    try {
+      const { data } = await recipesApi.createRecipe(payload)
+      return data
+    } finally {
+      loading.value = false
+    }
   }
 
   async function updateRecipe(id: string, payload: RecipeUpdatePayload) {
-    const { data } = await recipesApi.updateRecipe(id, payload)
-    currentRecipe.value = data
+    loading.value = true
+    try {
+      const { data } = await recipesApi.updateRecipe(id, payload)
+      currentRecipe.value = data
+    } finally {
+      loading.value = false
+    }
   }
 
   async function deleteRecipe(id: string) {
-    await recipesApi.deleteRecipe(id)
-    recipes.value = recipes.value.filter((r) => r.id !== id)
+    loading.value = true
+    try {
+      await recipesApi.deleteRecipe(id)
+      recipes.value = recipes.value.filter((r) => r.id !== id)
+      if (currentRecipe.value?.id === id) currentRecipe.value = null
+    } finally {
+      loading.value = false
+    }
   }
 
   async function fetchVersions(id: string) {
-    const { data } = await recipesApi.getVersions(id)
-    versions.value = data
+    loading.value = true
+    try {
+      const { data } = await recipesApi.getVersions(id)
+      versions.value = data
+    } finally {
+      loading.value = false
+    }
   }
 
   async function restoreVersion(recipeId: string, versionId: string) {
-    const { data } = await recipesApi.restoreVersion(recipeId, versionId)
-    currentRecipe.value = data
-    await fetchVersions(recipeId)
+    loading.value = true
+    try {
+      const { data } = await recipesApi.restoreVersion(recipeId, versionId)
+      currentRecipe.value = data
+      await fetchVersions(recipeId)
+    } finally {
+      loading.value = false
+    }
   }
 
   return {
