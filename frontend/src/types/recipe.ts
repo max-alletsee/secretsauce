@@ -2,6 +2,8 @@
 
 export interface Ingredient {
   name: string
+  // Stored as a freeform string (e.g. "1½", "2-3"). Phase 7 shopping list
+  // aggregation will need to parse/normalize this for summing quantities.
   quantity: string
   unit: string | null
 }
@@ -35,6 +37,9 @@ export interface RecipeVersion {
   recipe_source: RecipeSource | null
   created_at: string
   created_by: string
+  // TODO: created_by_display_name is not yet returned by the backend
+  // (backend/app/schemas/recipe.py RecipeVersionResponse). Once added server-side,
+  // add it here and update VersionHistoryPanel to display it.
 }
 
 export interface Recipe {

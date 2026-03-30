@@ -5,6 +5,7 @@ import type { Ingredient, Step, RecipeCreatePayload } from '@/types/recipe'
 import TagSelector from './TagSelector.vue'
 import IngredientDrawer from './IngredientDrawer.vue'
 import StepDrawer from './StepDrawer.vue'
+import { formatIngredient } from '@/composables/useFormatIngredient'
 
 const props = withDefaults(
   defineProps<{
@@ -127,13 +128,6 @@ function submit() {
   })
 }
 
-function formatIngredient(ing: Ingredient): string {
-  const parts: string[] = []
-  if (ing.quantity) parts.push(ing.quantity)
-  if (ing.unit) parts.push(ing.unit)
-  parts.push(ing.name)
-  return parts.join(' ')
-}
 </script>
 
 <template>
@@ -196,7 +190,7 @@ function formatIngredient(ing: Ingredient): string {
           class="recipe-form__list-item"
           @click="openStepDrawer(i)"
         >
-          {{ step.instruction.length > 80 ? step.instruction.slice(0, 80) + '…' : step.instruction }}
+          Step {{ i + 1 }}: {{ step.instruction.length > 60 ? step.instruction.slice(0, 60) + '…' : step.instruction }}
         </li>
       </ol>
       <p v-else class="recipe-form__empty">No steps yet.</p>

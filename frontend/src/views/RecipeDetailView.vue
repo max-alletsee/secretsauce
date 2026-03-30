@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel.vue'
+import { formatIngredient } from '@/composables/useFormatIngredient'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,19 +14,33 @@ const userStore = useUserStore()
 
 const error = ref('')
 const deleting = ref(false)
+const isNotFound = ref(false)
 
 const recipe = computed(() => recipeStore.currentRecipe)
 const isOwner = computed(() => recipe.value?.owner_id === userStore.user?.id)
 
-onMounted(async () => {
+async function loadRecipe() {
+  error.value = ''
+  isNotFound.value = false
   try {
     await recipeStore.fetchRecipe(route.params.id as string)
     await recipeStore.fetchVersions(route.params.id as string)
   } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } }).response?.status
-    error.value = status === 404 ? 'Recipe not found.' : 'Failed to load recipe.'
+    if (e && typeof e === 'object' && 'response' in e) {
+      const response = (e as { response?: { status?: number } }).response
+      if (response?.status === 404) {
+        isNotFound.value = true
+        error.value = 'Recipe not found.'
+      } else {
+        error.value = 'Failed to load recipe.'
+      }
+    } else {
+      error.value = 'Failed to load recipe.'
+    }
   }
-})
+}
+
+onMounted(loadRecipe)
 
 async function handleDelete() {
   if (!recipe.value || !confirm('Delete this recipe? This cannot be undone.')) return
@@ -48,20 +63,18 @@ async function handleRestore(versionId: string) {
   }
 }
 
-function formatIngredient(ing: { name: string; quantity: string; unit: string | null }): string {
-  const parts: string[] = []
-  if (ing.quantity) parts.push(ing.quantity)
-  if (ing.unit) parts.push(ing.unit)
-  parts.push(ing.name)
-  return parts.join(' ')
-}
 </script>
 
 <template>
   <main class="recipe-detail">
     <div v-if="error" class="recipe-detail__error">
       <p>{{ error }}</p>
-      <RouterLink to="/recipes">Back to recipes</RouterLink>
+      <div class="recipe-detail__error-actions">
+        <button v-if="!isNotFound" type="button" class="btn btn--secondary" @click="loadRecipe">
+          Try again
+        </button>
+        <RouterLink to="/recipes">Back to recipes</RouterLink>
+      </div>
     </div>
 
     <div v-else-if="recipeStore.loading && !recipe" class="recipe-detail__loading">
@@ -157,6 +170,13 @@ function formatIngredient(ing: { name: string; quantity: string; unit: string | 
   display: inline-block;
   margin-top: 1rem;
   color: #2563eb;
+}
+.recipe-detail__error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+  align-items: center;
 }
 .recipe-detail__loading {
   text-align: center;
