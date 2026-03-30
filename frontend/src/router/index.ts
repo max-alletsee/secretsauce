@@ -1,7 +1,6 @@
 // frontend/src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
-import HomeView from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,17 +22,33 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
-      // Placeholder — replaced with RecipeListView in Phase 2
       path: '/recipes',
       name: 'recipes',
-      component: HomeView,
+      component: () => import('@/views/RecipeListView.vue'),
       meta: { requiresAuth: true },
     },
     {
-      // Placeholder — replaced with AdminView in Phase 8
+      path: '/recipes/new',
+      name: 'recipe-create',
+      component: () => import('@/views/RecipeCreateView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/recipes/:id',
+      name: 'recipe-detail',
+      component: () => import('@/views/RecipeDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/recipes/:id/edit',
+      name: 'recipe-edit',
+      component: () => import('@/views/RecipeEditView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/admin',
       name: 'admin',
-      component: HomeView,
+      component: () => import('@/views/HomeView.vue'),
       meta: { requiresAuth: true, requiresSuperuser: true },
     },
   ],
