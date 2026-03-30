@@ -1,0 +1,29 @@
+import client from './client'
+import type {
+  Recipe,
+  RecipeCreatePayload,
+  RecipeUpdatePayload,
+  RecipeVersion,
+  PaginatedResponse,
+} from '@/types/recipe'
+
+export const getRecipes = (cursor?: string) =>
+  client.get<PaginatedResponse<Recipe>>('/recipes', { params: { cursor } })
+
+export const getRecipe = (id: string) =>
+  client.get<Recipe>(`/recipes/${id}`)
+
+export const createRecipe = (data: RecipeCreatePayload) =>
+  client.post<Recipe>('/recipes', data)
+
+export const updateRecipe = (id: string, data: RecipeUpdatePayload) =>
+  client.patch<Recipe>(`/recipes/${id}`, data)
+
+export const deleteRecipe = (id: string) =>
+  client.delete(`/recipes/${id}`)
+
+export const getVersions = (id: string) =>
+  client.get<RecipeVersion[]>(`/recipes/${id}/versions`)
+
+export const restoreVersion = (id: string, versionId: string) =>
+  client.post<Recipe>(`/recipes/${id}/versions/${versionId}/restore`)
