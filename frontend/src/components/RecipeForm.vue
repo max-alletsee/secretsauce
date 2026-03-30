@@ -39,8 +39,8 @@ watchEffect(() => {
   prepTime.value = d.prep_time_minutes ?? undefined
   waitingTime.value = d.waiting_time_minutes ?? undefined
   cookTime.value = d.cook_time_minutes ?? undefined
-  ingredients.value = d.ingredients ? [...d.ingredients] : []
-  steps.value = d.steps ? [...d.steps] : []
+  ingredients.value = d.ingredients ? structuredClone(d.ingredients) : []
+  steps.value = d.steps ? structuredClone(d.steps) : []
   tags.value = d.tags ? [...d.tags] : []
   visibility.value = d.visibility ?? 'private'
 })
