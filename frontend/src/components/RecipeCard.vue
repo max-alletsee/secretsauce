@@ -1,5 +1,6 @@
 <!-- frontend/src/components/RecipeCard.vue -->
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Recipe } from '@/types/recipe'
 
 const props = defineProps<{
@@ -7,8 +8,8 @@ const props = defineProps<{
 }>()
 
 const MAX_VISIBLE_TAGS = 3
-const visibleTags = props.recipe.current_version.tags.slice(0, MAX_VISIBLE_TAGS)
-const extraTagCount = Math.max(0, props.recipe.current_version.tags.length - MAX_VISIBLE_TAGS)
+const visibleTags = computed(() => props.recipe.current_version.tags.slice(0, MAX_VISIBLE_TAGS))
+const extraTagCount = computed(() => Math.max(0, props.recipe.current_version.tags.length - MAX_VISIBLE_TAGS))
 </script>
 
 <template>
