@@ -1,6 +1,13 @@
 // frontend/src/stores/useRecipeStore.test.ts
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AxiosResponse } from 'axios'
+import type { Recipe, RecipeVersion } from '@/types/recipe'
+import type { PaginatedResponse } from '@/types/common'
+
+function axiosOk<T>(data: T): AxiosResponse<T> {
+  return { data } as unknown as AxiosResponse<T>
+}
 
 vi.mock('@/api/recipes', () => ({
   getRecipes: vi.fn(),
@@ -15,7 +22,7 @@ vi.mock('@/api/recipes', () => ({
 import * as recipesApi from '@/api/recipes'
 import { useRecipeStore } from './useRecipeStore'
 
-const mockVersion = {
+const mockVersion: RecipeVersion = {
   id: 'v1',
   recipe_id: 'r1',
   version_number: 1,
@@ -34,10 +41,10 @@ const mockVersion = {
   created_by: 'u1',
 }
 
-const mockRecipe = {
+const mockRecipe: Recipe = {
   id: 'r1',
   owner_id: 'u1',
-  visibility: 'private' as const,
+  visibility: 'private',
   current_version: mockVersion,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -60,9 +67,9 @@ describe('useRecipeStore', () => {
   })
 
   it('fetchRecipes populates recipes and pagination state', async () => {
-    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce({
-      data: { items: [mockRecipe], next_cursor: 'abc', has_more: true },
-    } as any)
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [mockRecipe], next_cursor: 'abc', has_more: true }),
+    )
 
     const store = useRecipeStore()
     await store.fetchRecipes()
@@ -74,9 +81,9 @@ describe('useRecipeStore', () => {
   })
 
   it('fetchRecipes resets state on fresh load', async () => {
-    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce({
-      data: { items: [mockRecipe], next_cursor: null, has_more: false },
-    } as any)
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [mockRecipe], next_cursor: null, has_more: false }),
+    )
 
     const store = useRecipeStore()
     store.recipes = [mockRecipe, mockRecipe]
@@ -91,9 +98,9 @@ describe('useRecipeStore', () => {
 
   it('loadMore appends to existing recipes', async () => {
     const secondRecipe = { ...mockRecipe, id: 'r2' }
-    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce({
-      data: { items: [secondRecipe], next_cursor: null, has_more: false },
-    } as any)
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [secondRecipe], next_cursor: null, has_more: false }),
+    )
 
     const store = useRecipeStore()
     store.recipes = [mockRecipe]
@@ -117,9 +124,7 @@ describe('useRecipeStore', () => {
   })
 
   it('fetchRecipe loads a single recipe into currentRecipe', async () => {
-    vi.mocked(recipesApi.getRecipe).mockResolvedValueOnce({
-      data: mockRecipe,
-    } as any)
+    vi.mocked(recipesApi.getRecipe).mockResolvedValueOnce(axiosOk<Recipe>(mockRecipe))
 
     const store = useRecipeStore()
     await store.fetchRecipe('r1')
@@ -129,9 +134,7 @@ describe('useRecipeStore', () => {
   })
 
   it('createRecipe calls API and returns the created recipe', async () => {
-    vi.mocked(recipesApi.createRecipe).mockResolvedValueOnce({
-      data: mockRecipe,
-    } as any)
+    vi.mocked(recipesApi.createRecipe).mockResolvedValueOnce(axiosOk<Recipe>(mockRecipe))
 
     const store = useRecipeStore()
     const payload = {
@@ -150,9 +153,7 @@ describe('useRecipeStore', () => {
       ...mockRecipe,
       current_version: { ...mockVersion, title: 'Updated Title', version_number: 2 },
     }
-    vi.mocked(recipesApi.updateRecipe).mockResolvedValueOnce({
-      data: updated,
-    } as any)
+    vi.mocked(recipesApi.updateRecipe).mockResolvedValueOnce(axiosOk<Recipe>(updated))
 
     const store = useRecipeStore()
     store.currentRecipe = mockRecipe
@@ -163,7 +164,7 @@ describe('useRecipeStore', () => {
   })
 
   it('deleteRecipe calls API and removes recipe from local list', async () => {
-    vi.mocked(recipesApi.deleteRecipe).mockResolvedValueOnce({} as any)
+    vi.mocked(recipesApi.deleteRecipe).mockResolvedValueOnce(axiosOk<unknown>(null))
 
     const store = useRecipeStore()
     store.recipes = [mockRecipe, { ...mockRecipe, id: 'r2' }]
@@ -176,7 +177,7 @@ describe('useRecipeStore', () => {
   })
 
   it('deleteRecipe clears currentRecipe if it was the deleted recipe', async () => {
-    vi.mocked(recipesApi.deleteRecipe).mockResolvedValueOnce({} as any)
+    vi.mocked(recipesApi.deleteRecipe).mockResolvedValueOnce(axiosOk<unknown>(null))
 
     const store = useRecipeStore()
     store.currentRecipe = mockRecipe
@@ -189,9 +190,7 @@ describe('useRecipeStore', () => {
 
   it('fetchVersions populates versions list', async () => {
     const v2 = { ...mockVersion, id: 'v2', version_number: 2, title: 'Updated' }
-    vi.mocked(recipesApi.getVersions).mockResolvedValueOnce({
-      data: [v2, mockVersion],
-    } as any)
+    vi.mocked(recipesApi.getVersions).mockResolvedValueOnce(axiosOk<RecipeVersion[]>([v2, mockVersion]))
 
     const store = useRecipeStore()
     await store.fetchVersions('r1')
@@ -205,12 +204,10 @@ describe('useRecipeStore', () => {
       ...mockRecipe,
       current_version: { ...mockVersion, id: 'v3', version_number: 3 },
     }
-    vi.mocked(recipesApi.restoreVersion).mockResolvedValueOnce({
-      data: restored,
-    } as any)
-    vi.mocked(recipesApi.getVersions).mockResolvedValueOnce({
-      data: [restored.current_version, mockVersion],
-    } as any)
+    vi.mocked(recipesApi.restoreVersion).mockResolvedValueOnce(axiosOk<Recipe>(restored))
+    vi.mocked(recipesApi.getVersions).mockResolvedValueOnce(
+      axiosOk<RecipeVersion[]>([restored.current_version, mockVersion]),
+    )
 
     const store = useRecipeStore()
     store.currentRecipe = mockRecipe

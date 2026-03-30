@@ -21,8 +21,9 @@ onMounted(async () => {
   try {
     await recipeStore.fetchRecipe(route.params.id as string)
     await recipeStore.fetchVersions(route.params.id as string)
-  } catch (e: any) {
-    error.value = e.response?.status === 404 ? 'Recipe not found.' : 'Failed to load recipe.'
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } }).response?.status
+    error.value = status === 404 ? 'Recipe not found.' : 'Failed to load recipe.'
   }
 })
 
