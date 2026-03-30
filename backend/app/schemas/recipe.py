@@ -79,7 +79,6 @@ class RecipeVersionResponse(BaseModel):
     tags: list[str]
     recipe_source: RecipeSource | None
     created_at: datetime
-    created_by: uuid.UUID
 
     @computed_field  # type: ignore[misc]
     @property

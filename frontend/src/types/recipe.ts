@@ -36,10 +36,6 @@ export interface RecipeVersion {
   tags: string[]
   recipe_source: RecipeSource | null
   created_at: string
-  created_by: string
-  // TODO: created_by_display_name is not yet returned by the backend
-  // (backend/app/schemas/recipe.py RecipeVersionResponse). Once added server-side,
-  // add it here and update VersionHistoryPanel to display it.
 }
 
 export interface Recipe {

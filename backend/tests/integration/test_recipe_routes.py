@@ -1,4 +1,6 @@
 # backend/tests/integration/test_recipe_routes.py
+import uuid
+
 from tests.conftest import unique_email
 
 
@@ -86,14 +88,12 @@ async def test_get_recipe(client):
 
 
 async def test_get_recipe_requires_auth(client):
-    import uuid
     r = await client.get(f"/api/v1/recipes/{uuid.uuid4()}")
     assert r.status_code == 401
 
 
 async def test_get_recipe_not_found(client):
     token = await _auth_token(client)
-    import uuid
     r = await client.get(f"/api/v1/recipes/{uuid.uuid4()}", headers=_auth(token))
     assert r.status_code == 404
 
@@ -267,7 +267,6 @@ async def test_delete_by_non_owner_returns_403(client):
 
 async def test_delete_nonexistent_recipe_returns_404(client):
     token = await _auth_token(client)
-    import uuid
     r = await client.delete(f"/api/v1/recipes/{uuid.uuid4()}", headers=_auth(token))
     assert r.status_code == 404
 
@@ -339,7 +338,6 @@ async def test_restore_nonexistent_version_returns_404(client):
         "/api/v1/recipes", json={"title": "Recipe"}, headers=_auth(token)
     )
     recipe_id = create.json()["id"]
-    import uuid
     r = await client.post(
         f"/api/v1/recipes/{recipe_id}/versions/{uuid.uuid4()}/restore",
         headers=_auth(token),

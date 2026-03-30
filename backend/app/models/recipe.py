@@ -104,10 +104,3 @@ class RecipeVersion(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    created_by: uuid.UUID = Field(
-        sa_column=Column(
-            Uuid(),
-            ForeignKey("users.id", name="fk_recipe_versions_created_by"),
-            nullable=False,
-        )
-    )

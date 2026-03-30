@@ -8,7 +8,15 @@
       "Bash(docker compose:*)",
       "Bash(docker exec:*)",
       "Bash(uv run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(python3:*)",
+      "Bash(powershell.exe -Command \"Start-Service -Name 'com.docker.service'; Start-Sleep 3; Get-Service -Name 'com.docker.service' | Select-Object Name, Status\" 2>&1)",
+      "Bash(docker ps:*)",
+      "Bash(cd:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vue-tsc:*)"
     ]
   }
 }

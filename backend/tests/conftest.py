@@ -11,7 +11,7 @@ from app.core import rate_limit as _rate_limit_module
 from app.models import user as _user_models  # noqa: F401 — registers User table in SQLModel.metadata
 from app.models import recipe as _recipe_models  # noqa: F401 — registers Recipe/RecipeVersion in SQLModel.metadata
 
-TEST_DATABASE_URL = "postgresql+asyncpg://secretsauce:secretsauce@localhost:5432/secretsauce_test"
+TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
 
 
 @pytest.fixture(scope="session")

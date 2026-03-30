@@ -14,12 +14,13 @@ from app.schemas.recipe import (
     RecipeUpdate,
     RecipeVersionResponse,
 )
+from app.models.recipe import Recipe, RecipeVersion
 from app.services import recipe_service
 
 router = APIRouter()
 
 
-def _build_recipe_response(recipe, version) -> RecipeResponse:
+def _build_recipe_response(recipe: Recipe, version: RecipeVersion) -> RecipeResponse:
     return RecipeResponse(
         id=recipe.id,
         owner_id=recipe.owner_id,

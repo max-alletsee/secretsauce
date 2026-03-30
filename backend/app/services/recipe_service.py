@@ -5,14 +5,21 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import RecipeVisibility
 from app.models.recipe import Recipe, RecipeVersion
 from app.schemas.recipe import RecipeCreate, RecipeUpdate
 
+# Fields copied when cloning a RecipeVersion (used by update and restore).
+# If a new content field is added to RecipeVersion, add it here once.
+_VERSION_CONTENT_FIELDS = (
+    "title", "description", "ingredients", "steps", "servings",
+    "prep_time_minutes", "waiting_time_minutes", "cook_time_minutes",
+    "tags", "recipe_source",
+)
 
-# ── Cursor helpers ────────────────────────────────────────────────────────────
 
 def _encode_cursor(recipe: Recipe) -> str:
     data = {"created_at": recipe.created_at.isoformat(), "id": str(recipe.id)}
@@ -29,7 +36,52 @@ def _decode_cursor(cursor: str) -> dict:
         raise HTTPException(status_code=400, detail="Invalid cursor")
 
 
-# ── Service functions ─────────────────────────────────────────────────────────
+def _copy_version_fields(source: RecipeVersion) -> dict:
+    """Extract content fields from a RecipeVersion as a dict for cloning."""
+    return {field: getattr(source, field) for field in _VERSION_CONTENT_FIELDS}
+
+
+async def _get_recipe_as_owner(
+    db: AsyncSession,
+    recipe_id: uuid.UUID,
+    current_user_id: uuid.UUID,
+) -> Recipe:
+    """Fetch a recipe and verify ownership. Raises 404/403."""
+    result = await db.execute(select(Recipe).where(Recipe.id == recipe_id))
+    recipe = result.scalar_one_or_none()
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    if recipe.owner_id != current_user_id:
+        raise HTTPException(status_code=403, detail="Not the recipe owner")
+    return recipe
+
+
+async def _next_version_number(db: AsyncSession, recipe_id: uuid.UUID) -> int:
+    """Return the next version number for a recipe.
+
+    MVP: uses count+1. Concurrent updates on the same recipe could produce
+    duplicate version_numbers. Acceptable for single-process MVP.
+    Fix in future: SELECT Recipe FOR UPDATE before this query.
+    """
+    result = await db.execute(
+        select(func.count()).where(RecipeVersion.recipe_id == recipe_id)
+    )
+    return result.scalar_one() + 1
+
+
+async def _commit_new_version(
+    db: AsyncSession,
+    recipe: Recipe,
+    new_version: RecipeVersion,
+) -> tuple[Recipe, RecipeVersion]:
+    """Point recipe at a new version, commit, and refresh both objects."""
+    recipe.current_version_id = new_version.id
+    recipe.updated_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(recipe)
+    await db.refresh(new_version)
+    return recipe, new_version
+
 
 async def create_recipe(
     db: AsyncSession,
@@ -39,7 +91,7 @@ async def create_recipe(
     """Create a new Recipe with its first RecipeVersion in a single transaction."""
     recipe = Recipe(owner_id=owner_id, visibility=data.visibility)
     db.add(recipe)
-    await db.flush()  # assign recipe.id without committing
+    await db.flush()
 
     version = RecipeVersion(
         recipe_id=recipe.id,
@@ -54,18 +106,11 @@ async def create_recipe(
         cook_time_minutes=data.cook_time_minutes,
         tags=data.tags,
         recipe_source=data.recipe_source.model_dump() if data.recipe_source else None,
-        created_by=owner_id,
     )
     db.add(version)
-    await db.flush()  # assign version.id
+    await db.flush()
 
-    recipe.current_version_id = version.id
-    recipe.updated_at = datetime.now(timezone.utc)
-    db.add(recipe)
-    await db.commit()
-    await db.refresh(recipe)
-    await db.refresh(version)
-    return recipe, version
+    return await _commit_new_version(db, recipe, version)
 
 
 async def get_recipe(
@@ -83,7 +128,7 @@ async def get_recipe(
     if row is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
     recipe, version = row
-    if recipe.visibility == "private" and recipe.owner_id != current_user_id:
+    if recipe.visibility == RecipeVisibility.PRIVATE and recipe.owner_id != current_user_id:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe, version
 
@@ -102,7 +147,7 @@ async def list_recipes(
         select(Recipe, RecipeVersion)
         .join(RecipeVersion, Recipe.current_version_id == RecipeVersion.id)
         .where(
-            (Recipe.owner_id == current_user_id) | (Recipe.visibility == "shared")
+            (Recipe.owner_id == current_user_id) | (Recipe.visibility == RecipeVisibility.SHARED)
         )
         .order_by(Recipe.created_at.desc(), Recipe.id.desc())
     )
@@ -139,65 +184,30 @@ async def update_recipe(
     if recipe.owner_id != current_user_id:
         raise HTTPException(status_code=403, detail="Not the recipe owner")
 
-    # MVP: version_number uses count+1. Concurrent updates on the same recipe
-    # could produce duplicate version_numbers. Acceptable for single-process MVP.
-    # Fix in future: SELECT Recipe FOR UPDATE before this query.
-    count_result = await db.execute(
-        select(func.count()).where(RecipeVersion.recipe_id == recipe_id)
-    )
-    version_count = count_result.scalar_one()
+    fields = _copy_version_fields(current_version)
+
+    # Override with provided update values
+    for field in _VERSION_CONTENT_FIELDS:
+        value = getattr(data, field, None)
+        if value is not None:
+            if field in ("ingredients", "steps"):
+                fields[field] = [item.model_dump() for item in value]
+            elif field == "recipe_source":
+                fields[field] = value.model_dump()
+            else:
+                fields[field] = value
 
     new_version = RecipeVersion(
         recipe_id=recipe_id,
-        version_number=version_count + 1,
-        title=data.title if data.title is not None else current_version.title,
-        description=data.description if data.description is not None else current_version.description,
-        ingredients=(
-            [i.model_dump() for i in data.ingredients]
-            if data.ingredients is not None
-            else current_version.ingredients
-        ),
-        steps=(
-            [s.model_dump() for s in data.steps]
-            if data.steps is not None
-            else current_version.steps
-        ),
-        servings=data.servings if data.servings is not None else current_version.servings,
-        prep_time_minutes=(
-            data.prep_time_minutes
-            if data.prep_time_minutes is not None
-            else current_version.prep_time_minutes
-        ),
-        waiting_time_minutes=(
-            data.waiting_time_minutes
-            if data.waiting_time_minutes is not None
-            else current_version.waiting_time_minutes
-        ),
-        cook_time_minutes=(
-            data.cook_time_minutes
-            if data.cook_time_minutes is not None
-            else current_version.cook_time_minutes
-        ),
-        tags=data.tags if data.tags is not None else current_version.tags,
-        recipe_source=(
-            data.recipe_source.model_dump()
-            if data.recipe_source is not None
-            else current_version.recipe_source
-        ),
-        created_by=current_user_id,
+        version_number=await _next_version_number(db, recipe_id),
+        **fields,
     )
     db.add(new_version)
     await db.flush()
 
-    recipe.current_version_id = new_version.id
     if data.visibility is not None:
         recipe.visibility = data.visibility
-    recipe.updated_at = datetime.now(timezone.utc)
-    db.add(recipe)
-    await db.commit()
-    await db.refresh(recipe)
-    await db.refresh(new_version)
-    return recipe, new_version
+    return await _commit_new_version(db, recipe, new_version)
 
 
 async def delete_recipe(
@@ -206,25 +216,13 @@ async def delete_recipe(
     current_user_id: uuid.UUID,
 ) -> None:
     """Delete a recipe and all its versions. Owner only."""
-    result = await db.execute(select(Recipe).where(Recipe.id == recipe_id))
-    recipe = result.scalar_one_or_none()
-    if recipe is None:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-    if recipe.owner_id != current_user_id:
-        raise HTTPException(status_code=403, detail="Not the recipe owner")
+    recipe = await _get_recipe_as_owner(db, recipe_id, current_user_id)
 
     # Nullify current_version_id first to break the circular FK before deleting versions
     recipe.current_version_id = None
-    db.add(recipe)
     await db.flush()
 
-    versions_result = await db.execute(
-        select(RecipeVersion).where(RecipeVersion.recipe_id == recipe_id)
-    )
-    for version in versions_result.scalars().all():
-        await db.delete(version)
-    await db.flush()
-
+    await db.execute(delete(RecipeVersion).where(RecipeVersion.recipe_id == recipe_id))
     await db.delete(recipe)
     await db.commit()
 
@@ -239,7 +237,7 @@ async def get_versions(
     recipe = result.scalar_one_or_none()
     if recipe is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    if recipe.visibility == "private" and recipe.owner_id != current_user_id:
+    if recipe.visibility == RecipeVisibility.PRIVATE and recipe.owner_id != current_user_id:
         raise HTTPException(status_code=404, detail="Recipe not found")
 
     versions_result = await db.execute(
@@ -261,12 +259,7 @@ async def restore_version(
     then set it as current. Append-only: old versions are never mutated.
     Owner only.
     """
-    result = await db.execute(select(Recipe).where(Recipe.id == recipe_id))
-    recipe = result.scalar_one_or_none()
-    if recipe is None:
-        raise HTTPException(status_code=404, detail="Recipe not found")
-    if recipe.owner_id != current_user_id:
-        raise HTTPException(status_code=403, detail="Not the recipe owner")
+    recipe = await _get_recipe_as_owner(db, recipe_id, current_user_id)
 
     target_result = await db.execute(
         select(RecipeVersion).where(
@@ -278,36 +271,12 @@ async def restore_version(
     if target is None:
         raise HTTPException(status_code=404, detail="Version not found")
 
-    # MVP: version_number uses count+1. Concurrent updates on the same recipe
-    # could produce duplicate version_numbers. Acceptable for single-process MVP.
-    # Fix in future: SELECT Recipe FOR UPDATE before this query.
-    count_result = await db.execute(
-        select(func.count()).where(RecipeVersion.recipe_id == recipe_id)
-    )
-    version_count = count_result.scalar_one()
-
     new_version = RecipeVersion(
         recipe_id=recipe_id,
-        version_number=version_count + 1,
-        title=target.title,
-        description=target.description,
-        ingredients=target.ingredients,
-        steps=target.steps,
-        servings=target.servings,
-        prep_time_minutes=target.prep_time_minutes,
-        waiting_time_minutes=target.waiting_time_minutes,
-        cook_time_minutes=target.cook_time_minutes,
-        tags=target.tags,
-        recipe_source=target.recipe_source,
-        created_by=current_user_id,
+        version_number=await _next_version_number(db, recipe_id),
+        **_copy_version_fields(target),
     )
     db.add(new_version)
     await db.flush()
 
-    recipe.current_version_id = new_version.id
-    recipe.updated_at = datetime.now(timezone.utc)
-    db.add(recipe)
-    await db.commit()
-    await db.refresh(recipe)
-    await db.refresh(new_version)
-    return recipe, new_version
+    return await _commit_new_version(db, recipe, new_version)

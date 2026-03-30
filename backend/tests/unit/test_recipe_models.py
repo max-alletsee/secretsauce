@@ -15,7 +15,7 @@ def test_recipe_version_has_required_fields():
         "id", "recipe_id", "version_number", "title", "description",
         "ingredients", "steps", "servings", "prep_time_minutes",
         "waiting_time_minutes", "cook_time_minutes", "tags",
-        "recipe_source", "created_at", "created_by",
+        "recipe_source", "created_at",
     } <= fields
 
 
@@ -34,7 +34,6 @@ def test_recipe_version_defaults():
     version = RecipeVersion(
         recipe_id=uuid.uuid4(),
         title="Test",
-        created_by=uuid.uuid4(),
     )
     assert version.version_number == 1
     assert version.ingredients == []
