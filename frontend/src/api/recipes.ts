@@ -4,8 +4,8 @@ import type {
   RecipeCreatePayload,
   RecipeUpdatePayload,
   RecipeVersion,
-  PaginatedResponse,
 } from '@/types/recipe'
+import type { PaginatedResponse } from '@/types/common'
 
 export const getRecipes = (cursor?: string) =>
   client.get<PaginatedResponse<Recipe>>('/recipes', { params: { cursor } })

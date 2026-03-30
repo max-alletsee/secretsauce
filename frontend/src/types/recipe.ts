@@ -1,3 +1,5 @@
+// frontend/src/types/recipe.ts
+
 export interface Ingredient {
   name: string
   quantity: string
@@ -70,10 +72,4 @@ export interface RecipeUpdatePayload {
   tags?: string[]
   recipe_source?: RecipeSource | null
   visibility?: 'private' | 'shared'
-}
-
-export interface PaginatedResponse<T> {
-  items: T[]
-  next_cursor: string | null
-  has_more: boolean
 }
