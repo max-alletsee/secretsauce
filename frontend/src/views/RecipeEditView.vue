@@ -61,7 +61,7 @@ async function handleSubmit(data: RecipeCreatePayload) {
 
 <template>
   <main class="recipe-edit-page">
-    <div v-if="!ready && !error" class="recipe-edit-page__loading">Loading…</div>
+    <div v-if="!ready" class="recipe-edit-page__loading">Loading…</div>
 
     <template v-else-if="ready && initialData">
       <h1>Edit recipe</h1>
