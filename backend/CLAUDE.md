@@ -136,7 +136,7 @@ If the app grows beyond what BackgroundTasks can handle (e.g., need task queues,
 
 - **Test database:** Use a separate PostgreSQL database (configured in docker-compose.test.yml). Create/drop tables per test session, not per test.
 - **Fixed test data:** Seed data lives in `tests/fixtures/` as JSON files (users.json, recipes.json, meal_plans.json). Load via fixtures in conftest.py.
-- **AI mocking:** All AI service calls are mocked in tests. Never make real OpenRouter calls in tests. Use `unittest.mock.patch` on the instructor client.
+- **AI mocking:** All AI service calls are mocked in tests. Never make real Gemini calls in tests. Use `unittest.mock.patch` on `app.services.ai_service._client` (the module-level Gemini client singleton).
 - **Test client:** Use FastAPI's `TestClient` (sync) or `httpx.AsyncClient` for async route tests.
 - **Coverage target:** 80%+ line coverage on services and routes.
 
