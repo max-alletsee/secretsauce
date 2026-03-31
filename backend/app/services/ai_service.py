@@ -2,12 +2,15 @@
 import asyncio
 import logging
 import time
+from typing import TypeVar
 
 from google import genai
 from google.genai import types
 
 from app.core.config import settings
 from app.schemas.ai_responses import RecipeImportResult
+
+_T = TypeVar("_T")
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +96,7 @@ async def import_recipe_from_url(url: str) -> RecipeImportResult:
     ) from last_error
 
 
-async def call_ai_structured(prompt: str, response_model: type) -> object:
+async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
     """General-purpose structured Gemini call for future features (meal planning etc.).
 
     Returns a validated instance of response_model.

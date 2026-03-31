@@ -58,10 +58,12 @@ async def test_import_recipe_from_url_retries_on_transient_failure():
         side_effect=[Exception("network error"), mock_response]
     )
     with patch("app.services.ai_service._client", mock_client):
-        with patch("asyncio.sleep", AsyncMock()):
+        with patch("app.services.ai_service.asyncio.sleep", AsyncMock()) as mock_sleep:
             result = await import_recipe_from_url("https://example.com/pasta")
     assert result.title == "Pasta"
     assert mock_client.aio.models.generate_content.call_count == 2
+    assert mock_sleep.call_count == 1
+    assert mock_sleep.call_args[0][0] == 1  # 2**0 = 1 second backoff after first failure
 
 
 @pytest.mark.asyncio
@@ -71,7 +73,7 @@ async def test_import_recipe_from_url_raises_after_max_retries():
         side_effect=Exception("persistent server error")
     )
     with patch("app.services.ai_service._client", mock_client):
-        with patch("asyncio.sleep", AsyncMock()):
+        with patch("app.services.ai_service.asyncio.sleep", AsyncMock()):
             with pytest.raises(AIServiceError, match="Import failed after"):
                 await import_recipe_from_url("https://example.com/pasta")
     assert mock_client.aio.models.generate_content.call_count == 3  # AI_MAX_RETRIES default
