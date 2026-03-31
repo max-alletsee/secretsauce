@@ -30,55 +30,60 @@ Use fastapi-users with JWT strategy:
 ## AI Integration
 
 ### Provider
-OpenRouter native Python SDK (`openrouter` package, installed via `uv add openrouter`). Do NOT use the `openai` package or `instructor` library.
+Google Gemini via the `google-genai` Python SDK. Do NOT use the `openai` package, `openrouter`, or `instructor` library.
 
 ```python
-from openrouter import AsyncOpenRouter
+from google import genai
+from google.genai import types
 
-client = AsyncOpenRouter(api_key=settings.OPENROUTER_API_KEY)
+client = genai.Client(api_key=settings.GEMINI_API_KEY)
 ```
 
+The shared client lives in `app/services/ai_service.py` as a module-level singleton (`_client`). Use `client.aio` for all async calls.
+
 ### Structured Outputs
-All AI calls use OpenRouter's native `response_format` with JSON schema derived from Pydantic models. Define expected output schemas in `app/schemas/ai_responses.py`.
+All AI calls use Gemini's native `response_schema` parameter with Pydantic models. Define expected output schemas in `app/schemas/ai_responses.py`.
 
 ```python
-from openrouter import AsyncOpenRouter
+response = await client.aio.models.generate_content(
+    model=settings.AI_MODEL,
+    contents=prompt,
+    config=types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=MyResponseModel,
+    ),
+)
+result = MyResponseModel.model_validate_json(response.text)
+```
 
-async def call_ai_structured(
-    messages: list[dict],
-    response_model: type[BaseModel],
-    model: str = settings.AI_MODEL,
-) -> BaseModel:
-    response = await client.chat.send_async(
-        model=model,
-        messages=messages,
-        response_format={
-            "type": "json_schema",
-            "json_schema": {
-                "name": response_model.__name__,
-                "schema": response_model.model_json_schema(),
-                "strict": True,
-            },
-        },
-    )
-    return response_model.model_validate_json(response.choices[0].message.content)
+### URL Context
+For recipe import from URL, pass the URL in the prompt and enable the `url_context` tool. Gemini fetches and reads the page itself — no separate `httpx` fetch needed.
+
+```python
+config=types.GenerateContentConfig(
+    tools=[types.Tool(url_context=types.UrlContext())],
+    response_mime_type="application/json",
+    response_schema=RecipeImportResult,
+)
 ```
 
 ### Fallback and Error Handling
-- Wrap all AI calls in try/except with retries (max 3 attempts with exponential backoff).
-- If structured output parsing fails after retries, save the raw response and flag the import as `needs_review` for the user to manually fix.
-- Set timeout of 60 seconds per AI call.
-- Log all AI calls with model used, token count, latency, and success/failure.
+- Wrap all AI calls in retry logic (max 3 attempts, exponential backoff: 1s, 2s, 4s).
+- On permanent failure, raise `AIServiceError` (defined in `ai_service.py`).
+- The import service catches `AIServiceError` and marks the `ImportTask` as `failed`.
+- Set timeout of 60 seconds per AI call via `asyncio.wait_for`.
+- Log all AI calls: model, URL/prompt summary, latency, token counts, success/failure.
 
 ### Recipe Import Pipeline
-1. User submits a URL or uploads an image.
-2. Endpoint returns 202 Accepted with a task ID.
-3. BackgroundTask fetches the URL content (via httpx) or processes the image (base64-encode for AI).
-4. AI call extracts recipe data into `RecipeImportResponse` Pydantic model.
-5. Validation: check all required fields are present and sensible (e.g., prep_time > 0, ingredients list non-empty).
-6. If valid, create recipe in draft state. User reviews and confirms.
-7. If invalid or AI extraction fails, mark as `needs_review` with the partial data and raw source.
-8. Uploaded images are stored temporarily in `UPLOAD_DIR` (configured via env var, default `/tmp/secretsauce-uploads/`). A daily cleanup task deletes files older than 24 hours. Only the resulting database entry is kept.
+1. User submits a URL via `POST /api/v1/recipes/import/url`.
+2. Route creates an `ImportTask` row (status=`pending`), fires `BackgroundTask`, returns 202.
+3. Background task (`process_url_import`) creates its own `AsyncSession` — the request session is closed.
+4. Gemini URLContext fetches the URL and extracts recipe data into `RecipeImportResult`.
+5. Validation: non-empty title, at least 1 ingredient, at least 1 step.
+6. Tags filtered to `ALL_TAGS` constants only (unknown tags silently dropped).
+7. `recipe_service.create_recipe` persists the recipe as `private`.
+8. Task status set to `completed` with `recipe_id`, or `failed` with `error_message`.
+9. Frontend polls `GET /api/v1/import-tasks/{id}` every 3 seconds and navigates to edit view on completion.
 
 ### Meal Plan Generation
 1. Build system prompt from: user preferences (dietary restrictions, allergies, cuisines, disliked ingredients, default servings), the user's custom `meal_plan_system_prompt`, and unresolved carryover meals.

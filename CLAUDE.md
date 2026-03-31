@@ -13,7 +13,7 @@ secretsauce.food is a recipe management and meal planning web application. Users
 - **Database:** PostgreSQL 16 with SQLAlchemy (async, via asyncpg) and SQLModel
 - **Migrations:** Alembic
 - **Auth:** fastapi-users (JWT + OAuth via Google/Apple/Facebook)
-- **AI Integration:** OpenRouter API with structured outputs (Pydantic response models via instructor library)
+- **AI Integration:** Google Gemini API with structured outputs (Pydantic response models via google-genai SDK)
 - **Testing:** pytest (backend), Vitest (frontend unit), Playwright (end-to-end)
 - **Deployment:** Docker Compose
 - **Reverse Proxy:** Nginx
@@ -239,7 +239,7 @@ Required env vars:
 ```
 DATABASE_URL=postgresql+asyncpg://user:pass@localhost:5432/secretsauce
 SECRET_KEY=<random-32-byte-hex>
-OPENROUTER_API_KEY=<key>
+GEMINI_API_KEY=<key>
 UPLOAD_DIR=/tmp/secretsauce-uploads
 CORS_ORIGINS=["http://localhost:5173"]
 ```
@@ -248,7 +248,7 @@ Optional env vars with defaults:
 ```
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
-AI_MODEL=openai/gpt-4o
+AI_MODEL=gemini-3.1-pro-preview
 AI_TIMEOUT_SECONDS=60
 AI_MAX_RETRIES=3
 DB_POOL_SIZE=10

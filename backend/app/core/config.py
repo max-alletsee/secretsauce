@@ -7,14 +7,14 @@ class Settings(BaseSettings):
     # Required
     DATABASE_URL: str
     SECRET_KEY: str
-    OPENROUTER_API_KEY: str
+    GEMINI_API_KEY: str
     UPLOAD_DIR: str = "/tmp/secretsauce-uploads"
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     # Optional with defaults
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    AI_MODEL: str = "openai/gpt-4o"
+    AI_MODEL: str = "gemini-3.1-pro-preview"
     AI_TIMEOUT_SECONDS: int = 60
     AI_MAX_RETRIES: int = 3
     DB_POOL_SIZE: int = 10
