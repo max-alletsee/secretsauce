@@ -46,9 +46,13 @@ class ImportTask(SQLModel, table=True):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    # NOTE: async sessions using session.execute(update(...)) do NOT fire onupdate.
-    # Always set updated_at explicitly on every status transition.
+    # NOTE: When using session.execute(update(...)) bulk statements, onupdate is NOT fired.
+    # Always set updated_at explicitly in the service layer when using bulk UPDATE paths.
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True), nullable=False),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            onupdate=lambda: datetime.now(timezone.utc),
+        ),
     )
