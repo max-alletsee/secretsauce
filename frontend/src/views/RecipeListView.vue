@@ -27,21 +27,32 @@ async function submitImport() {
   importError.value = null
   importStatus.value = 'pending'
 
-  const { data } = await importTasksApi.importRecipeFromUrl(importUrl.value)
-  const taskId = data.task_id
+  try {
+    const { data } = await importTasksApi.importRecipeFromUrl(importUrl.value)
+    const taskId = data.task_id
 
-  pollInterval.value = setInterval(async () => {
-    const { data: task } = await importTasksApi.getImportTask(taskId)
-    importStatus.value = task.status
+    pollInterval.value = setInterval(async () => {
+      try {
+        const { data: task } = await importTasksApi.getImportTask(taskId)
+        importStatus.value = task.status
 
-    if (task.status === 'completed' && task.recipe_id) {
-      stopPolling()
-      router.push(`/recipes/${task.recipe_id}/edit`)
-    } else if (task.status === 'failed') {
-      stopPolling()
-      importError.value = task.error_message ?? 'Import failed'
-    }
-  }, 3000)
+        if (task.status === 'completed' && task.recipe_id) {
+          stopPolling()
+          router.push(`/recipes/${task.recipe_id}/edit`)
+        } else if (task.status === 'failed') {
+          stopPolling()
+          importError.value = task.error_message ?? 'Import failed'
+        }
+      } catch {
+        stopPolling()
+        importError.value = 'Failed to check import status'
+        importStatus.value = 'failed'
+      }
+    }, 3000)
+  } catch {
+    importStatus.value = 'failed'
+    importError.value = 'Failed to start import. Please try again.'
+  }
 }
 
 onMounted(() => {
