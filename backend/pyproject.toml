@@ -16,7 +16,6 @@ dependencies = [
     "httpx-oauth[google]>=0.16.1",
     "pydantic-settings>=2.13.1",
     "python-multipart>=0.0.22",
-    "slowapi>=0.1.9",
     "sqlalchemy[asyncio]>=2.0.48",
     "sqlmodel>=0.0.37",
     "uvicorn[standard]>=0.41.0",

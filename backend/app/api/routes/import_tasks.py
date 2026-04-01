@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.rate_limit import check_import_rate_limit
 from app.core.security import current_active_user
 from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
@@ -25,6 +26,7 @@ async def import_recipe_from_url(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
+    check_import_rate_limit(str(user.id))
     task = ImportTask(user_id=user.id, url=str(payload.url))
     db.add(task)
     await db.commit()
