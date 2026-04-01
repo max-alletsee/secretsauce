@@ -10,6 +10,7 @@ from app.api.deps import get_db
 from app.core import rate_limit as _rate_limit_module
 from app.models import user as _user_models  # noqa: F401 — registers User table in SQLModel.metadata
 from app.models import recipe as _recipe_models  # noqa: F401 — registers Recipe/RecipeVersion in SQLModel.metadata
+from app.models import import_task as _import_task_models  # noqa: F401 — registers ImportTask in SQLModel.metadata
 
 TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
 

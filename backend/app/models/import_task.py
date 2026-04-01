@@ -1,0 +1,54 @@
+# backend/app/models/import_task.py
+import uuid
+from datetime import datetime, timezone
+from enum import StrEnum
+
+from sqlalchemy import Column, DateTime, ForeignKey, String, Text, Uuid
+from sqlmodel import Field, SQLModel
+
+
+class ImportTaskStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ImportTask(SQLModel, table=True):
+    __tablename__ = "import_tasks"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("users.id", name="fk_import_tasks_user_id"),
+            nullable=False,
+            index=True,
+        )
+    )
+    url: str = Field(sa_column=Column(Text, nullable=False))
+    status: ImportTaskStatus = Field(
+        default=ImportTaskStatus.PENDING,
+        sa_column=Column(String(20), nullable=False, server_default="pending"),
+    )
+    recipe_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("recipes.id", name="fk_import_tasks_recipe_id"),
+            nullable=True,
+        ),
+    )
+    error_message: str | None = Field(
+        default=None, sa_column=Column(Text, nullable=True)
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
+    # NOTE: async sessions using session.execute(update(...)) do NOT fire onupdate.
+    # Always set updated_at explicitly on every status transition.
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(DateTime(timezone=True), nullable=False),
+    )
