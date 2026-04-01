@@ -1,3 +1,4 @@
+import os
 import uuid
 
 import pytest
@@ -12,7 +13,10 @@ from app.models import user as _user_models  # noqa: F401 — registers User tab
 from app.models import recipe as _recipe_models  # noqa: F401 — registers Recipe/RecipeVersion in SQLModel.metadata
 from app.models import import_task as _import_task_models  # noqa: F401 — registers ImportTask in SQLModel.metadata
 
-TEST_DATABASE_URL = "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test"
+TEST_DATABASE_URL = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://mealtime:mealtime@localhost:5432/mealtime_test",
+)
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +52,7 @@ async def client(db_engine):
 def clear_rate_limit_state():
     """Reset in-memory rate-limit counters before every test to prevent test bleed-through."""
     _rate_limit_module._auth_attempts.clear()
+    _rate_limit_module._import_attempts.clear()
 
 
 def unique_email(prefix: str = "test") -> str:
