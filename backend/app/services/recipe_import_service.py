@@ -46,7 +46,7 @@ async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -
                 title=result.title,
                 description=result.description,
                 ingredients=[
-                    Ingredient(name=i.name, quantity=i.quantity or "", unit=i.unit)
+                    Ingredient(name=i.name, quantity=i.quantity, unit=i.unit)
                     for i in result.ingredients
                 ],
                 steps=[

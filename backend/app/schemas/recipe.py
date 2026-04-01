@@ -10,7 +10,7 @@ class Ingredient(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
-    quantity: str
+    quantity: str | None = None
     unit: str | None = None
 
 

@@ -38,6 +38,7 @@ def _make_db_and_session_ctx(mock_task: MagicMock) -> tuple[AsyncMock, MagicMock
     """Return (mock_db, mock_session_ctx) where mock_db.get returns mock_task."""
     mock_db = AsyncMock()
     mock_db.get = AsyncMock(return_value=mock_task)
+    mock_db.add = MagicMock()  # add() is sync in SQLAlchemy
 
     mock_session_ctx = MagicMock()
     mock_session_ctx.__aenter__ = AsyncMock(return_value=mock_db)
