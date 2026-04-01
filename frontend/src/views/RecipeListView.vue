@@ -1,13 +1,55 @@
 <!-- frontend/src/views/RecipeListView.vue -->
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
+import * as importTasksApi from '@/api/importTasks'
 import RecipeCard from '@/components/RecipeCard.vue'
 
 const recipeStore = useRecipeStore()
+const router = useRouter()
+
+// ── Import state ──────────────────────────────────────────────────────────────
+const importUrl = ref('')
+const importStatus = ref<'idle' | 'pending' | 'processing' | 'completed' | 'failed'>('idle')
+const importError = ref<string | null>(null)
+const pollInterval = ref<ReturnType<typeof setInterval> | null>(null)
+
+function stopPolling() {
+  if (pollInterval.value !== null) {
+    clearInterval(pollInterval.value)
+    pollInterval.value = null
+  }
+}
+
+async function submitImport() {
+  if (!importUrl.value || importStatus.value === 'pending' || importStatus.value === 'processing') return
+  importError.value = null
+  importStatus.value = 'pending'
+
+  const { data } = await importTasksApi.importRecipeFromUrl(importUrl.value)
+  const taskId = data.task_id
+
+  pollInterval.value = setInterval(async () => {
+    const { data: task } = await importTasksApi.getImportTask(taskId)
+    importStatus.value = task.status
+
+    if (task.status === 'completed' && task.recipe_id) {
+      stopPolling()
+      router.push(`/recipes/${task.recipe_id}/edit`)
+    } else if (task.status === 'failed') {
+      stopPolling()
+      importError.value = task.error_message ?? 'Import failed'
+    }
+  }, 3000)
+}
 
 onMounted(() => {
   recipeStore.fetchRecipes()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 
@@ -16,6 +58,35 @@ onMounted(() => {
     <header class="recipe-list-page__header">
       <h1>Recipes</h1>
     </header>
+
+    <section class="import-section">
+      <div class="import-section__form">
+        <input
+          v-model="importUrl"
+          data-testid="import-url-input"
+          type="url"
+          placeholder="Paste a recipe URL to import…"
+          :disabled="importStatus === 'pending' || importStatus === 'processing'"
+          class="import-section__input"
+          @keyup.enter="submitImport"
+        />
+        <button
+          data-testid="import-submit-btn"
+          :disabled="!importUrl || importStatus === 'pending' || importStatus === 'processing'"
+          class="import-section__btn"
+          @click="submitImport"
+        >
+          <span v-if="importStatus === 'pending' || importStatus === 'processing'">
+            <span data-testid="import-spinner" aria-hidden="true">⏳</span>
+            Importing…
+          </span>
+          <span v-else>Import</span>
+        </button>
+      </div>
+      <p v-if="importError" data-testid="import-error" class="import-section__error">
+        {{ importError }}
+      </p>
+    </section>
 
     <p v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
       Loading recipes…
@@ -65,6 +136,43 @@ onMounted(() => {
   text-align: center;
   color: #6b7280;
   padding: 3rem 0;
+}
+.import-section {
+  margin-bottom: 1.5rem;
+}
+.import-section__form {
+  display: flex;
+  gap: 0.5rem;
+}
+.import-section__input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+.import-section__input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+}
+.import-section__btn {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.import-section__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.import-section__error {
+  margin-top: 0.5rem;
+  color: #dc2626;
+  font-size: 0.875rem;
 }
 .recipe-grid {
   display: grid;
