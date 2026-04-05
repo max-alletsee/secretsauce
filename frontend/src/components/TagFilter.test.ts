@@ -21,7 +21,7 @@ describe('TagFilter', () => {
     await veganChip!.trigger('click')
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
-    expect(emitted![0][0]).toEqual(['vegan'])
+    expect(emitted![0]![0]).toEqual(['vegan'])
   })
 
   it('clicking an active chip removes it from model value', async () => {
@@ -33,7 +33,7 @@ describe('TagFilter', () => {
     await veganChip!.trigger('click')
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
-    expect(emitted![0][0]).toEqual([])
+    expect(emitted![0]![0]).toEqual([])
   })
 
   it('clear all button is hidden when no tags selected', () => {
@@ -57,7 +57,7 @@ describe('TagFilter', () => {
     await wrapper.find('[data-testid="tag-filter-clear"]').trigger('click')
     const emitted = wrapper.emitted('update:modelValue')
     expect(emitted).toBeTruthy()
-    expect(emitted![0][0]).toEqual([])
+    expect(emitted![0]![0]).toEqual([])
   })
 
   it('toggle button is present in DOM', () => {
