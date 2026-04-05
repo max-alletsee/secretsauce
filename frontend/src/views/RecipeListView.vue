@@ -1,68 +1,57 @@
 <!-- frontend/src/views/RecipeListView.vue -->
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import * as importTasksApi from '@/api/importTasks'
 import RecipeCard from '@/components/RecipeCard.vue'
 import TagFilter from '@/components/TagFilter.vue'
+import { useImportPolling } from '@/composables/useImportPolling'
 
 const recipeStore = useRecipeStore()
 const router = useRouter()
-const selectedTags = ref<string[]>([])
 
-// ── Import state ──────────────────────────────────────────────────────────────
 const importUrl = ref('')
-const importStatus = ref<'idle' | 'pending' | 'processing' | 'completed' | 'failed'>('idle')
-const importError = ref<string | null>(null)
-const pollInterval = ref<ReturnType<typeof setInterval> | null>(null)
+const selectedTags = ref<string[]>([])
+const imageInputRef = ref<HTMLInputElement | null>(null)
 
-function stopPolling() {
-  if (pollInterval.value !== null) {
-    clearInterval(pollInterval.value)
-    pollInterval.value = null
-  }
-}
+const { status: importStatus, error: importError, startPolling } = useImportPolling(
+  (recipeId: string) => router.push(`/recipes/${recipeId}/edit`),
+)
 
-async function submitImport() {
-  if (!importUrl.value || importStatus.value === 'pending' || importStatus.value === 'processing') return
+const isImporting = computed(
+  () => importStatus.value === 'pending' || importStatus.value === 'processing',
+)
+
+async function submitUrlImport() {
+  if (!importUrl.value || isImporting.value) return
   importError.value = null
   importStatus.value = 'pending'
-
   try {
     const { data } = await importTasksApi.importRecipeFromUrl(importUrl.value)
-    const taskId = data.task_id
-
-    pollInterval.value = setInterval(async () => {
-      try {
-        const { data: task } = await importTasksApi.getImportTask(taskId)
-        importStatus.value = task.status
-
-        if (task.status === 'completed' && task.recipe_id) {
-          stopPolling()
-          router.push(`/recipes/${task.recipe_id}/edit`)
-        } else if (task.status === 'failed') {
-          stopPolling()
-          importError.value = task.error_message ?? 'Import failed'
-        }
-      } catch {
-        stopPolling()
-        importError.value = 'Failed to check import status'
-        importStatus.value = 'failed'
-      }
-    }, 3000)
+    startPolling(data.task_id)
   } catch {
     importStatus.value = 'failed'
     importError.value = 'Failed to start import. Please try again.'
   }
 }
 
+async function handleImageChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file || isImporting.value) return
+  importError.value = null
+  importStatus.value = 'pending'
+  try {
+    const { data } = await importTasksApi.importRecipeFromImage(file)
+    startPolling(data.task_id)
+  } catch {
+    importStatus.value = 'failed'
+    importError.value = 'Failed to start image import. Please try again.'
+  }
+}
+
 onMounted(() => {
   recipeStore.fetchRecipes()
-})
-
-onUnmounted(() => {
-  stopPolling()
 })
 </script>
 
@@ -73,29 +62,53 @@ onUnmounted(() => {
     </header>
 
     <section class="import-section">
-      <div class="import-section__form">
+      <div class="import-section__url-row">
         <input
           v-model="importUrl"
           data-testid="import-url-input"
           type="url"
           placeholder="Paste a recipe URL to import…"
-          :disabled="importStatus === 'pending' || importStatus === 'processing'"
+          :disabled="isImporting"
           class="import-section__input"
-          @keyup.enter="submitImport"
+          @keyup.enter="submitUrlImport"
         />
         <button
           data-testid="import-submit-btn"
-          :disabled="!importUrl || importStatus === 'pending' || importStatus === 'processing'"
+          :disabled="!importUrl || isImporting"
           class="import-section__btn"
-          @click="submitImport"
+          @click="submitUrlImport"
         >
-          <span v-if="importStatus === 'pending' || importStatus === 'processing'">
+          <span v-if="isImporting">
             <span data-testid="import-spinner" aria-hidden="true">⏳</span>
             Importing…
           </span>
           <span v-else>Import</span>
         </button>
       </div>
+
+      <div class="import-section__image-row">
+        <!-- Hidden native file input -->
+        <input
+          ref="imageInputRef"
+          data-testid="import-image-input"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          class="import-section__image-input"
+          :disabled="isImporting"
+          @change="handleImageChange"
+        />
+        <button
+          data-testid="import-image-btn"
+          type="button"
+          :disabled="isImporting"
+          class="import-section__image-btn"
+          @click="imageInputRef?.click()"
+        >
+          📷 Import from photo
+        </button>
+      </div>
+
       <p v-if="importError" data-testid="import-error" class="import-section__error">
         {{ importError }}
       </p>
@@ -152,10 +165,16 @@ onUnmounted(() => {
   color: #6b7280;
   padding: 3rem 0;
 }
-.import-section {
+.recipe-list-page__filters {
   margin-bottom: 1.5rem;
 }
-.import-section__form {
+.import-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.import-section__url-row {
   display: flex;
   gap: 0.5rem;
 }
@@ -184,13 +203,29 @@ onUnmounted(() => {
   opacity: 0.6;
   cursor: not-allowed;
 }
+.import-section__image-row {
+  display: flex;
+  align-items: center;
+}
+.import-section__image-input {
+  display: none;
+}
+.import-section__image-btn {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.import-section__image-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .import-section__error {
-  margin-top: 0.5rem;
   color: #dc2626;
   font-size: 0.875rem;
-}
-.recipe-list-page__filters {
-  margin-bottom: 1.5rem;
 }
 .recipe-grid {
   display: grid;
