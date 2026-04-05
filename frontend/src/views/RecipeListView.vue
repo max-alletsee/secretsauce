@@ -5,9 +5,11 @@ import { useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import * as importTasksApi from '@/api/importTasks'
 import RecipeCard from '@/components/RecipeCard.vue'
+import TagFilter from '@/components/TagFilter.vue'
 
 const recipeStore = useRecipeStore()
 const router = useRouter()
+const selectedTags = ref<string[]>([])
 
 // ── Import state ──────────────────────────────────────────────────────────────
 const importUrl = ref('')
@@ -99,6 +101,8 @@ onUnmounted(() => {
       </p>
     </section>
 
+    <TagFilter v-model="selectedTags" class="recipe-list-page__filters" />
+
     <p v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
       Loading recipes…
     </p>
@@ -184,6 +188,9 @@ onUnmounted(() => {
   margin-top: 0.5rem;
   color: #dc2626;
   font-size: 0.875rem;
+}
+.recipe-list-page__filters {
+  margin-bottom: 1.5rem;
 }
 .recipe-grid {
   display: grid;
