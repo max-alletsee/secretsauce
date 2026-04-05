@@ -28,6 +28,26 @@ _IMPORT_PROMPT_TEMPLATE = (
     "middle-eastern, american, korean."
 )
 
+_IMAGE_IMPORT_PROMPT_TEMPLATE = """Extract the recipe from the provided image into structured JSON.
+
+The image may be:
+- A photograph of a cookbook page
+- A handwritten recipe card
+- A screenshot of a recipe website
+- A partial or blurry image (do your best to extract what is visible)
+
+Extract all visible recipe information: title, description, ingredients with quantities and units, \
+numbered steps, servings, prep/cook/waiting times in minutes. \
+For tags, only use values from this exact list: \
+vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, \
+low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, \
+spring, summer, autumn, winter, breakfast, lunch, dinner, snack, dessert, \
+italian, mexican, japanese, chinese, indian, thai, french, greek, \
+middle-eastern, american, korean.
+
+If some fields are unclear or missing, omit them or use null. \
+Return only the structured recipe data, nothing else."""
+
 
 class AIServiceError(Exception):
     pass
@@ -93,6 +113,60 @@ async def import_recipe_from_url(url: str) -> RecipeImportResult:
 
     raise AIServiceError(
         f"Import failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
+    ) from last_error
+
+
+async def import_recipe_from_image(image_bytes: bytes, mime_type: str) -> RecipeImportResult:
+    """Call Gemini with inline image bytes to extract a recipe.
+
+    Supports photographed cookbook pages, handwritten recipe cards,
+    screenshots, and partial/blurry images.
+    Retries up to AI_MAX_RETRIES times with exponential backoff.
+    Raises AIServiceError on permanent failure.
+    """
+    client = _get_client()
+    image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+    last_error: Exception | None = None
+
+    for attempt in range(settings.AI_MAX_RETRIES):
+        start = time.monotonic()
+        try:
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=settings.AI_MODEL,
+                    contents=[_IMAGE_IMPORT_PROMPT_TEMPLATE, image_part],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=RecipeImportResult,
+                    ),
+                ),
+                timeout=settings.AI_TIMEOUT_SECONDS,
+            )
+            elapsed = time.monotonic() - start
+            usage = response.usage_metadata
+            logger.info(
+                "AI image import success | model=%s latency=%.2fs tokens_in=%d tokens_out=%d",
+                settings.AI_MODEL,
+                elapsed,
+                usage.prompt_token_count if usage else 0,
+                usage.candidates_token_count if usage else 0,
+            )
+            return RecipeImportResult.model_validate_json(response.text)
+        except Exception as exc:
+            elapsed = time.monotonic() - start
+            logger.warning(
+                "AI image import attempt %d/%d failed | latency=%.2fs error=%s",
+                attempt + 1,
+                settings.AI_MAX_RETRIES,
+                elapsed,
+                exc,
+            )
+            last_error = exc
+            if attempt < settings.AI_MAX_RETRIES - 1:
+                await asyncio.sleep(2**attempt)
+
+    raise AIServiceError(
+        f"Image import failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
 
 
