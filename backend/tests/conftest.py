@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
@@ -58,3 +59,33 @@ def clear_rate_limit_state():
 def unique_email(prefix: str = "test") -> str:
     """Generate a unique email per call to avoid DB uniqueness conflicts across tests."""
     return f"{prefix}+{uuid.uuid4().hex[:8]}@example.com"
+
+
+@pytest.fixture
+async def superuser_token(client, db_engine) -> str:
+    """Create a user, promote to superuser via DB, return access token."""
+    from app.models.user import User as UserModel
+
+    email = unique_email("superuser")
+    password = "SuperPass123!"
+
+    reg = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg.status_code == 201, reg.json()
+    user_id = reg.json()["id"]
+
+    session_factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as session:
+        await session.execute(
+            update(UserModel)
+            .where(UserModel.id == uuid.UUID(user_id))
+            .values(is_superuser=True)
+        )
+        await session.commit()
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login.status_code == 200, login.json()
+    return login.json()["access_token"]

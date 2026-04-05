@@ -1,19 +1,23 @@
 # backend/app/main.py
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import admin as admin_routes
 from app.api.routes import health, recipes
 from app.api.routes.import_tasks import recipes_router as import_recipes_router
 from app.api.routes.import_tasks import tasks_router as import_tasks_router
 from app.api.routes.users import auth_router, users_router
 from app.core.config import settings
 from app.core.rate_limit import rate_limit_middleware
+from app.tasks.cleanup import cleanup_old_uploads
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await asyncio.to_thread(cleanup_old_uploads)
     yield
 
 
@@ -40,3 +44,4 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(recipes.router, prefix="/api/v1/recipes", tags=["recipes"])
 app.include_router(import_recipes_router, prefix="/api/v1/recipes", tags=["import"])
 app.include_router(import_tasks_router, prefix="/api/v1/import-tasks", tags=["import"])
+app.include_router(admin_routes.router, prefix="/api/v1/admin", tags=["admin"])
