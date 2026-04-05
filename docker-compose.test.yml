@@ -5,7 +5,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://secretsauce:secretsauce@postgres_test:5432/secretsauce_test
       SECRET_KEY: test-secret-key
-      OPENROUTER_API_KEY: sk-or-test-placeholder
+      GEMINI_API_KEY: test-placeholder
       UPLOAD_DIR: /tmp/secretsauce-uploads
       CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
