@@ -8,6 +8,9 @@ import pytest
 from app.models.import_task import ImportTask, ImportTaskStatus
 from tests.conftest import unique_email
 
+# Minimal valid JPEG bytes (header only, enough for content-type check)
+_MINIMAL_JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+
 
 # ── Auth helper ───────────────────────────────────────────────────────────────
 
@@ -116,3 +119,59 @@ async def test_get_import_task_returns_task_for_owner(client):
     assert data["status"] == "pending"
     assert data["recipe_id"] is None
     assert data["error_message"] is None
+
+
+# ── POST /api/v1/recipes/import/image ────────────────────────────────────────
+
+async def test_import_image_requires_auth(client):
+    r = await client.post(
+        "/api/v1/recipes/import/image",
+        files={"file": ("recipe.jpg", _MINIMAL_JPEG, "image/jpeg")},
+    )
+    assert r.status_code == 401
+
+
+async def test_import_image_returns_202(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.api.routes.import_tasks.settings.UPLOAD_DIR", str(tmp_path))
+    token = await _auth_token(client)
+
+    with patch("app.api.routes.import_tasks.process_image_import", AsyncMock()):
+        r = await client.post(
+            "/api/v1/recipes/import/image",
+            files={"file": ("recipe.jpg", _MINIMAL_JPEG, "image/jpeg")},
+            headers=_auth(token),
+        )
+
+    assert r.status_code == 202
+    body = r.json()
+    assert "task_id" in body
+    assert body["status"] == "pending"
+
+
+async def test_import_image_rejects_non_image(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.api.routes.import_tasks.settings.UPLOAD_DIR", str(tmp_path))
+    token = await _auth_token(client)
+
+    r = await client.post(
+        "/api/v1/recipes/import/image",
+        files={"file": ("document.pdf", b"%PDF-1.4", "application/pdf")},
+        headers=_auth(token),
+    )
+    assert r.status_code == 422
+
+
+async def test_import_image_task_has_image_type(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.api.routes.import_tasks.settings.UPLOAD_DIR", str(tmp_path))
+    token = await _auth_token(client)
+
+    with patch("app.api.routes.import_tasks.process_image_import", AsyncMock()):
+        post = await client.post(
+            "/api/v1/recipes/import/image",
+            files={"file": ("recipe.jpg", _MINIMAL_JPEG, "image/jpeg")},
+            headers=_auth(token),
+        )
+    task_id = post.json()["task_id"]
+
+    r = await client.get(f"/api/v1/import-tasks/{task_id}", headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["import_type"] == "image"

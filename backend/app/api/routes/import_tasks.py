@@ -1,16 +1,20 @@
 # backend/app/api/routes/import_tasks.py
+import asyncio
 import uuid
+import uuid as uuid_lib
+from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.config import settings
 from app.core.rate_limit import check_import_rate_limit
 from app.core.security import current_active_user
 from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
 from app.schemas.import_task import ImportTaskCreated, ImportTaskRead, RecipeImportURLRequest
-from app.services.recipe_import_service import process_url_import
+from app.services.recipe_import_service import process_image_import, process_url_import
 
 # Mounted at /api/v1/recipes in main.py
 recipes_router = APIRouter()
@@ -48,3 +52,36 @@ async def get_import_task(
     if task is None or task.user_id != user.id:
         raise HTTPException(status_code=404, detail="Import task not found")
     return ImportTaskRead.from_orm_task(task)
+
+
+_MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+@recipes_router.post("/import/image", status_code=202, response_model=ImportTaskCreated)
+async def import_recipe_from_image(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> ImportTaskCreated:
+    check_import_rate_limit(str(user.id))
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=422, detail="File must be an image")
+
+    content = await file.read()
+    if len(content) > _MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=422, detail="File too large (max 10 MB)")
+
+    ext = Path(file.filename or "upload").suffix or ".jpg"
+    dest_path = Path(settings.UPLOAD_DIR) / f"{uuid_lib.uuid4()}{ext}"
+    await asyncio.to_thread(
+        lambda: (dest_path.parent.mkdir(parents=True, exist_ok=True), dest_path.write_bytes(content))
+    )
+
+    task = ImportTask(user_id=user.id, image_path=str(dest_path))
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    background_tasks.add_task(process_image_import, task.id, str(dest_path), user.id)
+    return ImportTaskCreated(task_id=task.id, status=ImportTaskStatus.PENDING)
