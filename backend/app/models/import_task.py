@@ -26,7 +26,8 @@ class ImportTask(SQLModel, table=True):
             index=True,
         )
     )
-    url: str = Field(sa_column=Column(Text, nullable=False))
+    url: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    image_path: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     status: ImportTaskStatus = Field(
         default=ImportTaskStatus.PENDING,
         sa_column=Column(String(20), nullable=False, server_default="pending"),
