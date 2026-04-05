@@ -26,6 +26,7 @@ vi.mock('@/stores/useRecipeStore', () => ({
 // Mock importTasks API
 vi.mock('@/api/importTasks', () => ({
   importRecipeFromUrl: vi.fn(),
+  importRecipeFromImage: vi.fn(),
   getImportTask: vi.fn(),
 }))
 
@@ -81,6 +82,7 @@ describe('RecipeListView — import flow', () => {
         status: 'completed',
         recipe_id: 'recipe-42',
         error_message: null,
+        import_type: 'url',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       }),
@@ -108,6 +110,7 @@ describe('RecipeListView — import flow', () => {
         status: 'failed',
         recipe_id: null,
         error_message: 'Could not extract recipe from page',
+        import_type: 'url',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       }),
