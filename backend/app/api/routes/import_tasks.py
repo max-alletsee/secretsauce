@@ -1,7 +1,6 @@
 # backend/app/api/routes/import_tasks.py
 import asyncio
 import uuid
-import uuid as uuid_lib
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
@@ -55,6 +54,7 @@ async def get_import_task(
 
 
 _MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
+_ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic"}
 
 
 @recipes_router.post("/import/image", status_code=202, response_model=ImportTaskCreated)
@@ -73,8 +73,9 @@ async def import_recipe_from_image(
     if len(content) > _MAX_IMAGE_SIZE:
         raise HTTPException(status_code=422, detail="File too large (max 10 MB)")
 
-    ext = Path(file.filename or "upload").suffix or ".jpg"
-    dest_path = Path(settings.UPLOAD_DIR) / f"{uuid_lib.uuid4()}{ext}"
+    raw_ext = Path(file.filename or "upload").suffix.lower()
+    ext = raw_ext if raw_ext in _ALLOWED_IMAGE_EXTENSIONS else ".jpg"
+    dest_path = Path(settings.UPLOAD_DIR) / f"{uuid.uuid4()}{ext}"
     await asyncio.to_thread(
         lambda: (dest_path.parent.mkdir(parents=True, exist_ok=True), dest_path.write_bytes(content))
     )
