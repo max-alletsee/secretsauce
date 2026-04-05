@@ -47,4 +47,4 @@ async def get_import_task(
     # to avoid leaking whether a task exists.
     if task is None or task.user_id != user.id:
         raise HTTPException(status_code=404, detail="Import task not found")
-    return ImportTaskRead.model_validate(task)
+    return ImportTaskRead.from_orm_task(task)
