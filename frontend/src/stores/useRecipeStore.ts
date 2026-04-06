@@ -33,7 +33,7 @@ export const useRecipeStore = defineStore('recipes', () => {
     if (!hasMore.value || loading.value) return
     loading.value = true
     try {
-      const { data } = await recipesApi.getRecipes(nextCursor.value ?? undefined)
+      const { data } = await recipesApi.getRecipes({ cursor: nextCursor.value ?? undefined })
       recipes.value.push(...data.items)
       nextCursor.value = data.next_cursor
       hasMore.value = data.has_more

@@ -110,7 +110,7 @@ describe('useRecipeStore', () => {
 
     expect(store.recipes).toEqual([mockRecipe, secondRecipe])
     expect(store.hasMore).toBe(false)
-    expect(recipesApi.getRecipes).toHaveBeenCalledWith('abc')
+    expect(recipesApi.getRecipes).toHaveBeenCalledWith({ cursor: 'abc' })
   })
 
   it('loadMore does nothing when hasMore is false', async () => {
