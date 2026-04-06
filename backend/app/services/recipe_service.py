@@ -201,7 +201,12 @@ async def list_recipes(
     List recipes visible to current_user (own + shared).
     Returns (items, next_cursor, has_more, popularity_available).
     """
-    # popularity is a placeholder — falls back to created_at_desc
+    if sort_by not in _VALID_SORT_BY:
+        raise HTTPException(status_code=400, detail="Invalid sort_by value")
+
+    # popularity is a placeholder — falls back to created_at_desc.
+    # Note: cursors encode 'created_at_desc', not 'popularity', so pagination
+    # is stable across pages. A real popularity implementation will need cursor migration.
     effective_sort = "created_at_desc" if sort_by == "popularity" else sort_by
     popularity_available = False
 
