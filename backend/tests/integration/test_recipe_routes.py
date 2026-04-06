@@ -363,3 +363,41 @@ async def test_restore_by_non_owner_returns_403(client):
         headers=_auth(other_token),
     )
     assert r.status_code == 403
+
+
+# ── Tag filter ────────────────────────────────────────────────────────────────
+
+async def _create_recipe(client, token: str, title: str = "Test Recipe", **fields) -> dict:
+    payload = {
+        "title": title,
+        "ingredients": [{"name": "ingredient", "quantity": "1", "unit": "cup"}],
+        "steps": [{"order": 1, "instruction": "Do something"}],
+        **fields,
+    }
+    r = await client.post("/api/v1/recipes", json=payload, headers=_auth(token))
+    assert r.status_code == 201, r.json()
+    return r.json()
+
+
+async def test_tag_filter_or_returns_recipes_with_any_matching_tag(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="Italian Dinner", tags=["italian", "dinner"])
+    await _create_recipe(client, token, title="Mexican Lunch", tags=["mexican", "lunch"])
+    await _create_recipe(client, token, title="French Breakfast", tags=["french", "breakfast"])
+
+    r = await client.get("/api/v1/recipes?tags=italian&tags=mexican", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert "Italian Dinner" in titles
+    assert "Mexican Lunch" in titles
+    assert "French Breakfast" not in titles
+
+
+async def test_tag_filter_empty_returns_all_recipes(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="Untagged Recipe", tags=[])
+
+    r = await client.get("/api/v1/recipes", headers=_auth(token))
+    assert r.status_code == 200
+    # Returns all user's recipes — at minimum the one just created
+    assert r.json()["items"]

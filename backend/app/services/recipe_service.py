@@ -5,7 +5,8 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select, update as sa_update
+from sqlalchemy import cast, delete, func, select, String, update as sa_update
+from sqlalchemy.dialects.postgresql import ARRAY as SA_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import RecipeVisibility
@@ -170,11 +171,17 @@ async def list_recipes(
     current_user_id: uuid.UUID,
     cursor: str | None = None,
     limit: int = 20,
-) -> tuple[list[tuple[Recipe, RecipeVersion]], str | None, bool]:
+    q: str | None = None,
+    tags: list[str] | None = None,
+    sort_by: str = "created_at_desc",
+) -> tuple[list[tuple[Recipe, RecipeVersion]], str | None, bool, bool]:
     """
     List recipes visible to current_user (own + shared), newest first.
-    Returns (items, next_cursor, has_more). Items are (Recipe, RecipeVersion) tuples.
+    Returns (items, next_cursor, has_more, popularity_available).
+    Items are (Recipe, RecipeVersion) tuples.
     """
+    popularity_available = False
+
     query = (
         select(Recipe, RecipeVersion)
         .join(RecipeVersion, Recipe.current_version_id == RecipeVersion.id)
@@ -183,6 +190,11 @@ async def list_recipes(
         )
         .order_by(Recipe.created_at.desc(), Recipe.id.desc())
     )
+
+    if tags:
+        query = query.where(
+            RecipeVersion.tags.op("?|")(cast(tags, SA_ARRAY(String())))
+        )
 
     if cursor:
         cursor_data = _decode_cursor(cursor)
@@ -202,7 +214,7 @@ async def list_recipes(
     has_more = len(rows) > limit
     items = list(rows[:limit])
     next_cursor = _encode_cursor(items[-1][0]) if has_more else None
-    return items, next_cursor, has_more
+    return items, next_cursor, has_more, popularity_available
 
 
 async def update_recipe(
