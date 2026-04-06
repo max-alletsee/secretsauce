@@ -29,6 +29,7 @@ def upgrade() -> None:
         ["search_vector"],
         postgresql_using="gin",
     )
+    # Full-table backfill — may take time on large datasets. Safe for pre-production MVP.
     op.execute("""
         UPDATE recipe_versions
         SET search_vector = to_tsvector('english',

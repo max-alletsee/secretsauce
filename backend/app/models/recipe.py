@@ -101,6 +101,7 @@ class RecipeVersion(SQLModel, table=True):
         default=None,
         sa_column=Column(JSONB),
     )
+    # Always populated via to_tsvector() in the service layer; never assigned directly from Python.
     search_vector: str | None = Field(
         default=None,
         sa_column=Column(TSVECTOR(), nullable=True),
