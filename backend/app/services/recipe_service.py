@@ -26,8 +26,13 @@ def _build_search_text(
     description: str | None,
     ingredients: list[dict],
 ) -> str:
+    parts = [title]
+    if description:
+        parts.append(description)
     ingredient_names = " ".join(i["name"] for i in ingredients if "name" in i)
-    return f"{title} {description or ''} {ingredient_names}".strip()
+    if ingredient_names:
+        parts.append(ingredient_names)
+    return " ".join(parts)
 
 
 async def _set_search_vector(
@@ -42,6 +47,7 @@ async def _set_search_vector(
         sa_update(RecipeVersion)
         .where(RecipeVersion.id == version_id)
         .values(search_vector=func.to_tsvector("english", text_value))
+        .execution_options(synchronize_session=False)
     )
 
 

@@ -89,3 +89,12 @@ def test_build_search_text_skips_ingredients_without_name_key():
     )
     assert "lettuce" in result
     assert "quantity" not in result
+
+
+def test_build_search_text_no_double_space_when_description_is_none():
+    result = _build_search_text(
+        title="Eggs Benedict",
+        description=None,
+        ingredients=[{"name": "egg"}],
+    )
+    assert "  " not in result
