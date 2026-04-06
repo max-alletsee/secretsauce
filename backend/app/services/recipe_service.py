@@ -196,6 +196,13 @@ async def list_recipes(
             RecipeVersion.tags.op("?|")(cast(tags, SA_ARRAY(String())))
         )
 
+    if q and q.strip():
+        query = query.where(
+            RecipeVersion.search_vector.op("@@")(
+                func.plainto_tsquery("english", q.strip())
+            )
+        )
+
     if cursor:
         cursor_data = _decode_cursor(cursor)
         query = query.where(

@@ -401,3 +401,47 @@ async def test_tag_filter_empty_returns_all_recipes(client):
     assert r.status_code == 200
     # Returns all user's recipes — at minimum the one just created
     assert r.json()["items"]
+
+
+# ── Full-text search ──────────────────────────────────────────────────────────
+
+async def test_search_q_returns_matching_recipes(client):
+    token = await _auth_token(client)
+    await _create_recipe(
+        client, token, title="Chicken Parmesan",
+        ingredients=[{"name": "chicken breast", "quantity": "2", "unit": "pieces"}],
+    )
+    await _create_recipe(
+        client, token, title="Beef Stew",
+        ingredients=[{"name": "beef chuck", "quantity": "500", "unit": "g"}],
+    )
+
+    r = await client.get("/api/v1/recipes?q=chicken", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert "Chicken Parmesan" in titles
+    assert "Beef Stew" not in titles
+
+
+async def test_search_q_matches_ingredient_names(client):
+    token = await _auth_token(client)
+    await _create_recipe(
+        client, token, title="Mystery Dish",
+        ingredients=[{"name": "saffron", "quantity": "1", "unit": "pinch"}],
+    )
+    await _create_recipe(client, token, title="Plain Pasta")
+
+    r = await client.get("/api/v1/recipes?q=saffron", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert "Mystery Dish" in titles
+    assert "Plain Pasta" not in titles
+
+
+async def test_search_empty_q_returns_all(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="Any Recipe")
+
+    r = await client.get("/api/v1/recipes?q=", headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["items"]
