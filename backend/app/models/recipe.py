@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, String, Uuid, text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlmodel import Field, SQLModel
 
 
@@ -63,6 +63,7 @@ class RecipeVersion(SQLModel, table=True):
     __table_args__ = (
         # Compound index for efficient version listing (ORDER BY version_number DESC per recipe)
         Index("ix_recipe_versions_recipe_id_version_number", "recipe_id", "version_number"),
+        Index("ix_recipe_versions_search_vector", "search_vector", postgresql_using="gin"),
     )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -99,6 +100,10 @@ class RecipeVersion(SQLModel, table=True):
     recipe_source: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column(JSONB),
+    )
+    search_vector: str | None = Field(
+        default=None,
+        sa_column=Column(TSVECTOR(), nullable=True),
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
