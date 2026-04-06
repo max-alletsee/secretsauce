@@ -18,6 +18,10 @@ vi.mock('@/stores/useRecipeStore', () => ({
     recipes: [],
     loading: false,
     hasMore: false,
+    searchQuery: '',
+    selectedTags: [],
+    sortBy: 'created_at_desc',
+    popularityAvailable: false,
     fetchRecipes: vi.fn(),
     loadMore: vi.fn(),
   }),
@@ -179,5 +183,20 @@ describe('RecipeListView — import flow', () => {
     await wrapper.vm.$nextTick()
 
     expect(mockPush).toHaveBeenCalledWith('/recipes/recipe-img-99/edit')
+  })
+
+  it('renders SearchBar component', () => {
+    const wrapper = mount(RecipeListView)
+    expect(wrapper.find('[data-testid="recipe-search-bar"]').exists()).toBe(true)
+  })
+
+  it('renders SortControl component', () => {
+    const wrapper = mount(RecipeListView)
+    expect(wrapper.find('[data-testid="recipe-sort-control"]').exists()).toBe(true)
+  })
+
+  it('renders TagFilter component', () => {
+    const wrapper = mount(RecipeListView)
+    expect(wrapper.find('[data-testid="recipe-tag-filter"]').exists()).toBe(true)
   })
 })

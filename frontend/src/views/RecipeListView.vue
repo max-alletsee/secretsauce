@@ -5,6 +5,8 @@ import { useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import * as importTasksApi from '@/api/importTasks'
 import RecipeCard from '@/components/RecipeCard.vue'
+import SearchBar from '@/components/SearchBar.vue'
+import SortControl from '@/components/SortControl.vue'
 import TagFilter from '@/components/TagFilter.vue'
 import { useImportPolling } from '@/composables/useImportPolling'
 
@@ -12,7 +14,6 @@ const recipeStore = useRecipeStore()
 const router = useRouter()
 
 const importUrl = ref('')
-const selectedTags = ref<string[]>([])
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
 const { status: importStatus, error: importError, startPolling } = useImportPolling(
@@ -114,7 +115,25 @@ onMounted(() => {
       </p>
     </section>
 
-    <TagFilter v-model="selectedTags" class="recipe-list-page__filters" />
+    <section class="search-section">
+      <SearchBar
+        v-model="recipeStore.searchQuery"
+        data-testid="recipe-search-bar"
+        class="search-section__bar"
+      />
+      <SortControl
+        v-model="recipeStore.sortBy"
+        :popularity-available="recipeStore.popularityAvailable"
+        data-testid="recipe-sort-control"
+        class="search-section__sort"
+      />
+    </section>
+
+    <TagFilter
+      v-model="recipeStore.selectedTags"
+      data-testid="recipe-tag-filter"
+      class="recipe-list-page__filters"
+    />
 
     <p v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
       Loading recipes…
@@ -227,6 +246,15 @@ onMounted(() => {
   color: #dc2626;
   font-size: 0.875rem;
 }
+.search-section {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.search-section__bar {
+  flex: 1;
+}
 .recipe-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -271,5 +299,10 @@ onMounted(() => {
   font-size: 1.75rem;
   text-decoration: none;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+@media (min-width: 1024px) {
+  .fab {
+    display: none;
+  }
 }
 </style>
