@@ -502,3 +502,44 @@ async def test_cursor_mismatch_returns_400(client):
         f"/api/v1/recipes?cursor={cursor}&sort_by=title_asc", headers=_auth(token)
     )
     assert r2.status_code == 400
+
+
+# ── Route validation ──────────────────────────────────────────────────────────
+
+async def test_invalid_sort_by_returns_400(client):
+    token = await _auth_token(client)
+    r = await client.get("/api/v1/recipes?sort_by=invalid_value", headers=_auth(token))
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "INVALID_SORT_BY"
+
+
+async def test_unknown_tags_silently_dropped(client):
+    token = await _auth_token(client)
+    r = await client.get("/api/v1/recipes?tags=not-a-real-tag", headers=_auth(token))
+    assert r.status_code == 200  # no error, tag just filtered out
+
+
+async def test_response_includes_popularity_sort_available(client):
+    token = await _auth_token(client)
+    r = await client.get("/api/v1/recipes", headers=_auth(token))
+    assert r.status_code == 200
+    assert "popularity_sort_available" in r.json()
+    assert r.json()["popularity_sort_available"] is False
+
+
+async def test_q_and_tags_work_together(client):
+    token = await _auth_token(client)
+    await _create_recipe(
+        client, token, title="Italian Chicken", tags=["italian"],
+        ingredients=[{"name": "chicken", "quantity": "1", "unit": "kg"}],
+    )
+    await _create_recipe(
+        client, token, title="Italian Pasta", tags=["italian"],
+        ingredients=[{"name": "pasta", "quantity": "200", "unit": "g"}],
+    )
+
+    r = await client.get("/api/v1/recipes?q=chicken&tags=italian", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert "Italian Chicken" in titles
+    assert "Italian Pasta" not in titles

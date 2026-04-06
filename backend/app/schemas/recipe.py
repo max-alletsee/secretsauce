@@ -105,3 +105,4 @@ class PaginatedRecipeResponse(BaseModel):
     items: list[RecipeResponse]
     next_cursor: str | None
     has_more: bool
+    popularity_sort_available: bool = False
