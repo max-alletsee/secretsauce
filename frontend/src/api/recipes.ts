@@ -7,8 +7,13 @@ import type {
 } from '@/types/recipe'
 import type { PaginatedResponse } from '@/types/common'
 
-export const getRecipes = (cursor?: string) =>
-  client.get<PaginatedResponse<Recipe>>('/recipes', { params: { cursor } })
+export const getRecipes = (params?: {
+  cursor?: string
+  limit?: number
+  q?: string
+  tags?: string[]
+  sort_by?: string
+}) => client.get<PaginatedResponse<Recipe>>('/recipes', { params })
 
 export const getRecipe = (id: string) =>
   client.get<Recipe>(`/recipes/${id}`)

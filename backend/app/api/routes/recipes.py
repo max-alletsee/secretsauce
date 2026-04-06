@@ -1,7 +1,8 @@
 # backend/app/api/routes/recipes.py
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -14,10 +15,13 @@ from app.schemas.recipe import (
     RecipeUpdate,
     RecipeVersionResponse,
 )
+from app.core.constants import ALL_TAGS
 from app.models.recipe import Recipe, RecipeVersion
 from app.services import recipe_service
 
 router = APIRouter()
+
+_VALID_SORT_BY = {"created_at_desc", "created_at_asc", "title_asc", "total_time_asc", "popularity"}
 
 
 def _build_recipe_response(recipe: Recipe, version: RecipeVersion) -> RecipeResponse:
@@ -35,16 +39,34 @@ def _build_recipe_response(recipe: Recipe, version: RecipeVersion) -> RecipeResp
 async def list_recipes(
     cursor: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=200),
+    tags: list[str] = Query(default=[]),
+    sort_by: str = Query(default="created_at_desc"),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> PaginatedRecipeResponse:
-    items, next_cursor, has_more = await recipe_service.list_recipes(
-        db, user.id, cursor=cursor, limit=limit
+    if sort_by not in _VALID_SORT_BY:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Invalid sort_by value", "error_code": "INVALID_SORT_BY"},
+        )
+    # Silently drop tags not in the pre-built list
+    valid_tags = [t for t in tags if t in ALL_TAGS] or None
+
+    items, next_cursor, has_more, popularity_available = await recipe_service.list_recipes(
+        db,
+        user.id,
+        cursor=cursor,
+        limit=limit,
+        q=q or None,
+        tags=valid_tags,
+        sort_by=sort_by,
     )
     return PaginatedRecipeResponse(
         items=[_build_recipe_response(r, v) for r, v in items],
         next_cursor=next_cursor,
         has_more=has_more,
+        popularity_sort_available=popularity_available,
     )
 
 

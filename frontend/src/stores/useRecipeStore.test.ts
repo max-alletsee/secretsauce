@@ -110,7 +110,10 @@ describe('useRecipeStore', () => {
 
     expect(store.recipes).toEqual([mockRecipe, secondRecipe])
     expect(store.hasMore).toBe(false)
-    expect(recipesApi.getRecipes).toHaveBeenCalledWith('abc')
+    expect(recipesApi.getRecipes).toHaveBeenCalledWith({
+      cursor: 'abc',
+      sort_by: 'created_at_desc',
+    })
   })
 
   it('loadMore does nothing when hasMore is false', async () => {
@@ -215,5 +218,116 @@ describe('useRecipeStore', () => {
     expect(store.currentRecipe).toEqual(restored)
     expect(recipesApi.restoreVersion).toHaveBeenCalledWith('r1', 'v1')
     expect(recipesApi.getVersions).toHaveBeenCalledWith('r1')
+  })
+
+  it('exposes searchQuery, selectedTags, sortBy, popularityAvailable with defaults', () => {
+    const store = useRecipeStore()
+    expect(store.searchQuery).toBe('')
+    expect(store.selectedTags).toEqual([])
+    expect(store.sortBy).toBe('created_at_desc')
+    expect(store.popularityAvailable).toBe(false)
+  })
+
+  it('fetchRecipes passes searchQuery, selectedTags, and sortBy to API', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({
+        items: [],
+        next_cursor: null,
+        has_more: false,
+        popularity_sort_available: false,
+      }),
+    )
+
+    const store = useRecipeStore()
+    store.searchQuery = 'pasta'
+    store.selectedTags = ['italian']
+    store.sortBy = 'title_asc'
+
+    await store.fetchRecipes()
+
+    expect(recipesApi.getRecipes).toHaveBeenCalledWith({
+      q: 'pasta',
+      tags: ['italian'],
+      sort_by: 'title_asc',
+    })
+  })
+
+  it('fetchRecipes omits q when searchQuery is empty', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [], next_cursor: null, has_more: false }),
+    )
+
+    const store = useRecipeStore()
+    store.searchQuery = ''
+    await store.fetchRecipes()
+
+    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0][0]
+    expect(callArgs?.q).toBeUndefined()
+  })
+
+  it('fetchRecipes omits tags when selectedTags is empty', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [], next_cursor: null, has_more: false }),
+    )
+
+    const store = useRecipeStore()
+    store.selectedTags = []
+    await store.fetchRecipes()
+
+    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0][0]
+    expect(callArgs?.tags).toBeUndefined()
+  })
+
+  it('fetchRecipes resets cursor and replaces recipes list', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [mockRecipe], next_cursor: null, has_more: false }),
+    )
+
+    const store = useRecipeStore()
+    store.recipes = [mockRecipe, mockRecipe]
+    store.nextCursor = 'old-cursor'
+
+    await store.fetchRecipes()
+
+    expect(store.recipes).toHaveLength(1)
+    expect(store.nextCursor).toBeNull()
+  })
+
+  it('fetchRecipes sets popularityAvailable from response', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({
+        items: [],
+        next_cursor: null,
+        has_more: false,
+        popularity_sort_available: true,
+      }),
+    )
+
+    const store = useRecipeStore()
+    await store.fetchRecipes()
+
+    expect(store.popularityAvailable).toBe(true)
+  })
+
+  it('loadMore passes current searchQuery, selectedTags, sortBy with cursor', async () => {
+    vi.mocked(recipesApi.getRecipes).mockResolvedValueOnce(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [], next_cursor: null, has_more: false }),
+    )
+
+    const store = useRecipeStore()
+    store.searchQuery = 'chicken'
+    store.selectedTags = ['dinner']
+    store.sortBy = 'title_asc'
+    store.nextCursor = 'abc'
+    store.hasMore = true
+
+    await store.loadMore()
+
+    expect(recipesApi.getRecipes).toHaveBeenCalledWith({
+      cursor: 'abc',
+      q: 'chicken',
+      tags: ['dinner'],
+      sort_by: 'title_asc',
+    })
   })
 })

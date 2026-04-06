@@ -1,6 +1,6 @@
 // frontend/src/stores/useRecipeStore.ts
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import * as recipesApi from '@/api/recipes'
 import type {
   Recipe,
@@ -8,6 +8,14 @@ import type {
   RecipeUpdatePayload,
   RecipeVersion,
 } from '@/types/recipe'
+
+function debounce<T extends (...args: unknown[]) => void>(fn: T, ms: number): T {
+  let timer: ReturnType<typeof setTimeout>
+  return ((...args: unknown[]) => {
+    clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), ms)
+  }) as T
+}
 
 export const useRecipeStore = defineStore('recipes', () => {
   const recipes = ref<Recipe[]>([])
@@ -17,13 +25,27 @@ export const useRecipeStore = defineStore('recipes', () => {
   const nextCursor = ref<string | null>(null)
   const hasMore = ref(true)
 
+  // Search / filter / sort state
+  const searchQuery = ref('')
+  const selectedTags = ref<string[]>([])
+  const sortBy = ref('created_at_desc')
+  const popularityAvailable = ref(false)
+
   async function fetchRecipes() {
+    recipes.value = []
+    nextCursor.value = null
+    hasMore.value = true
     loading.value = true
     try {
-      const { data } = await recipesApi.getRecipes()
+      const { data } = await recipesApi.getRecipes({
+        q: searchQuery.value || undefined,
+        tags: selectedTags.value.length ? selectedTags.value : undefined,
+        sort_by: sortBy.value,
+      })
       recipes.value = data.items
       nextCursor.value = data.next_cursor
       hasMore.value = data.has_more
+      popularityAvailable.value = data.popularity_sort_available ?? false
     } finally {
       loading.value = false
     }
@@ -33,7 +55,12 @@ export const useRecipeStore = defineStore('recipes', () => {
     if (!hasMore.value || loading.value) return
     loading.value = true
     try {
-      const { data } = await recipesApi.getRecipes(nextCursor.value ?? undefined)
+      const { data } = await recipesApi.getRecipes({
+        cursor: nextCursor.value ?? undefined,
+        q: searchQuery.value || undefined,
+        tags: selectedTags.value.length ? selectedTags.value : undefined,
+        sort_by: sortBy.value,
+      })
       recipes.value.push(...data.items)
       nextCursor.value = data.next_cursor
       hasMore.value = data.has_more
@@ -41,6 +68,12 @@ export const useRecipeStore = defineStore('recipes', () => {
       loading.value = false
     }
   }
+
+  // Watchers: search is debounced; tag/sort changes are immediate
+  // selectedTags needs deep:true because we replace the array reference on each change
+  watch(searchQuery, debounce(fetchRecipes, 300))
+  watch(selectedTags, fetchRecipes, { deep: true })
+  watch(sortBy, fetchRecipes)
 
   async function fetchRecipe(id: string) {
     loading.value = true
@@ -111,6 +144,10 @@ export const useRecipeStore = defineStore('recipes', () => {
     loading,
     nextCursor,
     hasMore,
+    searchQuery,
+    selectedTags,
+    sortBy,
+    popularityAvailable,
     fetchRecipes,
     loadMore,
     fetchRecipe,
