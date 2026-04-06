@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update as sa_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import RecipeVisibility
@@ -19,6 +19,30 @@ _VERSION_CONTENT_FIELDS = (
     "prep_time_minutes", "waiting_time_minutes", "cook_time_minutes",
     "tags", "recipe_source",
 )
+
+
+def _build_search_text(
+    title: str,
+    description: str | None,
+    ingredients: list[dict],
+) -> str:
+    ingredient_names = " ".join(i["name"] for i in ingredients if "name" in i)
+    return f"{title} {description or ''} {ingredient_names}".strip()
+
+
+async def _set_search_vector(
+    db: AsyncSession,
+    version_id: uuid.UUID,
+    title: str,
+    description: str | None,
+    ingredients: list[dict],
+) -> None:
+    text_value = _build_search_text(title, description, ingredients)
+    await db.execute(
+        sa_update(RecipeVersion)
+        .where(RecipeVersion.id == version_id)
+        .values(search_vector=func.to_tsvector("english", text_value))
+    )
 
 
 def _encode_cursor(recipe: Recipe) -> str:
@@ -109,6 +133,8 @@ async def create_recipe(
     )
     db.add(version)
     await db.flush()
+
+    await _set_search_vector(db, version.id, version.title, version.description, version.ingredients)
 
     return await _commit_new_version(db, recipe, version)
 
@@ -205,6 +231,10 @@ async def update_recipe(
     db.add(new_version)
     await db.flush()
 
+    await _set_search_vector(
+        db, new_version.id, new_version.title, new_version.description, new_version.ingredients
+    )
+
     if data.visibility is not None:
         recipe.visibility = data.visibility
     return await _commit_new_version(db, recipe, new_version)
@@ -278,5 +308,9 @@ async def restore_version(
     )
     db.add(new_version)
     await db.flush()
+
+    await _set_search_vector(
+        db, new_version.id, new_version.title, new_version.description, new_version.ingredients
+    )
 
     return await _commit_new_version(db, recipe, new_version)
