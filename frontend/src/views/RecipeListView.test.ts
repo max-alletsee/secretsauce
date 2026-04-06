@@ -26,6 +26,7 @@ vi.mock('@/stores/useRecipeStore', () => ({
 // Mock importTasks API
 vi.mock('@/api/importTasks', () => ({
   importRecipeFromUrl: vi.fn(),
+  importRecipeFromImage: vi.fn(),
   getImportTask: vi.fn(),
 }))
 
@@ -81,6 +82,7 @@ describe('RecipeListView — import flow', () => {
         status: 'completed',
         recipe_id: 'recipe-42',
         error_message: null,
+        import_type: 'url',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       }),
@@ -108,6 +110,7 @@ describe('RecipeListView — import flow', () => {
         status: 'failed',
         recipe_id: null,
         error_message: 'Could not extract recipe from page',
+        import_type: 'url',
         created_at: '2026-01-01T00:00:00Z',
         updated_at: '2026-01-01T00:00:00Z',
       }),
@@ -126,5 +129,55 @@ describe('RecipeListView — import flow', () => {
     )
     const input = wrapper.find('[data-testid="import-url-input"]')
     expect((input.element as HTMLInputElement).disabled).toBe(false)
+  })
+
+  it('shows an image upload button', () => {
+    const wrapper = mount(RecipeListView)
+    expect(wrapper.find('[data-testid="import-image-btn"]').exists()).toBe(true)
+  })
+
+  it('disables image button and shows spinner while importing image', async () => {
+    vi.mocked(importTasksApi.importRecipeFromImage).mockResolvedValueOnce(
+      axiosOk<ImportTaskCreated>({ task_id: 'task-img-1', status: 'pending' }),
+    )
+
+    const wrapper = mount(RecipeListView)
+    // Simulate file selection on the hidden input
+    const input = wrapper.find('[data-testid="import-image-input"]')
+    const file = new File([new Uint8Array(32)], 'recipe.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input.element, 'files', { value: [file] })
+    await input.trigger('change')
+    await wrapper.vm.$nextTick()
+
+    expect((wrapper.find('[data-testid="import-image-btn"]').element as HTMLButtonElement).disabled).toBe(true)
+    expect(wrapper.find('[data-testid="import-spinner"]').exists()).toBe(true)
+  })
+
+  it('navigates to edit view when image task completes', async () => {
+    vi.mocked(importTasksApi.importRecipeFromImage).mockResolvedValueOnce(
+      axiosOk<ImportTaskCreated>({ task_id: 'task-img-2', status: 'pending' }),
+    )
+    vi.mocked(importTasksApi.getImportTask).mockResolvedValue(
+      axiosOk<ImportTask>({
+        id: 'task-img-2',
+        status: 'completed',
+        recipe_id: 'recipe-img-99',
+        error_message: null,
+        import_type: 'image',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      }),
+    )
+
+    const wrapper = mount(RecipeListView)
+    const input = wrapper.find('[data-testid="import-image-input"]')
+    const file = new File([new Uint8Array(32)], 'recipe.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(input.element, 'files', { value: [file] })
+    await input.trigger('change')
+    await wrapper.vm.$nextTick()
+    await vi.advanceTimersByTimeAsync(3000)
+    await wrapper.vm.$nextTick()
+
+    expect(mockPush).toHaveBeenCalledWith('/recipes/recipe-img-99/edit')
   })
 })

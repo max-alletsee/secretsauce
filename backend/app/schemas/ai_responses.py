@@ -32,4 +32,4 @@ class RecipeImportResult(BaseModel):
     waiting_time_minutes: int | None = None
     cook_time_minutes: int | None = None
     tags: list[str] = []
-    recipe_source: ImportedRecipeSource
+    recipe_source: ImportedRecipeSource | None = None
