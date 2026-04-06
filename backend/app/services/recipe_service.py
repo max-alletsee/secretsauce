@@ -52,17 +52,34 @@ async def _set_search_vector(
     )
 
 
-def _encode_cursor(recipe: Recipe) -> str:
-    data = {"created_at": recipe.created_at.isoformat(), "id": str(recipe.id)}
+def _encode_cursor(recipe: Recipe, version: RecipeVersion, sort_by: str) -> str:
+    if sort_by == "title_asc":
+        sort_value = version.title
+    elif sort_by == "total_time_asc":
+        sort_value = (
+            (version.prep_time_minutes or 0)
+            + (version.waiting_time_minutes or 0)
+            + (version.cook_time_minutes or 0)
+        )
+    else:  # created_at_desc, created_at_asc
+        sort_value = recipe.created_at.isoformat()
+    data = {"sort_by": sort_by, "sort_value": sort_value, "id": str(recipe.id)}
     return base64.urlsafe_b64encode(json.dumps(data).encode()).decode()
 
 
-def _decode_cursor(cursor: str) -> dict:
+def _decode_cursor(cursor: str, sort_by: str) -> dict:
     try:
         data = json.loads(base64.urlsafe_b64decode(cursor.encode()))
-        data["created_at"] = datetime.fromisoformat(data["created_at"])
+        if data.get("sort_by") != sort_by:
+            raise HTTPException(status_code=400, detail="Cursor sort mismatch")
         data["id"] = uuid.UUID(data["id"])
+        if sort_by in ("created_at_desc", "created_at_asc"):
+            data["sort_value"] = datetime.fromisoformat(data["sort_value"])
+        # title_asc: sort_value is a string — no conversion needed
+        # total_time_asc: sort_value is an int — no conversion needed
         return data
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid cursor")
 
@@ -166,6 +183,11 @@ async def get_recipe(
     return recipe, version
 
 
+_VALID_SORT_BY = frozenset(
+    {"created_at_desc", "created_at_asc", "title_asc", "total_time_asc", "popularity"}
+)
+
+
 async def list_recipes(
     db: AsyncSession,
     current_user_id: uuid.UUID,
@@ -176,26 +198,35 @@ async def list_recipes(
     sort_by: str = "created_at_desc",
 ) -> tuple[list[tuple[Recipe, RecipeVersion]], str | None, bool, bool]:
     """
-    List recipes visible to current_user (own + shared), newest first.
+    List recipes visible to current_user (own + shared).
     Returns (items, next_cursor, has_more, popularity_available).
-    Items are (Recipe, RecipeVersion) tuples.
     """
+    # popularity is a placeholder — falls back to created_at_desc
+    effective_sort = "created_at_desc" if sort_by == "popularity" else sort_by
     popularity_available = False
+
+    total_time_expr = (
+        func.coalesce(RecipeVersion.prep_time_minutes, 0)
+        + func.coalesce(RecipeVersion.waiting_time_minutes, 0)
+        + func.coalesce(RecipeVersion.cook_time_minutes, 0)
+    )
 
     query = (
         select(Recipe, RecipeVersion)
         .join(RecipeVersion, Recipe.current_version_id == RecipeVersion.id)
         .where(
-            (Recipe.owner_id == current_user_id) | (Recipe.visibility == RecipeVisibility.SHARED)
+            (Recipe.owner_id == current_user_id)
+            | (Recipe.visibility == RecipeVisibility.SHARED)
         )
-        .order_by(Recipe.created_at.desc(), Recipe.id.desc())
     )
 
+    # Tag filter (OR semantics)
     if tags:
         query = query.where(
             RecipeVersion.tags.op("?|")(cast(tags, SA_ARRAY(String())))
         )
 
+    # Full-text search
     if q and q.strip():
         query = query.where(
             RecipeVersion.search_vector.op("@@")(
@@ -203,24 +234,51 @@ async def list_recipes(
             )
         )
 
+    # Sort order
+    if effective_sort == "created_at_desc":
+        query = query.order_by(Recipe.created_at.desc(), Recipe.id.desc())
+    elif effective_sort == "created_at_asc":
+        query = query.order_by(Recipe.created_at.asc(), Recipe.id.asc())
+    elif effective_sort == "title_asc":
+        query = query.order_by(RecipeVersion.title.asc(), Recipe.id.asc())
+    elif effective_sort == "total_time_asc":
+        query = query.order_by(total_time_expr.asc(), Recipe.id.asc())
+
+    # Cursor keyset pagination
     if cursor:
-        cursor_data = _decode_cursor(cursor)
-        query = query.where(
-            (Recipe.created_at < cursor_data["created_at"])
-            | (
-                (Recipe.created_at == cursor_data["created_at"])
-                & (Recipe.id < cursor_data["id"])
+        cursor_data = _decode_cursor(cursor, effective_sort)
+        sv = cursor_data["sort_value"]
+        rid = cursor_data["id"]
+        if effective_sort == "created_at_desc":
+            query = query.where(
+                (Recipe.created_at < sv)
+                | ((Recipe.created_at == sv) & (Recipe.id < rid))
             )
-        )
+        elif effective_sort == "created_at_asc":
+            query = query.where(
+                (Recipe.created_at > sv)
+                | ((Recipe.created_at == sv) & (Recipe.id > rid))
+            )
+        elif effective_sort == "title_asc":
+            query = query.where(
+                (RecipeVersion.title > sv)
+                | ((RecipeVersion.title == sv) & (Recipe.id > rid))
+            )
+        elif effective_sort == "total_time_asc":
+            query = query.where(
+                (total_time_expr > sv)
+                | ((total_time_expr == sv) & (Recipe.id > rid))
+            )
 
     query = query.limit(limit + 1)
-
     result = await db.execute(query)
     rows = result.all()
 
     has_more = len(rows) > limit
     items = list(rows[:limit])
-    next_cursor = _encode_cursor(items[-1][0]) if has_more else None
+    next_cursor = (
+        _encode_cursor(items[-1][0], items[-1][1], effective_sort) if has_more else None
+    )
     return items, next_cursor, has_more, popularity_available
 
 

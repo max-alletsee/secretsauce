@@ -1,6 +1,8 @@
 # backend/tests/integration/test_recipe_routes.py
 import uuid
 
+import pytest
+
 from tests.conftest import unique_email
 
 
@@ -445,3 +447,58 @@ async def test_search_empty_q_returns_all(client):
     r = await client.get("/api/v1/recipes?q=", headers=_auth(token))
     assert r.status_code == 200
     assert r.json()["items"]
+
+
+# ── Sort modes ────────────────────────────────────────────────────────────────
+
+async def test_sort_title_asc_returns_alphabetical_order(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="Zucchini Soup")
+    await _create_recipe(client, token, title="Apple Pie")
+    await _create_recipe(client, token, title="Mango Salad")
+
+    r = await client.get("/api/v1/recipes?sort_by=title_asc", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    apple_idx = titles.index("Apple Pie")
+    mango_idx = titles.index("Mango Salad")
+    zucchini_idx = titles.index("Zucchini Soup")
+    assert apple_idx < mango_idx < zucchini_idx
+
+
+async def test_sort_total_time_asc_orders_by_sum(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="Slow Cook", prep_time_minutes=10, cook_time_minutes=120)
+    await _create_recipe(client, token, title="Quick Fix", prep_time_minutes=5, cook_time_minutes=10)
+
+    r = await client.get("/api/v1/recipes?sort_by=total_time_asc", headers=_auth(token))
+    assert r.status_code == 200
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert titles.index("Quick Fix") < titles.index("Slow Cook")
+
+
+async def test_sort_popularity_falls_back_to_newest_first(client):
+    token = await _auth_token(client)
+    await _create_recipe(client, token, title="First Recipe")
+    await _create_recipe(client, token, title="Second Recipe")
+
+    r = await client.get("/api/v1/recipes?sort_by=popularity", headers=_auth(token))
+    assert r.status_code == 200
+    # popularity falls back to created_at_desc — second recipe first
+    titles = [item["current_version"]["title"] for item in r.json()["items"]]
+    assert titles.index("Second Recipe") < titles.index("First Recipe")
+
+
+async def test_cursor_mismatch_returns_400(client):
+    token = await _auth_token(client)
+    # Get a cursor with default sort
+    r = await client.get("/api/v1/recipes?limit=1", headers=_auth(token))
+    cursor = r.json().get("next_cursor")
+    if cursor is None:
+        pytest.skip("not enough recipes to get a cursor")
+
+    # Use that cursor with a different sort
+    r2 = await client.get(
+        f"/api/v1/recipes?cursor={cursor}&sort_by=title_asc", headers=_auth(token)
+    )
+    assert r2.status_code == 400

@@ -37,11 +37,12 @@ async def list_recipes(
     limit: int = Query(default=20, ge=1, le=100),
     q: str | None = Query(default=None),
     tags: list[str] = Query(default=[]),
+    sort_by: str = Query(default="created_at_desc"),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> PaginatedRecipeResponse:
     items, next_cursor, has_more, popularity_available = await recipe_service.list_recipes(
-        db, user.id, cursor=cursor, limit=limit, q=q, tags=tags or None
+        db, user.id, cursor=cursor, limit=limit, q=q, tags=tags or None, sort_by=sort_by
     )
     return PaginatedRecipeResponse(
         items=[_build_recipe_response(r, v) for r, v in items],
