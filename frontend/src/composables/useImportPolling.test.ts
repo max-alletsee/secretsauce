@@ -22,6 +22,7 @@ function makeTask(overrides: Partial<ImportTask> = {}): ImportTask {
     recipe_id: null,
     error_message: null,
     import_type: 'url',
+    result_data: null,
     created_at: '',
     updated_at: '',
     ...overrides,

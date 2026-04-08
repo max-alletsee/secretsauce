@@ -43,6 +43,11 @@ class User(SQLModel, table=True):
     )
     default_servings: int = Field(default=2)
     meal_plan_system_prompt: str | None = Field(default=None)
+    meal_plan_meal_types: list[str] = Field(
+        default_factory=lambda: ["dinner"],
+        sa_column=Column(JSONB, nullable=False, server_default=text("'[\"dinner\"]'::jsonb")),
+    )
+    meal_plan_days_ahead: int = Field(default=7)
     auth_providers: list[dict[str, Any]] = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),

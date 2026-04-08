@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import admin as admin_routes
 from app.api.routes import health, recipes
+from app.api.routes import meal_plans as meal_plans_routes
 from app.api.routes.import_tasks import recipes_router as import_recipes_router
 from app.api.routes.import_tasks import tasks_router as import_tasks_router
 from app.api.routes.users import auth_router, users_router
@@ -45,3 +46,4 @@ app.include_router(recipes.router, prefix="/api/v1/recipes", tags=["recipes"])
 app.include_router(import_recipes_router, prefix="/api/v1/recipes", tags=["import"])
 app.include_router(import_tasks_router, prefix="/api/v1/import-tasks", tags=["import"])
 app.include_router(admin_routes.router, prefix="/api/v1/admin", tags=["admin"])
+app.include_router(meal_plans_routes.router, prefix="/api/v1/meal-plans", tags=["meal-plans"])

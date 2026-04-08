@@ -8,6 +8,7 @@ export interface ImportTask {
   recipe_id: string | null
   error_message: string | null
   import_type: 'url' | 'image'
+  result_data: Record<string, unknown> | null
   created_at: string
   updated_at: string
 }

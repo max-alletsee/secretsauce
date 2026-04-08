@@ -33,3 +33,12 @@ class RecipeImportResult(BaseModel):
     cook_time_minutes: int | None = None
     tags: list[str] = []
     recipe_source: ImportedRecipeSource | None = None
+
+
+class MealSuggestionItem(BaseModel):
+    title: str
+    matched_recipe_id: str | None = None  # str to match Gemini's JSON output
+
+
+class MealSuggestionResult(BaseModel):
+    suggestions: list[MealSuggestionItem]
