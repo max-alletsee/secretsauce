@@ -1,4 +1,6 @@
 # backend/tests/integration/test_meal_plan_routes.py
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from tests.conftest import unique_email
 
@@ -180,3 +182,30 @@ async def test_delete_entry(client):
     # verify gone
     detail_r = await client.get(f"/api/v1/meal-plans/{plan_id}", headers=_auth(token))
     assert all(e["id"] != entry_id for e in detail_r.json()["entries"])
+
+
+# ── Suggestions ───────────────────────────────────────────────────────────────
+
+async def test_suggestions_returns_202_with_task_id(client):
+    token = await _auth_token(client)
+    with patch(
+        "app.api.routes.meal_plans.process_suggestions_task",
+        AsyncMock(),  # prevent background task from actually running
+    ):
+        r = await client.post("/api/v1/meal-plans/suggestions", json={}, headers=_auth(token))
+    assert r.status_code == 202
+    assert "task_id" in r.json()
+    assert r.json()["status"] == "pending"
+
+
+async def test_suggestions_task_can_be_polled(client):
+    token = await _auth_token(client)
+    with patch(
+        "app.api.routes.meal_plans.process_suggestions_task",
+        AsyncMock(),  # prevent background task from actually running
+    ):
+        r = await client.post("/api/v1/meal-plans/suggestions", json={}, headers=_auth(token))
+    task_id = r.json()["task_id"]
+    poll_r = await client.get(f"/api/v1/import-tasks/{task_id}", headers=_auth(token))
+    assert poll_r.status_code == 200
+    assert poll_r.json()["id"] == task_id

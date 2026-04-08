@@ -1,12 +1,14 @@
 # backend/app/api/routes/meal_plans.py
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.security import current_active_user
+from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
+from app.schemas.import_task import ImportTaskCreated
 from app.schemas.meal_plan import (
     MealPlanCreate,
     MealPlanEntryCreate,
@@ -17,9 +19,11 @@ from app.schemas.meal_plan import (
     ShortlistEntryCreate,
     ShortlistEntryResponse,
     ShortlistReorderRequest,
+    SuggestionsRequest,
 )
 from app.services import meal_plan_service
 from app.services import shortlist_service
+from app.services.meal_suggestion_service import process_suggestions_task
 
 router = APIRouter()
 
@@ -79,6 +83,27 @@ async def remove_from_shortlist(
     user: User = Depends(current_active_user),
 ) -> None:
     await shortlist_service.remove_from_shortlist(db, user.id, entry_id)
+
+
+@router.post("/suggestions", response_model=ImportTaskCreated, status_code=202)
+async def generate_suggestions(
+    data: SuggestionsRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> ImportTaskCreated:
+    task = ImportTask(user_id=user.id, task_type="meal_suggestions")
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    background_tasks.add_task(
+        process_suggestions_task,
+        task.id,
+        user.id,
+        data.meal_plan_id,
+        data.steer_prompt,
+    )
+    return ImportTaskCreated(task_id=task.id, status=ImportTaskStatus.PENDING)
 
 
 @router.get("/{plan_id}", response_model=MealPlanWithEntries)
