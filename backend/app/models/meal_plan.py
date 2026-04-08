@@ -1,9 +1,10 @@
 # backend/app/models/meal_plan.py
 import uuid
 import datetime as _dt
+from datetime import datetime, timezone
 from typing import Literal
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import Boolean, Column, Date, DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -28,12 +29,12 @@ class MealPlan(SQLModel, table=True):
     ai_prompt_used: str | None = Field(
         default=None, sa_column=Column(Text, nullable=True)
     )
-    created_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
-    updated_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
@@ -65,14 +66,20 @@ class MealPlanEntry(SQLModel, table=True):
         default="recipe",
         sa_column=Column(String(20), nullable=False, server_default="recipe"),
     )
-    servings: int = Field(default=2)
+    servings: int = Field(
+        default=2,
+        sa_column=Column(Integer(), nullable=False, server_default="2"),
+    )
     source: str = Field(
         default="manual",
         sa_column=Column(String(20), nullable=False, server_default="manual"),
     )
-    position: int = Field(default=0)
-    created_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    position: int = Field(
+        default=0,
+        sa_column=Column(Integer(), nullable=False, server_default="0"),
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
@@ -103,8 +110,8 @@ class ShortlistEntry(SQLModel, table=True):
         sa_column=Column(String(20), nullable=False, server_default="recipe"),
     )
     position: int = Field(default=0)
-    created_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
@@ -137,10 +144,13 @@ class RecipeCookLog(SQLModel, table=True):
         ),
     )
     cooked_at: _dt.date = Field(sa_column=Column(Date, nullable=False))
-    rating: int | None = Field(default=None)
+    rating: int | None = Field(
+        default=None,
+        sa_column=Column(Integer(), nullable=True),
+    )
     notes: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
-    created_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
 
@@ -182,8 +192,11 @@ class CarryoverMeal(SQLModel, table=True):
             nullable=True,
         ),
     )
-    resolved: bool = Field(default=False)
-    created_at: _dt.datetime = Field(
-        default_factory=lambda: _dt.datetime.now(_dt.timezone.utc),
+    resolved: bool = Field(
+        default=False,
+        sa_column=Column(Boolean(), nullable=False, server_default="false"),
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False),
     )
