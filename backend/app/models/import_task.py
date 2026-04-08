@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import StrEnum
 
 from sqlalchemy import Column, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -42,6 +43,13 @@ class ImportTask(SQLModel, table=True):
     )
     error_message: str | None = Field(
         default=None, sa_column=Column(Text, nullable=True)
+    )
+    task_type: str = Field(
+        default="recipe_import",
+        sa_column=Column(String(30), nullable=False, server_default="recipe_import"),
+    )
+    result_data: dict | None = Field(
+        default=None, sa_column=Column(JSONB, nullable=True)
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
