@@ -1,8 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd C:/github/mealtimeflow/.worktrees/phase0-scaffolding/backend && uv init --python 3.12 2>&1)",
-      "Bash(cd /c/github/mealtimeflow/backend && uv run python -c \"from fastapi_users.db import SQLAlchemyUserDatabase; print\\('SQLAlchemyUserDatabase: OK'\\)\" 2>&1)",
       "Bash(docker info:*)",
       "Bash(docker context:*)",
       "Bash(docker compose:*)",
@@ -10,13 +8,37 @@
       "Bash(uv run:*)",
       "Bash(git add:*)",
       "Bash(python3:*)",
-      "Bash(powershell.exe -Command \"Start-Service -Name 'com.docker.service'; Start-Sleep 3; Get-Service -Name 'com.docker.service' | Select-Object Name, Status\" 2>&1)",
+      "Bash(powershell.exe -Command \"Start-Service -Name 'com.docker.service'*)",
       "Bash(docker ps:*)",
       "Bash(cd:*)",
       "Bash(npm install:*)",
       "Bash(npx vitest:*)",
       "Bash(npm run:*)",
-      "Bash(npx vue-tsc:*)"
+      "Bash(npx vue-tsc:*)",
+      "Bash(git commit:*)",
+      "Bash(uv sync:*)",
+      "Bash(source .venv/Scripts/activate*)",
+      "Bash(.venv/Scripts/activate*)",
+      "Bash(python -m pytest*)",
+      "Bash(pytest*)",
+      "Bash(pip install:*)",
+      "Bash(Start-Process \"C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe\")",
+      "Bash(powershell -Command \"Start-Process ''C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe''\")",
+      "Bash(alembic revision:*)",
+      "Bash(pip show:*)",
+      "Bash(docker rm:*)",
+      "Bash(uv --version)",
+      "Bash(docker inspect:*)",
+      "Bash(docker network:*)",
+      "Bash(docker run:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pg_isready -h localhost -p 5432)",
+      "Bash(psql -h localhost -p 5432 -U mealtime -d mealtime -c \"SELECT 1\")",
+      "Bash(powershell:*)",
+      "Bash(.venv/Scripts/python -m pytest *)",
+      "Bash(.venv/Scripts/pytest.exe *)",
+      "Bash(git:*)",
+      "Bash(npx playwright:*)"
     ]
   }
 }

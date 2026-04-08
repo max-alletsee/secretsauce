@@ -325,7 +325,7 @@ Nginx terminates TLS. Use Let's Encrypt / certbot for certificates. Redirect all
 ## MVP Scope
 
 The MVP includes:
-- User registration/login (email + password, Google OAuth)
+- User registration/login (email + password)
 - Recipe CRUD with versioning
 - Recipe import from URL (AI-powered)
 - Recipe import from image/photo (AI-powered)
@@ -337,7 +337,7 @@ The MVP includes:
 
 Deferred from MVP:
 - Export recipes as PDF
-- Apple/Facebook OAuth (add after MVP)
+- Google/Apple/Facebook OAuth (add after MVP)
 - Self-learning popularity/recommendation engine (track RecipeCookLog data from day one, build recommendations later)
 - Unit conversion (gram ↔ cups ↔ ounces)
 - Signal messenger sharing
