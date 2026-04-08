@@ -113,3 +113,70 @@ async def test_confirm_already_active_returns_400(client):
     await client.post(f"/api/v1/meal-plans/{plan_id}/confirm", headers=_auth(token))
     r = await client.post(f"/api/v1/meal-plans/{plan_id}/confirm", headers=_auth(token))
     assert r.status_code == 400
+
+
+# ── Entries ───────────────────────────────────────────────────────────────────
+
+async def _create_plan(client, token: str) -> str:
+    r = await client.post("/api/v1/meal-plans", json={
+        "name": "Entry Test", "start_date": "2026-04-07", "end_date": "2026-04-13"
+    }, headers=_auth(token))
+    assert r.status_code == 201
+    return r.json()["id"]
+
+
+async def test_create_entry_freetext(client):
+    token = await _auth_token(client)
+    plan_id = await _create_plan(client, token)
+    r = await client.post(f"/api/v1/meal-plans/{plan_id}/entries", json={
+        "date": "2026-04-07",
+        "meal_type": "dinner",
+        "note": "Restaurant X",
+        "entry_type": "freetext",
+    }, headers=_auth(token))
+    assert r.status_code == 201
+    assert r.json()["note"] == "Restaurant X"
+    assert r.json()["entry_type"] == "freetext"
+
+
+async def test_create_entry_404_wrong_plan(client):
+    token = await _auth_token(client)
+    other_token = await _auth_token(client)
+    other_plan_id = await _create_plan(client, other_token)
+    r = await client.post(f"/api/v1/meal-plans/{other_plan_id}/entries", json={
+        "date": "2026-04-07", "meal_type": "dinner",
+        "note": "Test", "entry_type": "freetext",
+    }, headers=_auth(token))
+    assert r.status_code == 404
+
+
+async def test_update_entry(client):
+    token = await _auth_token(client)
+    plan_id = await _create_plan(client, token)
+    create_r = await client.post(f"/api/v1/meal-plans/{plan_id}/entries", json={
+        "date": "2026-04-07", "meal_type": "dinner",
+        "note": "First note", "entry_type": "freetext",
+    }, headers=_auth(token))
+    entry_id = create_r.json()["id"]
+    r = await client.patch(f"/api/v1/meal-plans/{plan_id}/entries/{entry_id}", json={
+        "note": "Updated note",
+    }, headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["note"] == "Updated note"
+
+
+async def test_delete_entry(client):
+    token = await _auth_token(client)
+    plan_id = await _create_plan(client, token)
+    create_r = await client.post(f"/api/v1/meal-plans/{plan_id}/entries", json={
+        "date": "2026-04-07", "meal_type": "dinner",
+        "note": "To delete", "entry_type": "freetext",
+    }, headers=_auth(token))
+    entry_id = create_r.json()["id"]
+    r = await client.delete(
+        f"/api/v1/meal-plans/{plan_id}/entries/{entry_id}", headers=_auth(token)
+    )
+    assert r.status_code == 204
+    # verify gone
+    detail_r = await client.get(f"/api/v1/meal-plans/{plan_id}", headers=_auth(token))
+    assert all(e["id"] != entry_id for e in detail_r.json()["entries"])

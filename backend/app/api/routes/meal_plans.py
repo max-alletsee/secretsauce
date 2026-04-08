@@ -9,6 +9,8 @@ from app.core.security import current_active_user
 from app.models.user import User
 from app.schemas.meal_plan import (
     MealPlanCreate,
+    MealPlanEntryCreate,
+    MealPlanEntryUpdate,
     MealPlanResponse,
     MealPlanWithEntries,
     MealPlanEntryResponse,
@@ -59,3 +61,36 @@ async def confirm_meal_plan(
 ) -> MealPlanResponse:
     plan = await meal_plan_service.confirm_meal_plan(db, user.id, plan_id)
     return MealPlanResponse.model_validate(plan)
+
+
+@router.post("/{plan_id}/entries", response_model=MealPlanEntryResponse, status_code=201)
+async def create_entry(
+    plan_id: uuid.UUID,
+    data: MealPlanEntryCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> MealPlanEntryResponse:
+    entry = await meal_plan_service.add_entry(db, user.id, plan_id, data)
+    return MealPlanEntryResponse.model_validate(entry)
+
+
+@router.patch("/{plan_id}/entries/{entry_id}", response_model=MealPlanEntryResponse)
+async def update_entry(
+    plan_id: uuid.UUID,
+    entry_id: uuid.UUID,
+    data: MealPlanEntryUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> MealPlanEntryResponse:
+    entry = await meal_plan_service.update_entry(db, user.id, plan_id, entry_id, data)
+    return MealPlanEntryResponse.model_validate(entry)
+
+
+@router.delete("/{plan_id}/entries/{entry_id}", status_code=204)
+async def delete_entry(
+    plan_id: uuid.UUID,
+    entry_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> None:
+    await meal_plan_service.delete_entry(db, user.id, plan_id, entry_id)
