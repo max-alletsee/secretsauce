@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 
 from app.core.config import settings
-from app.schemas.ai_responses import RecipeImportResult
+from app.schemas.ai_responses import MealSuggestionResult, RecipeImportResult
 
 _T = TypeVar("_T")
 
@@ -216,3 +216,96 @@ async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
     raise AIServiceError(
         f"AI call failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
+
+
+_SUGGESTIONS_SYSTEM_PROMPT = """You are a meal planning assistant. Suggest meals based on the user's preferences.
+Return a JSON object with a "suggestions" array. Each suggestion must have:
+- "title": the meal name (string)
+- "matched_recipe_id": UUID string if the meal matches a recipe in the user's collection, or null
+
+IMPORTANT: For collection recipes, use the EXACT title from the provided list and include the exact recipe ID.
+For new ideas not in the collection, set matched_recipe_id to null."""
+
+
+def _build_suggestions_prompt(
+    meal_types: list[str],
+    days_ahead: int,
+    dietary_restrictions: dict,
+    allergies: dict,
+    favorite_cuisines: list[str],
+    disliked_ingredients: list[str],
+    meal_plan_system_prompt: str | None,
+    recipe_collection: list[tuple[str, str]],  # (id, title)
+    steer_prompt: str | None,
+    carryover_titles: list[str],
+) -> str:
+    n = len(meal_types) * days_ahead
+    parts = [
+        f"Plan {n} meals covering {meal_types} for {days_ahead} days.",
+    ]
+    if meal_plan_system_prompt:
+        parts.append(f"User instructions: {meal_plan_system_prompt}")
+    if dietary_restrictions:
+        parts.append(f"Dietary restrictions: {dietary_restrictions}")
+    if allergies:
+        parts.append(f"Allergies: {allergies}")
+    if favorite_cuisines:
+        parts.append(f"Favorite cuisines: {', '.join(favorite_cuisines)}")
+    if disliked_ingredients:
+        parts.append(f"Avoid ingredients: {', '.join(disliked_ingredients)}")
+    if carryover_titles:
+        parts.append(
+            f"The user already has these leftover/uncooked meals to use first: "
+            f"{', '.join(carryover_titles)}"
+        )
+    if steer_prompt:
+        parts.append(f"Additional context from user: {steer_prompt}")
+    if recipe_collection:
+        collection_str = "\n".join(f"  - {title} (id: {rid})" for rid, title in recipe_collection)
+        parts.append(f"User's recipe collection:\n{collection_str}")
+    parts.append(
+        f"Provide exactly {n} diverse suggestions. "
+        "Prefer collection recipes where they fit. "
+        "Mix collection recipes with new ideas."
+    )
+    return "\n\n".join(parts)
+
+
+async def generate_meal_suggestions(
+    meal_types: list[str],
+    days_ahead: int,
+    dietary_restrictions: dict,
+    allergies: dict,
+    favorite_cuisines: list[str],
+    disliked_ingredients: list[str],
+    meal_plan_system_prompt: str | None,
+    recipe_collection: list[tuple[str, str]],
+    steer_prompt: str | None,
+    carryover_titles: list[str],
+) -> MealSuggestionResult:
+    """Call Gemini to generate meal suggestions. Returns validated MealSuggestionResult.
+
+    Validates matched_recipe_id against the provided collection; nulls out unrecognised IDs.
+    """
+    prompt = _build_suggestions_prompt(
+        meal_types=meal_types,
+        days_ahead=days_ahead,
+        dietary_restrictions=dietary_restrictions,
+        allergies=allergies,
+        favorite_cuisines=favorite_cuisines,
+        disliked_ingredients=disliked_ingredients,
+        meal_plan_system_prompt=meal_plan_system_prompt,
+        recipe_collection=recipe_collection,
+        steer_prompt=steer_prompt,
+        carryover_titles=carryover_titles,
+    )
+    full_prompt = f"{_SUGGESTIONS_SYSTEM_PROMPT}\n\n{prompt}"
+    result = await call_ai_structured(full_prompt, MealSuggestionResult)
+
+    # Validate: null out any matched_recipe_id not in the provided collection
+    valid_ids = {rid for rid, _ in recipe_collection}
+    for suggestion in result.suggestions:
+        if suggestion.matched_recipe_id and suggestion.matched_recipe_id not in valid_ids:
+            suggestion.matched_recipe_id = None
+
+    return result
