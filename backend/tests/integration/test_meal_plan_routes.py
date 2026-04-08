@@ -209,3 +209,86 @@ async def test_suggestions_task_can_be_polled(client):
     poll_r = await client.get(f"/api/v1/import-tasks/{task_id}", headers=_auth(token))
     assert poll_r.status_code == 200
     assert poll_r.json()["id"] == task_id
+
+
+# ── Phase 6: Logging ──────────────────────────────────────────────────────────
+
+async def _create_active_plan_with_recipe_entry(client, token: str) -> tuple[str, str, str]:
+    """Returns (plan_id, entry_id, recipe_id)."""
+    # create a recipe first
+    recipe_r = await client.post("/api/v1/recipes", json={"title": "Test Recipe"},
+                                  headers=_auth(token))
+    assert recipe_r.status_code == 201, recipe_r.json()
+    recipe_id = recipe_r.json()["id"]
+
+    plan_r = await client.post("/api/v1/meal-plans", json={
+        "name": "Log Test", "start_date": "2026-04-07", "end_date": "2026-04-13"
+    }, headers=_auth(token))
+    plan_id = plan_r.json()["id"]
+
+    entry_r = await client.post(f"/api/v1/meal-plans/{plan_id}/entries", json={
+        "date": "2026-04-07",
+        "meal_type": "dinner",
+        "recipe_id": recipe_id,
+        "entry_type": "recipe",
+    }, headers=_auth(token))
+    entry_id = entry_r.json()["id"]
+
+    await client.post(f"/api/v1/meal-plans/{plan_id}/confirm", headers=_auth(token))
+    return plan_id, entry_id, recipe_id
+
+
+async def test_log_cooked_creates_cook_log(client):
+    token = await _auth_token(client)
+    plan_id, entry_id, _ = await _create_active_plan_with_recipe_entry(client, token)
+    r = await client.post(f"/api/v1/meal-plans/{plan_id}/log", json={
+        "entries": [{"entry_id": entry_id, "outcome": "cooked"}]
+    }, headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json() == []  # no carryovers for cooked entries
+
+
+async def test_log_not_cooked_creates_carryover(client):
+    token = await _auth_token(client)
+    plan_id, entry_id, recipe_id = await _create_active_plan_with_recipe_entry(client, token)
+    r = await client.post(f"/api/v1/meal-plans/{plan_id}/log", json={
+        "entries": [{"entry_id": entry_id, "outcome": "not_cooked"}]
+    }, headers=_auth(token))
+    assert r.status_code == 200
+    carryovers = r.json()
+    assert len(carryovers) == 1
+    assert carryovers[0]["recipe_id"] == recipe_id
+    assert carryovers[0]["reason"] == "not_cooked"
+
+
+async def test_log_plan_sets_status_completed(client):
+    token = await _auth_token(client)
+    plan_id, entry_id, _ = await _create_active_plan_with_recipe_entry(client, token)
+    await client.post(f"/api/v1/meal-plans/{plan_id}/log", json={
+        "entries": [{"entry_id": entry_id, "outcome": "cooked"}]
+    }, headers=_auth(token))
+    r = await client.get(f"/api/v1/meal-plans/{plan_id}", headers=_auth(token))
+    assert r.json()["status"] == "completed"
+
+
+async def test_log_non_active_plan_returns_400(client):
+    token = await _auth_token(client)
+    plan_r = await client.post("/api/v1/meal-plans", json={
+        "name": "Draft", "start_date": "2026-04-07", "end_date": "2026-04-13"
+    }, headers=_auth(token))
+    plan_id = plan_r.json()["id"]
+    r = await client.post(f"/api/v1/meal-plans/{plan_id}/log", json={"entries": []},
+                          headers=_auth(token))
+    assert r.status_code == 400
+
+
+async def test_get_carryovers(client):
+    token = await _auth_token(client)
+    plan_id, entry_id, _ = await _create_active_plan_with_recipe_entry(client, token)
+    await client.post(f"/api/v1/meal-plans/{plan_id}/log", json={
+        "entries": [{"entry_id": entry_id, "outcome": "not_cooked"}]
+    }, headers=_auth(token))
+    r = await client.get("/api/v1/meal-plans/carryovers", headers=_auth(token))
+    assert r.status_code == 200
+    assert len(r.json()) >= 1
+    assert r.json()[0]["resolved"] is False

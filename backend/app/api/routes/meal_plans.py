@@ -10,9 +10,11 @@ from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
 from app.schemas.import_task import ImportTaskCreated
 from app.schemas.meal_plan import (
+    CarryoverMealResponse,
     MealPlanCreate,
     MealPlanEntryCreate,
     MealPlanEntryUpdate,
+    MealPlanLogRequest,
     MealPlanResponse,
     MealPlanWithEntries,
     MealPlanEntryResponse,
@@ -21,6 +23,7 @@ from app.schemas.meal_plan import (
     ShortlistReorderRequest,
     SuggestionsRequest,
 )
+from app.services import meal_log_service
 from app.services import meal_plan_service
 from app.services import shortlist_service
 from app.services.meal_suggestion_service import process_suggestions_task
@@ -106,6 +109,15 @@ async def generate_suggestions(
     return ImportTaskCreated(task_id=task.id, status=ImportTaskStatus.PENDING)
 
 
+@router.get("/carryovers", response_model=list[CarryoverMealResponse])
+async def get_carryovers(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> list[CarryoverMealResponse]:
+    carryovers = await meal_log_service.get_unresolved_carryovers(db, user.id)
+    return [CarryoverMealResponse.model_validate(c) for c in carryovers]
+
+
 @router.get("/{plan_id}", response_model=MealPlanWithEntries)
 async def get_meal_plan(
     plan_id: uuid.UUID,
@@ -161,3 +173,14 @@ async def delete_entry(
     user: User = Depends(current_active_user),
 ) -> None:
     await meal_plan_service.delete_entry(db, user.id, plan_id, entry_id)
+
+
+@router.post("/{plan_id}/log", response_model=list[CarryoverMealResponse])
+async def log_meal_plan(
+    plan_id: uuid.UUID,
+    data: MealPlanLogRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> list[CarryoverMealResponse]:
+    carryovers = await meal_log_service.log_meal_plan(db, user.id, plan_id, data.entries)
+    return [CarryoverMealResponse.model_validate(c) for c in carryovers]
