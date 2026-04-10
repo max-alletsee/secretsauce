@@ -47,8 +47,8 @@ def upgrade() -> None:
         sa.Column("ingredient_name", sa.String(255), nullable=False),
         sa.Column("total_quantity", sa.Float(), nullable=False),
         sa.Column("unit", sa.String(50), nullable=False),
-        sa.Column("detail", sa.Text(), nullable=False),
-        sa.Column("category", sa.String(100), nullable=False),
+        sa.Column("detail", sa.Text(), nullable=False, server_default=sa.text("''")),
+        sa.Column("category", sa.String(100), nullable=False, server_default=sa.text("''")),
         sa.Column(
             "recipe_ids",
             postgresql.JSONB(astext_type=sa.Text()),
