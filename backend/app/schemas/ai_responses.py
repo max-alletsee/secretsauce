@@ -42,3 +42,31 @@ class MealSuggestionItem(BaseModel):
 
 class MealSuggestionResult(BaseModel):
     suggestions: list[MealSuggestionItem]
+
+
+class ShoppingItemAIResult(BaseModel):
+    ingredient_name: str
+    total_quantity: float
+    unit: str
+    detail: str  # e.g. "250 g for Pizza Dough, 150 g for Pancakes"
+    recipe_names: list[str]
+    category: Literal[
+        "Fresh Fruits and Vegetables",
+        "Cooled Products, Milk Products",
+        "Tinned Products",
+        "Sauces, Herbs, Spices, Oils",
+        "Broth, sauces, readymade products",
+        "Baked products",
+        "Spreads for Bread",
+        "Deep-frozen products",
+        "Coffee and Tea",
+        "Cereals, Cornflakes, Müsli",
+        "Basic Ingredients for Cooking and Baking",
+        "Meat and Fish",
+        "Drinks",
+        "Sweets and Snacks",
+    ]
+
+
+class ShoppingListAIResult(BaseModel):
+    items: list[ShoppingItemAIResult]
