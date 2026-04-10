@@ -86,7 +86,7 @@ describe('useShoppingListStore', () => {
     const store = useShoppingListStore()
     store.list = { ...mockList, items: [mockItem] }
     await store.toggleItem('mp1', 'i1', true)
-    expect(store.list!.items[0].checked).toBe(true)
+    expect(store.list!.items[0]?.checked).toBe(true)
   })
 
   it('toggleItem does nothing if list is null', async () => {

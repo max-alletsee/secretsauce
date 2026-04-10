@@ -32,13 +32,13 @@ const groupedItems = computed(() => {
   const byCategory: Record<string, typeof store.list.items> = {}
   for (const item of store.list.items) {
     if (!byCategory[item.category]) byCategory[item.category] = []
-    byCategory[item.category].push(item)
+    byCategory[item.category]!.push(item)
   }
   return CATEGORY_ORDER
     .filter((cat) => byCategory[cat]?.length)
     .map((cat) => ({
       category: cat,
-      items: [...byCategory[cat]].sort((a, b) => {
+      items: [...(byCategory[cat] ?? [])].sort((a, b) => {
         if (a.checked === b.checked) return 0
         return a.checked ? 1 : -1
       }),
