@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
@@ -46,7 +47,7 @@ class ShoppingList(SQLModel, table=True):
     )
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
-        sa_column=Column(DateTime(timezone=True), nullable=False),
+        sa_column=Column(DateTime(timezone=True), nullable=False, onupdate=lambda: datetime.now(timezone.utc)),
     )
 
 
@@ -65,11 +66,11 @@ class ShoppingListItem(SQLModel, table=True):
     ingredient_name: str = Field(sa_column=Column(String(255), nullable=False))
     total_quantity: float = Field(sa_column=Column(Float, nullable=False))
     unit: str = Field(sa_column=Column(String(50), nullable=False))
-    detail: str = Field(sa_column=Column(Text, nullable=False))
-    category: str = Field(sa_column=Column(String(100), nullable=False))
-    recipe_ids: list = Field(
+    detail: str = Field(default="", sa_column=Column(Text, nullable=False))
+    category: str = Field(default="", sa_column=Column(String(100), nullable=False))
+    recipe_ids: list[str] = Field(
         default_factory=list,
-        sa_column=Column(JSONB, nullable=False, server_default="'[]'::jsonb"),
+        sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
     checked: bool = Field(
         default=False,
