@@ -21,7 +21,9 @@ router = APIRouter()
 
 async def _load_items(db: AsyncSession, list_id: uuid.UUID) -> list[ShoppingListItem]:
     result = await db.execute(
-        select(ShoppingListItem).where(ShoppingListItem.shopping_list_id == list_id)
+        select(ShoppingListItem)
+        .where(ShoppingListItem.shopping_list_id == list_id)
+        .order_by(ShoppingListItem.created_at.asc())
     )
     return list(result.scalars().all())
 
@@ -41,9 +43,9 @@ def _to_response(shopping_list: ShoppingList, items: list[ShoppingListItem]) -> 
 @router.get("/{meal_plan_id}", response_model=ShoppingListResponse)
 async def get_shopping_list(
     meal_plan_id: uuid.UUID,
-    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
-):
+    user: User = Depends(current_active_user),
+) -> ShoppingListResponse:
     shopping_list = await shopping_service.get_or_create_shopping_list(db, user.id, meal_plan_id)
     items = await _load_items(db, shopping_list.id)
     return _to_response(shopping_list, items)
@@ -52,9 +54,9 @@ async def get_shopping_list(
 @router.post("/{meal_plan_id}/regenerate", response_model=ShoppingListResponse)
 async def regenerate_shopping_list(
     meal_plan_id: uuid.UUID,
-    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
-):
+    user: User = Depends(current_active_user),
+) -> ShoppingListResponse:
     shopping_list = await shopping_service.regenerate_shopping_list(db, user.id, meal_plan_id)
     items = await _load_items(db, shopping_list.id)
     return _to_response(shopping_list, items)
@@ -65,8 +67,8 @@ async def toggle_item(
     meal_plan_id: uuid.UUID,
     item_id: uuid.UUID,
     body: ShoppingListItemUpdate,
-    user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db),
-):
+    user: User = Depends(current_active_user),
+) -> ShoppingListItemResponse:
     item = await shopping_service.toggle_item_checked(db, user.id, meal_plan_id, item_id, body.checked)
     return ShoppingListItemResponse.model_validate(item)
