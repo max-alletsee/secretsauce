@@ -23,7 +23,7 @@ const CATEGORY_ORDER = [
 
 const route = useRoute()
 const store = useShoppingListStore()
-const mealPlanId = route.params.mealPlanId as string
+const mealPlanId = String(route.params.mealPlanId)
 
 onMounted(() => store.fetchList(mealPlanId))
 
@@ -47,6 +47,10 @@ const groupedItems = computed(() => {
 
 async function handleToggle(itemId: string, currentChecked: boolean) {
   await store.toggleItem(mealPlanId, itemId, !currentChecked)
+}
+
+function formatQty(n: number): string {
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/\.?0+$/, '')
 }
 
 async function handleRegenerate() {
@@ -99,7 +103,7 @@ async function handleRegenerate() {
                   <span class="item-name">
                     {{ item.ingredient_name }}
                     <span class="item-quantity">
-                      {{ item.total_quantity % 1 === 0 ? item.total_quantity : item.total_quantity.toFixed(1) }}
+                      {{ formatQty(item.total_quantity) }}
                       {{ item.unit }}
                     </span>
                   </span>
