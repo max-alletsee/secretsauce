@@ -70,6 +70,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/shopping-lists/:mealPlanId',
+      name: 'shopping-list',
+      component: () => import('@/views/ShoppingListView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/admin',
       name: 'admin',
       component: () => import('@/views/HomeView.vue'),

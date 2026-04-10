@@ -90,6 +90,12 @@ async function handleConfirm() {
           </span>
           <div class="plan-actions">
             <button
+              class="btn-shopping"
+              @click="router.push({ name: 'shopping-list', params: { mealPlanId: planId } })"
+            >
+              🛒 Shopping list
+            </button>
+            <button
               v-if="planStore.currentPlan.status === 'active'"
               class="btn-log"
               @click="router.push({ name: 'meal-plan-log', params: { id: planId } })"
@@ -163,6 +169,14 @@ async function handleConfirm() {
   padding: 0.4rem 1rem;
   cursor: pointer;
   font-weight: 600;
+}
+.btn-shopping {
+  background: #f0f0f0;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
 }
 .btn-log {
   background: #3498db;
