@@ -14,6 +14,7 @@ from app.models import user as _user_models  # noqa: F401 — registers User tab
 from app.models import recipe as _recipe_models  # noqa: F401 — registers Recipe/RecipeVersion in SQLModel.metadata
 from app.models import import_task as _import_task_models  # noqa: F401 — registers ImportTask in SQLModel.metadata
 from app.models import meal_plan as _meal_plan_models  # noqa: F401 — registers meal plan tables in SQLModel.metadata
+from app.models import shopping_list as _shopping_list_models  # noqa: F401 — registers ShoppingList/ShoppingListItem in SQLModel.metadata
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
