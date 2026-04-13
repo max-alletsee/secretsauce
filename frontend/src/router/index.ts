@@ -77,9 +77,31 @@ const router = createRouter({
     },
     {
       path: '/admin',
-      name: 'admin',
-      component: () => import('@/views/HomeView.vue'),
+      component: () => import('@/components/admin/AdminLayout.vue'),
       meta: { requiresAuth: true, requiresSuperuser: true },
+      redirect: '/admin/users',
+      children: [
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/AdminUsersView.vue'),
+        },
+        {
+          path: 'logs/app',
+          name: 'admin-logs-app',
+          component: () => import('@/views/admin/AdminAppLogsView.vue'),
+        },
+        {
+          path: 'logs/ai',
+          name: 'admin-logs-ai',
+          component: () => import('@/views/admin/AdminAiLogsView.vue'),
+        },
+        {
+          path: 'logs/audit',
+          name: 'admin-logs-audit',
+          component: () => import('@/views/admin/AdminAuditLogView.vue'),
+        },
+      ],
     },
   ],
 })
