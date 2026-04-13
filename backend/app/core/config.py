@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     AI_MAX_RETRIES: int = 3
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
+    APP_LOG_FILE: str = "/var/log/secretsauce/app.log"
 
     # Google OAuth — leave empty to disable Google login
     GOOGLE_CLIENT_ID: str = ""

@@ -13,6 +13,7 @@ from app.api.routes.import_tasks import recipes_router as import_recipes_router
 from app.api.routes.import_tasks import tasks_router as import_tasks_router
 from app.api.routes.users import auth_router, users_router
 from app.core.config import settings
+from app.core.logging import RequestLoggingMiddleware
 from app.core.rate_limit import rate_limit_middleware
 from app.tasks.cleanup import cleanup_old_uploads
 
@@ -39,6 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.middleware("http")(rate_limit_middleware)
+app.add_middleware(RequestLoggingMiddleware, log_file=settings.APP_LOG_FILE)
 
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
