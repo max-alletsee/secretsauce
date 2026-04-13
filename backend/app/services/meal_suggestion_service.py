@@ -61,6 +61,8 @@ async def process_suggestions_task(
                 recipe_collection=recipe_collection,
                 steer_prompt=steer_prompt,
                 carryover_titles=carryover_titles,
+                user_id=user_id,
+                db=db,
             )
 
             result_data = {

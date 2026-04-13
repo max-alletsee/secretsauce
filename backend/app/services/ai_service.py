@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+import uuid as _uuid
 from typing import TypeVar
 
 from google import genai
@@ -53,6 +54,38 @@ class AIServiceError(Exception):
     pass
 
 
+async def _write_ai_log(
+    db,  # AsyncSession | None
+    *,
+    user_id: "_uuid.UUID | None",
+    call_type: str,
+    model: str,
+    prompt_summary: str,
+    latency_ms: int,
+    input_tokens: int,
+    output_tokens: int,
+    success: bool,
+    error_message: str | None,
+) -> None:
+    if db is None:
+        return
+    from datetime import datetime, timezone
+    from app.models.admin import AICallLog
+    db.add(AICallLog(
+        user_id=user_id,
+        call_type=call_type,
+        model=model,
+        prompt_summary=prompt_summary[:200],
+        latency_ms=latency_ms,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        success=success,
+        error_message=error_message,
+        created_at=datetime.now(timezone.utc),
+    ))
+    await db.commit()
+
+
 def _get_client() -> genai.Client:
     global _client
     if _client is None:
@@ -60,7 +93,11 @@ def _get_client() -> genai.Client:
     return _client
 
 
-async def import_recipe_from_url(url: str) -> RecipeImportResult:
+async def import_recipe_from_url(
+    url: str,
+    user_id: "_uuid.UUID | None" = None,
+    db=None,  # AsyncSession | None
+) -> RecipeImportResult:
     """Call Gemini with URLContext to extract a recipe from the given URL.
 
     Gemini fetches and reads the page itself via the url_context tool.
@@ -70,6 +107,7 @@ async def import_recipe_from_url(url: str) -> RecipeImportResult:
     client = _get_client()
     prompt = _IMPORT_PROMPT_TEMPLATE.format(url=url)
     last_error: Exception | None = None
+    elapsed: float = 0.0
 
     for attempt in range(settings.AI_MAX_RETRIES):
         start = time.monotonic()
@@ -96,6 +134,13 @@ async def import_recipe_from_url(url: str) -> RecipeImportResult:
                 usage.prompt_token_count if usage else 0,
                 usage.candidates_token_count if usage else 0,
             )
+            await _write_ai_log(
+                db, user_id=user_id, call_type="url_import", model=settings.AI_MODEL,
+                prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+                input_tokens=usage.prompt_token_count if usage else 0,
+                output_tokens=usage.candidates_token_count if usage else 0,
+                success=True, error_message=None,
+            )
             return RecipeImportResult.model_validate_json(response.text)
         except Exception as exc:
             elapsed = time.monotonic() - start
@@ -111,12 +156,23 @@ async def import_recipe_from_url(url: str) -> RecipeImportResult:
             if attempt < settings.AI_MAX_RETRIES - 1:
                 await asyncio.sleep(2**attempt)
 
+    await _write_ai_log(
+        db, user_id=user_id, call_type="url_import", model=settings.AI_MODEL,
+        prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+        input_tokens=0, output_tokens=0,
+        success=False, error_message=str(last_error),
+    )
     raise AIServiceError(
         f"Import failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
 
 
-async def import_recipe_from_image(image_bytes: bytes, mime_type: str) -> RecipeImportResult:
+async def import_recipe_from_image(
+    image_bytes: bytes,
+    mime_type: str,
+    user_id: "_uuid.UUID | None" = None,
+    db=None,  # AsyncSession | None
+) -> RecipeImportResult:
     """Call Gemini with inline image bytes to extract a recipe.
 
     Supports photographed cookbook pages, handwritten recipe cards,
@@ -127,6 +183,7 @@ async def import_recipe_from_image(image_bytes: bytes, mime_type: str) -> Recipe
     client = _get_client()
     image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
     last_error: Exception | None = None
+    elapsed: float = 0.0
 
     for attempt in range(settings.AI_MAX_RETRIES):
         start = time.monotonic()
@@ -151,6 +208,13 @@ async def import_recipe_from_image(image_bytes: bytes, mime_type: str) -> Recipe
                 usage.prompt_token_count if usage else 0,
                 usage.candidates_token_count if usage else 0,
             )
+            await _write_ai_log(
+                db, user_id=user_id, call_type="image_import", model=settings.AI_MODEL,
+                prompt_summary="[image import]", latency_ms=int(elapsed * 1000),
+                input_tokens=usage.prompt_token_count if usage else 0,
+                output_tokens=usage.candidates_token_count if usage else 0,
+                success=True, error_message=None,
+            )
             return RecipeImportResult.model_validate_json(response.text)
         except Exception as exc:
             elapsed = time.monotonic() - start
@@ -165,12 +229,24 @@ async def import_recipe_from_image(image_bytes: bytes, mime_type: str) -> Recipe
             if attempt < settings.AI_MAX_RETRIES - 1:
                 await asyncio.sleep(2**attempt)
 
+    await _write_ai_log(
+        db, user_id=user_id, call_type="image_import", model=settings.AI_MODEL,
+        prompt_summary="[image import]", latency_ms=int(elapsed * 1000),
+        input_tokens=0, output_tokens=0,
+        success=False, error_message=str(last_error),
+    )
     raise AIServiceError(
         f"Image import failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
 
 
-async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
+async def call_ai_structured(
+    prompt: str,
+    response_model: type[_T],
+    call_type: str = "unknown",
+    user_id: "_uuid.UUID | None" = None,
+    db=None,  # AsyncSession | None
+) -> _T:
     """General-purpose structured Gemini call for future features (meal planning etc.).
 
     Returns a validated instance of response_model.
@@ -178,6 +254,7 @@ async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
     """
     client = _get_client()
     last_error: Exception | None = None
+    elapsed: float = 0.0
 
     for attempt in range(settings.AI_MAX_RETRIES):
         start = time.monotonic()
@@ -194,10 +271,18 @@ async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
                 timeout=settings.AI_TIMEOUT_SECONDS,
             )
             elapsed = time.monotonic() - start
+            usage = response.usage_metadata
             logger.info(
                 "AI structured call success | model=%s latency=%.2fs",
                 settings.AI_MODEL,
                 elapsed,
+            )
+            await _write_ai_log(
+                db, user_id=user_id, call_type=call_type, model=settings.AI_MODEL,
+                prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+                input_tokens=usage.prompt_token_count if usage else 0,
+                output_tokens=usage.candidates_token_count if usage else 0,
+                success=True, error_message=None,
             )
             return response_model.model_validate_json(response.text)
         except Exception as exc:
@@ -213,6 +298,12 @@ async def call_ai_structured(prompt: str, response_model: type[_T]) -> _T:
             if attempt < settings.AI_MAX_RETRIES - 1:
                 await asyncio.sleep(2**attempt)
 
+    await _write_ai_log(
+        db, user_id=user_id, call_type=call_type, model=settings.AI_MODEL,
+        prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+        input_tokens=0, output_tokens=0,
+        success=False, error_message=str(last_error),
+    )
     raise AIServiceError(
         f"AI call failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
@@ -282,6 +373,8 @@ async def generate_meal_suggestions(
     recipe_collection: list[tuple[str, str]],
     steer_prompt: str | None,
     carryover_titles: list[str],
+    user_id: "_uuid.UUID | None" = None,
+    db=None,  # AsyncSession | None
 ) -> MealSuggestionResult:
     """Call Gemini to generate meal suggestions. Returns validated MealSuggestionResult.
 
@@ -300,7 +393,10 @@ async def generate_meal_suggestions(
         carryover_titles=carryover_titles,
     )
     full_prompt = f"{_SUGGESTIONS_SYSTEM_PROMPT}\n\n{prompt}"
-    result = await call_ai_structured(full_prompt, MealSuggestionResult)
+    result = await call_ai_structured(
+        full_prompt, MealSuggestionResult, call_type="meal_suggestions",
+        user_id=user_id, db=db,
+    )
 
     # Validate: null out any matched_recipe_id not in the provided collection
     valid_ids = {rid for rid, _ in recipe_collection}

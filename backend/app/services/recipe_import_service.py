@@ -33,7 +33,7 @@ async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -
         await db.commit()
 
         try:
-            result: RecipeImportResult = await ai_service.import_recipe_from_url(url)
+            result: RecipeImportResult = await ai_service.import_recipe_from_url(url, user_id=user_id, db=db)
 
             if not result.title:
                 raise ValueError("Extracted recipe has no title")
@@ -107,7 +107,7 @@ async def process_image_import(
                 mime_type = "image/jpeg"
 
             result: RecipeImportResult = await ai_service.import_recipe_from_image(
-                image_bytes, mime_type
+                image_bytes, mime_type, user_id=user_id, db=db
             )
 
             if not result.title:
