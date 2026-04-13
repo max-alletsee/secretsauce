@@ -64,7 +64,7 @@ describe('useAdminUsersStore', () => {
     store.users = [mockUser({ id: 'u1', is_active: true })]
     await store.updateUser('u1', { is_active: false })
 
-    expect(store.users[0].is_active).toBe(false)
+    expect(store.users[0]!.is_active).toBe(false)
   })
 
   it('deleteUser removes user from local list', async () => {
@@ -76,6 +76,6 @@ describe('useAdminUsersStore', () => {
     await store.deleteUser('u1')
 
     expect(store.users).toHaveLength(1)
-    expect(store.users[0].id).toBe('u2')
+    expect(store.users[0]!.id).toBe('u2')
   })
 })

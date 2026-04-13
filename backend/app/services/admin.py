@@ -289,10 +289,17 @@ async def get_audit_logs(
 def _format_audit_description(action: str, target_email: str | None, details: dict) -> str:
     email = target_email or details.get("email", "unknown")
     match action:
-        case "PROMOTE":    return f"Promoted {email} to superuser"
-        case "DEMOTE":     return f"Demoted {email} from superuser"
-        case "ACTIVATE":   return f"Activated {email}"
-        case "DEACTIVATE": return f"Deactivated {email}"
-        case "DELETE":     return f"Deleted user {details.get('email', 'unknown')}"
-        case "CLEANUP":    return f"Ran cleanup — {details.get('deleted_count', 0)} files deleted"
-        case _:            return f"{action}: {email}"
+        case "PROMOTE":
+            return f"Promoted {email} to superuser"
+        case "DEMOTE":
+            return f"Demoted {email} from superuser"
+        case "ACTIVATE":
+            return f"Activated {email}"
+        case "DEACTIVATE":
+            return f"Deactivated {email}"
+        case "DELETE":
+            return f"Deleted user {details.get('email', 'unknown')}"
+        case "CLEANUP":
+            return f"Ran cleanup — {details.get('deleted_count', 0)} files deleted"
+        case _:
+            return f"{action}: {email}"
