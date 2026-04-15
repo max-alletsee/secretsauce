@@ -87,5 +87,5 @@ test('can log a plan and see success message', async ({ page }) => {
   await page.click('button:has-text("Submit log")')
 
   // Verify success message (no recipe entries so no carryovers)
-  await expect(page.locator('text=Plan logged successfully')).toBeVisible()
+  await expect(page.getByText('Plan logged successfully', { exact: true })).toBeVisible()
 })

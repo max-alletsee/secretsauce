@@ -42,8 +42,8 @@ test('search returns matching recipes', async ({ page }) => {
   // Wait for debounce
   await page.waitForTimeout(600)
 
-  await expect(page.locator('text=Mushroom Risotto')).toBeVisible()
-  await expect(page.locator('text=Chicken Tacos')).not.toBeVisible()
+  await expect(page.getByText('Mushroom Risotto', { exact: true })).toBeVisible()
+  await expect(page.getByText('Chicken Tacos', { exact: true })).not.toBeVisible()
 })
 
 test('tag filter narrows results to matching tag', async ({ page }) => {
@@ -54,9 +54,9 @@ test('tag filter narrows results to matching tag', async ({ page }) => {
   const breakfastTag = page.locator('[data-testid="tag-breakfast"], button:has-text("breakfast")')
   await breakfastTag.click()
 
-  await expect(page.locator('text=Banana Smoothie')).toBeVisible()
-  await expect(page.locator('text=Mushroom Risotto')).not.toBeVisible()
-  await expect(page.locator('text=Chicken Tacos')).not.toBeVisible()
+  await expect(page.getByText('Banana Smoothie', { exact: true })).toBeVisible()
+  await expect(page.getByText('Mushroom Risotto', { exact: true })).not.toBeVisible()
+  await expect(page.getByText('Chicken Tacos', { exact: true })).not.toBeVisible()
 })
 
 test('clearing the search shows all recipes again', async ({ page }) => {
@@ -66,10 +66,10 @@ test('clearing the search shows all recipes again', async ({ page }) => {
   const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]')
   await searchInput.fill('risotto')
   await page.waitForTimeout(600)
-  await expect(page.locator('text=Chicken Tacos')).not.toBeVisible()
+  await expect(page.getByText('Chicken Tacos', { exact: true })).not.toBeVisible()
 
   await searchInput.clear()
   await page.waitForTimeout(600)
-  await expect(page.locator('text=Mushroom Risotto')).toBeVisible()
-  await expect(page.locator('text=Chicken Tacos')).toBeVisible()
+  await expect(page.getByText('Mushroom Risotto', { exact: true })).toBeVisible()
+  await expect(page.getByText('Chicken Tacos', { exact: true })).toBeVisible()
 })

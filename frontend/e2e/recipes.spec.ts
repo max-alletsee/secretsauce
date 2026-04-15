@@ -42,7 +42,7 @@ test('newly created recipe appears in the recipe list', async ({ page }) => {
   expect(createRes.status()).toBe(201)
 
   await page.goto('/recipes')
-  await expect(page.locator('text=List Visibility Recipe')).toBeVisible()
+  await expect(page.getByText('List Visibility Recipe', { exact: true })).toBeVisible()
 })
 
 test('can delete a recipe', async ({ page }) => {
@@ -64,7 +64,7 @@ test('can delete a recipe', async ({ page }) => {
   }
 
   await page.waitForURL('/recipes')
-  await expect(page.locator('text=Recipe To Delete')).not.toBeVisible()
+  await expect(page.getByText('Recipe To Delete', { exact: true })).not.toBeVisible()
 })
 
 test('recipe import from URL submits and shows status', async ({ page }) => {
