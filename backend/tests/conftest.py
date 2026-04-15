@@ -1,4 +1,6 @@
+import json
 import os
+import pathlib
 import uuid
 
 import pytest
@@ -92,3 +94,34 @@ async def superuser_token(client, db_engine) -> str:
     )
     assert login.status_code == 200, login.json()
     return login.json()["access_token"]
+
+
+_FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
+
+
+def load_fixture(name: str) -> list[dict]:
+    """Load and return raw dicts from a JSON fixture file.
+
+    Usage:
+        users = load_fixture("users")  # returns list[dict]
+    """
+    return json.loads((_FIXTURES_DIR / f"{name}.json").read_text())
+
+
+@pytest.fixture
+async def seeded_user(client) -> dict:
+    """Register the first fixture user and return {email, password, token}."""
+    user_data = load_fixture("users")[0]
+    password = user_data["password"]
+
+    reg = await client.post("/api/v1/auth/register", json={"email": unique_email("seed"), "password": password})
+    assert reg.status_code == 201, reg.json()
+    actual_email = reg.json()["email"]
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": actual_email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login.status_code == 200, login.json()
+    return {"email": actual_email, "password": password, "token": login.json()["access_token"]}
