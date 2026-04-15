@@ -84,6 +84,8 @@ test('recipe import from URL submits and shows status', async ({ page }) => {
 
   // Should show a loading/pending indicator
   await expect(
-    page.locator('[data-testid="import-status"], .import-status, text=processing, text=Importing'),
+    page.locator('[data-testid="import-status"], .import-status')
+      .or(page.getByText('processing', { exact: false }))
+      .or(page.getByText('Importing', { exact: false })),
   ).toBeVisible({ timeout: 10_000 })
 })
