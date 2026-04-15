@@ -3,7 +3,16 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+import nh3
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+
+_STRIP_ALL_TAGS: frozenset[str] = frozenset()
+_REMOVE_CONTENT_TAGS: frozenset[str] = frozenset({"script", "style"})
+
+
+def _strip_html(value: str) -> str:
+    """Strip all HTML tags from a string, removing script/style content entirely."""
+    return nh3.clean(value, tags=_STRIP_ALL_TAGS, clean_content_tags=_REMOVE_CONTENT_TAGS)
 
 
 class Ingredient(BaseModel):
@@ -13,12 +22,22 @@ class Ingredient(BaseModel):
     quantity: str | None = None
     unit: str | None = None
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def strip_html_name(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
 
 class Step(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     order: int
     instruction: str
+
+    @field_validator("instruction", mode="before")
+    @classmethod
+    def strip_html_instruction(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
 
 
 class RecipeSource(BaseModel):
@@ -43,6 +62,16 @@ class RecipeCreate(BaseModel):
     recipe_source: RecipeSource | None = None
     visibility: Literal["private", "shared"] = "private"
 
+    @field_validator("title", mode="before")
+    @classmethod
+    def strip_html_title(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def strip_html_description(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
 
 class RecipeUpdate(BaseModel):
     # MVP limitation: None always means "omit this field" — you cannot clear a nullable
@@ -60,6 +89,16 @@ class RecipeUpdate(BaseModel):
     tags: list[str] | None = None
     recipe_source: RecipeSource | None = None
     visibility: Literal["private", "shared"] | None = None
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def strip_html_title(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def strip_html_description(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
 
 
 class RecipeVersionResponse(BaseModel):

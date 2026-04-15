@@ -14,6 +14,7 @@ dependencies = [
     "google-genai>=1.0.0",
     "httpx>=0.28.1",
     "httpx-oauth[google]>=0.16.1",
+    "nh3>=0.3.4",
     "pydantic-settings>=2.13.1",
     "python-multipart>=0.0.22",
     "sqlalchemy[asyncio]>=2.0.48",
