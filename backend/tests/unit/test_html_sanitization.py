@@ -42,3 +42,15 @@ def test_plain_text_is_unchanged():
 def test_plain_text_with_ampersand_is_unchanged():
     recipe = RecipeCreate(title="Salt & Pepper Chicken")
     assert recipe.title == "Salt & Pepper Chicken"
+
+
+def test_ingredient_quantity_html_is_stripped():
+    from app.schemas.recipe import Ingredient
+    ingredient = Ingredient(name="flour", quantity="<b>2</b>", unit="cups")
+    assert ingredient.quantity == "2"
+
+
+def test_ingredient_unit_html_is_stripped():
+    from app.schemas.recipe import Ingredient
+    ingredient = Ingredient(name="flour", quantity="2", unit="<script>evil()</script>cups")
+    assert ingredient.unit == "cups"

@@ -33,6 +33,16 @@ class Ingredient(BaseModel):
     def strip_html_name(cls, v: object) -> object:
         return _strip_html(v) if isinstance(v, str) else v
 
+    @field_validator("quantity", mode="before")
+    @classmethod
+    def strip_html_quantity(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
+    @field_validator("unit", mode="before")
+    @classmethod
+    def strip_html_unit(cls, v: object) -> object:
+        return _strip_html(v) if isinstance(v, str) else v
+
 
 class Step(BaseModel):
     model_config = ConfigDict(from_attributes=True)
