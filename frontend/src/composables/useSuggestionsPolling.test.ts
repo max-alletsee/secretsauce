@@ -113,15 +113,34 @@ describe('useSuggestionsPolling', () => {
   it('sets error on network failure', async () => {
     const scope = effectScope()
     let capturedError: any
+    let capturedStatus: any
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockRejectedValue(new Error('Network error'))
-      const { error, startPolling } = useSuggestionsPolling(() => {})
+      const { error, status, startPolling } = useSuggestionsPolling(() => {})
       capturedError = error
+      capturedStatus = status
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
     expect(capturedError.value).toBe('Failed to check suggestion status')
+    expect(capturedStatus.value).toBe('failed')
     scope.stop()
+  })
+
+  it('uses default error message when task.error_message is null', async () => {
+    const scope = effectScope()
+    let capturedError: ReturnType<typeof useSuggestionsPolling>['error'] | null = null
+    await scope.run(async () => {
+      vi.mocked(importTasksApi.getImportTask).mockResolvedValue(
+        axiosOk(makeTask({ status: 'failed', error_message: null })),
+      )
+      const { error, startPolling } = useSuggestionsPolling(() => {})
+      capturedError = error
+      startPolling('task-1')
+      await vi.runAllTimersAsync()
+    })
+    scope.stop()
+    expect(capturedError!.value).toBe('Suggestion generation failed')
   })
 
   it('stopPolling prevents further API calls', async () => {
