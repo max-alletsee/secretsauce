@@ -1,4 +1,5 @@
 # backend/app/schemas/recipe.py
+import html as _html
 import uuid
 from datetime import datetime
 from typing import Literal
@@ -11,8 +12,13 @@ _REMOVE_CONTENT_TAGS: frozenset[str] = frozenset({"script", "style"})
 
 
 def _strip_html(value: str) -> str:
-    """Strip all HTML tags from a string, removing script/style content entirely."""
-    return nh3.clean(value, tags=_STRIP_ALL_TAGS, clean_content_tags=_REMOVE_CONTENT_TAGS)
+    """Strip all HTML tags from a string, removing script/style content entirely.
+
+    Uses nh3.clean() to remove tags, then html.unescape() to decode any
+    entities that nh3 introduced during sanitization (e.g. & → &amp;).
+    """
+    cleaned = nh3.clean(value, tags=_STRIP_ALL_TAGS, clean_content_tags=_REMOVE_CONTENT_TAGS)
+    return _html.unescape(cleaned)
 
 
 class Ingredient(BaseModel):

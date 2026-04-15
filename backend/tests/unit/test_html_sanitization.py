@@ -37,3 +37,8 @@ def test_recipe_update_title_strips_html():
 def test_plain_text_is_unchanged():
     recipe = RecipeCreate(title="Simple Pasta")
     assert recipe.title == "Simple Pasta"
+
+
+def test_plain_text_with_ampersand_is_unchanged():
+    recipe = RecipeCreate(title="Salt & Pepper Chicken")
+    assert recipe.title == "Salt & Pepper Chicken"
