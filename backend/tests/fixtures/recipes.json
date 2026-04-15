@@ -1,0 +1,35 @@
+[
+  {
+    "title": "Pasta Carbonara",
+    "description": "Classic Roman pasta",
+    "ingredients": [
+      {"name": "spaghetti", "quantity": "400", "unit": "g"},
+      {"name": "eggs", "quantity": "4", "unit": ""},
+      {"name": "pancetta", "quantity": "150", "unit": "g"}
+    ],
+    "steps": [
+      {"order": 1, "instruction": "Boil pasta in salted water until al dente."},
+      {"order": 2, "instruction": "Fry pancetta until crisp."},
+      {"order": 3, "instruction": "Mix eggs with cheese, combine with pasta off heat."}
+    ],
+    "servings": 2,
+    "prep_time_minutes": 10,
+    "cook_time_minutes": 20,
+    "tags": ["italian", "dinner"]
+  },
+  {
+    "title": "Simple Green Salad",
+    "description": "Quick weekday salad",
+    "ingredients": [
+      {"name": "mixed greens", "quantity": "100", "unit": "g"},
+      {"name": "olive oil", "quantity": "2", "unit": "tbsp"}
+    ],
+    "steps": [
+      {"order": 1, "instruction": "Toss greens with olive oil and a pinch of salt."}
+    ],
+    "servings": 2,
+    "prep_time_minutes": 5,
+    "cook_time_minutes": null,
+    "tags": ["vegetarian", "lunch"]
+  }
+]
