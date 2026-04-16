@@ -125,7 +125,7 @@ The production stack (`docker-compose.yml`) adds Nginx as a reverse proxy with T
 
 ### 1. Provision a server
 
-A small VPS (e.g., DigitalOcean Droplet, Hetzner Cloud CX22) running Ubuntu 22.04 LTS is sufficient for early production. Install Podman and podman-compose. Ubuntu 24.04 LTS is recommended — it ships Podman 4.9.3 natively:
+A small VPS (e.g., DigitalOcean Droplet, Hetzner Cloud CX22) running Ubuntu 24.04 LTS is recommended — it ships Podman 4.9.3 natively. Install Podman and podman-compose:
 
 ```bash
 apt install podman
@@ -136,6 +136,7 @@ If `uv` is not yet installed on the server:
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.local/bin/env  # reload PATH so uv is available in the current shell
 ```
 
 ### 2. Clone the repo on the server
