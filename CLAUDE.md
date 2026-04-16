@@ -67,13 +67,13 @@ npm run lint
 npm run build
 ```
 
-### Full stack (Docker)
+### Full stack (Podman)
 ```bash
 # Start production stack
-docker compose up --build
+podman-compose up --build
 
 # Start test stack (used for Playwright e2e tests)
-docker compose -f docker-compose.test.yml up -d
+podman-compose -f docker-compose.test.yml up -d
 
 # Run e2e tests (requires test stack running)
 cd frontend && npx playwright test
