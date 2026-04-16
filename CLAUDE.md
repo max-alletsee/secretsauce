@@ -353,7 +353,7 @@ cd backend && pytest --cov=app --cov-report=term-missing
 cd frontend && npm run test:unit
 
 # E2E tests (requires running test stack)
-docker compose -f docker-compose.test.yml up -d
+podman-compose -f docker-compose.test.yml up -d
 cd frontend && npx playwright test
 ```
 
