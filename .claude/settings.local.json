@@ -38,7 +38,15 @@
       "Bash(.venv/Scripts/python -m pytest *)",
       "Bash(.venv/Scripts/pytest.exe *)",
       "Bash(git:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(python -m json.tool)",
+      "Bash(ruff check:*)",
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(uv add:*)"
     ]
   }
 }

@@ -451,7 +451,7 @@ frontend/
 ### Task #20 — Security hardening and production polish
 **Blocked by:** #18, #19
 
-- Verify rate limiting: auth (10/min), AI (20/hr/user)
+- Verify rate limiting: auth (10/min), AI (100/hr/user)
 - HTML sanitization on recipe text fields
 - CORS restricted to configured origins
 - Pydantic validation on all inputs
