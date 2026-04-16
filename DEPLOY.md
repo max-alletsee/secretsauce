@@ -70,7 +70,7 @@ cd secretsauce
 No `.env` file is needed — the test compose file hardcodes safe test credentials:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d --build
+podman-compose -f docker-compose.test.yml up -d --build
 ```
 
 This starts:
@@ -82,7 +82,7 @@ This starts:
 The backend container must be running before applying migrations:
 
 ```bash
-docker compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
+podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
 ```
 
 ### 4. Verify the stack is healthy
@@ -102,9 +102,9 @@ npx playwright test
 ### 6. Tear down
 
 ```bash
-docker compose -f docker-compose.test.yml down
+podman-compose -f docker-compose.test.yml down
 # Add -v to also remove the test database volume:
-docker compose -f docker-compose.test.yml down -v
+podman-compose -f docker-compose.test.yml down -v
 ```
 
 ### Running a full staging environment
@@ -114,7 +114,7 @@ If you want a staging environment that includes the frontend and nginx (closer t
 ```bash
 cp .env.example .env.staging
 # Edit .env.staging with staging values
-docker compose --env-file .env.staging up -d --build
+podman-compose --env-file .env.staging up -d --build
 ```
 
 ---
@@ -203,22 +203,22 @@ The nginx service serves the pre-built frontend from `frontend/dist`. Build it b
 cd frontend && npm install && npm run build && cd ..
 ```
 
-Alternatively, let Docker build it — the `frontend` service Dockerfile builds `dist` internally, and the nginx volume mount `./frontend/dist` will be populated after the frontend container runs its build stage. The easiest approach is to let compose handle it all:
+Alternatively, let Podman build it — the `frontend` service Dockerfile builds `dist` internally, and the nginx volume mount `./frontend/dist` will be populated after the frontend container runs its build stage. The easiest approach is to let podman-compose handle it all:
 
 ```bash
-docker compose up -d --build
+podman-compose up -d --build
 ```
 
 ### 7. Run database migrations
 
 ```bash
-docker compose exec backend uv run alembic upgrade head
+podman-compose exec backend uv run alembic upgrade head
 ```
 
 ### 8. Verify
 
 ```bash
-curl https://yourdomain.com/api/v1/health
+curl https://yourdomain.com:8443/api/v1/health
 # Expected: {"status": "ok", "db": "connected"}
 ```
 
@@ -229,7 +229,7 @@ Visit `https://yourdomain.com` in a browser to confirm the frontend loads.
 Use the FastAPI users CLI or a direct database call. With the backend container running:
 
 ```bash
-docker compose exec backend uv run python -c "
+podman-compose exec backend uv run python -c "
 import asyncio
 from app.core.database import get_async_session
 from app.models.user import User
@@ -241,7 +241,7 @@ from app.core.security import get_user_manager
 Or register via the UI and then promote the user in the database:
 
 ```bash
-docker compose exec postgres psql -U secretsauce -d secretsauce \
+podman-compose exec postgres psql -U secretsauce -d secretsauce \
   -c "UPDATE \"user\" SET is_superuser = true WHERE email = 'you@example.com';"
 ```
 
@@ -252,7 +252,7 @@ Certbot auto-renews certificates via a systemd timer. After renewal, nginx needs
 ```bash
 cat > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh << 'EOF'
 #!/bin/bash
-docker compose -f /path/to/secretsauce/docker-compose.yml exec nginx nginx -s reload
+podman-compose -f /path/to/secretsauce/docker-compose.yml exec nginx nginx -s reload
 EOF
 chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
 ```
@@ -266,7 +266,7 @@ cat > /etc/cron.daily/secretsauce-backup << 'EOF'
 #!/bin/bash
 BACKUP_DIR=/var/backups/secretsauce
 mkdir -p $BACKUP_DIR
-docker compose -f /path/to/secretsauce/docker-compose.yml exec -T postgres \
+podman-compose -f /path/to/secretsauce/docker-compose.yml exec -T postgres \
   pg_dump -U secretsauce secretsauce | gzip > $BACKUP_DIR/$(date +%Y%m%d).sql.gz
 # Retain 7 daily backups
 find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
@@ -285,10 +285,10 @@ To deploy a new version:
 git pull
 
 # Rebuild and restart (downtime is brief — postgres data is persisted in the volume)
-docker compose up -d --build
+podman-compose up -d --build
 
 # Apply any new migrations
-docker compose exec backend uv run alembic upgrade head
+podman-compose exec backend uv run alembic upgrade head
 ```
 
 For zero-downtime deploys, see the CI/CD section below.
@@ -424,10 +424,10 @@ jobs:
             git pull origin main
 
             # Rebuild and restart containers
-            docker compose up -d --build
+            podman-compose up -d --build
 
             # Run any pending migrations
-            docker compose exec -T backend uv run alembic upgrade head
+            podman-compose exec -T backend uv run alembic upgrade head
 
             # Confirm health
             sleep 5
@@ -453,14 +453,14 @@ In **Settings → Branches**, add a branch protection rule for `main`:
 
 ## Running Test and Production on the Same VPS
 
-You can run both a test/staging environment and a production environment concurrently on a single Hetzner VPS. The two stacks use different ports and isolated Docker networks, so they do not interfere with each other.
+You can run both a test/staging environment and a production environment concurrently on a single Hetzner VPS. The two stacks use different ports and isolated Podman networks, so they do not interfere with each other.
 
 ### Port allocation
 
 | Environment | Service | Port |
 |---|---|---|
-| Production | Nginx (HTTPS) | 443 |
-| Production | Nginx (HTTP → redirect) | 80 |
+| Production | Nginx (HTTPS) | 8443 |
+| Production | Nginx (HTTP → redirect) | 8080 |
 | Production | Postgres | 5432 (internal only) |
 | Test | Backend (HTTP, no TLS) | 8000 |
 | Test | Postgres | 5433 (internal only) |
@@ -491,11 +491,11 @@ git checkout develop    # or staging, or whichever branch feeds test
 # No .env needed — docker-compose.test.yml hardcodes test credentials
 ```
 
-Because Docker Compose uses the directory name as the project name, the two stacks get fully isolated container names, networks, and volumes automatically. Verify with:
+Because podman-compose uses the directory name as the project name, the two stacks get fully isolated container names, networks, and volumes automatically. Verify with:
 
 ```bash
-docker compose -f /opt/secretsauce/prod/docker-compose.yml ps
-docker compose -f /opt/secretsauce/test/docker-compose.test.yml ps
+podman-compose -f /opt/secretsauce/prod/docker-compose.yml ps
+podman-compose -f /opt/secretsauce/test/docker-compose.test.yml ps
 ```
 
 ### Starting both stacks
@@ -503,13 +503,13 @@ docker compose -f /opt/secretsauce/test/docker-compose.test.yml ps
 ```bash
 # Production (from prod directory)
 cd /opt/secretsauce/prod
-docker compose up -d --build
-docker compose exec backend uv run alembic upgrade head
+podman-compose up -d --build
+podman-compose exec backend uv run alembic upgrade head
 
 # Test (from test directory)
 cd /opt/secretsauce/test
-docker compose -f docker-compose.test.yml up -d --build
-docker compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
+podman-compose -f docker-compose.test.yml up -d --build
+podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
 ```
 
 ### Restricting test port access
@@ -518,7 +518,7 @@ Port `8000` (the test backend) should not be open to the internet. Use the Hetzn
 
 1. In the Hetzner Cloud console, go to **Firewalls → your server's firewall**
 2. Add an inbound rule: **TCP port 8000**, source = your IP address only
-3. Leave ports 80 and 443 open to all
+3. Add inbound rules for **TCP port 8080** and **TCP port 8443** open to all (nginx listens on these ports in rootless Podman mode)
 
 ### Deploying to test only (manual)
 
@@ -532,16 +532,16 @@ cd /opt/secretsauce/test
 git pull origin develop
 
 # Rebuild and restart only the test stack
-docker compose -f docker-compose.test.yml up -d --build
+podman-compose -f docker-compose.test.yml up -d --build
 
 # Apply any new migrations to the test database
-docker compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
+podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
 
 # Verify
 curl http://localhost:8000/api/v1/health
 ```
 
-Production is untouched because it lives in `/opt/secretsauce/prod` and runs a separate Docker project.
+Production is untouched because it lives in `/opt/secretsauce/prod` and runs a separate podman-compose project.
 
 ### CI/CD: separate deploy jobs per environment
 
@@ -577,8 +577,8 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
 
             git pull origin develop
 
-            docker compose -f docker-compose.test.yml up -d --build
-            docker compose -f docker-compose.test.yml exec -T backend uv run alembic upgrade head
+            podman-compose -f docker-compose.test.yml up -d --build
+            podman-compose -f docker-compose.test.yml exec -T backend uv run alembic upgrade head
 
             sleep 5
             curl -f http://localhost:8000/api/v1/health || exit 1
@@ -605,11 +605,11 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
 
             git pull origin main
 
-            docker compose up -d --build
-            docker compose exec -T backend uv run alembic upgrade head
+            podman-compose up -d --build
+            podman-compose exec -T backend uv run alembic upgrade head
 
             sleep 5
-            curl -f https://yourdomain.com/api/v1/health || exit 1
+            curl -f https://yourdomain.com:8443/api/v1/health || exit 1
 
             echo "Production deploy complete"
 ```
@@ -640,10 +640,10 @@ git log --oneline -5
 git checkout <previous-commit-sha>
 
 # Rebuild with the old code
-docker compose up -d --build
+podman-compose up -d --build
 
 # Downgrade the database if the migration was destructive
-docker compose exec backend uv run alembic downgrade -1
+podman-compose exec backend uv run alembic downgrade -1
 ```
 
 For database rollbacks, review the migration file in `backend/alembic/versions/` before running downgrade to confirm it is safe.
@@ -654,21 +654,21 @@ For database rollbacks, review the migration file in `backend/alembic/versions/`
 
 **Backend won't start / health check fails**
 ```bash
-docker compose logs backend
+podman-compose logs backend
 ```
 
 **Database connection errors**
 - Check `DATABASE_URL` in `.env` uses `postgres` (the service name) as the host, not `localhost`
-- Confirm the postgres container is healthy: `docker compose ps`
+- Confirm the postgres container is healthy: `podman-compose ps`
 
 **Nginx 502 Bad Gateway**
 - The backend may still be starting. Wait 15–30 seconds and retry.
-- Check `docker compose logs nginx` and `docker compose logs backend`
+- Check `podman-compose logs nginx` and `podman-compose logs backend`
 
 **Migrations fail**
 ```bash
-docker compose exec backend uv run alembic history
-docker compose exec backend uv run alembic current
+podman-compose exec backend uv run alembic history
+podman-compose exec backend uv run alembic current
 ```
 
 **TLS certificate errors**
