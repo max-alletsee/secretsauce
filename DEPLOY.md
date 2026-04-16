@@ -222,7 +222,7 @@ curl https://yourdomain.com:8443/api/v1/health
 # Expected: {"status": "ok", "db": "connected"}
 ```
 
-Visit `https://yourdomain.com` in a browser to confirm the frontend loads.
+Visit `https://yourdomain.com:8443` in a browser to confirm the frontend loads.
 
 ### 9. Create the first superuser
 
