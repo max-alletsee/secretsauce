@@ -49,7 +49,8 @@ Match the new port mappings (container-internal ports must match what nginx actu
 - `uv tool install podman-compose`
 
 ### Linux (production)
-- `apt install podman` (Ubuntu 22.04 ships Podman 3.x; for 4.4+, use the upstream Kubic repo)
+- Ubuntu 24.04 LTS (Noble) — ships Podman 4.9.3 natively, no third-party repo needed
+- `apt install podman`
 - `uv tool install podman-compose`
 
 ---
