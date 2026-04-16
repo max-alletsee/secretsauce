@@ -439,7 +439,7 @@ jobs:
 ### What the pipeline does
 
 - **On every PR:** runs backend tests (against a real Postgres instance), frontend unit tests, type-checking, and linting. The PR cannot be merged if any step fails.
-- **On merge to `main`:** SSHes into the production server, pulls the new code, rebuilds Docker images, applies migrations, and verifies the health endpoint. If the health check fails, the deploy job fails and you can investigate.
+- **On merge to `main`:** SSHes into the production server, pulls the new code, rebuilds container images, applies migrations, and verifies the health endpoint. If the health check fails, the deploy job fails and you can investigate.
 
 ### Protecting `main`
 
