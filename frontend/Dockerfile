@@ -1,4 +1,4 @@
-FROM node:20-slim AS build
+FROM docker.io/library/node:20-slim AS build
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -14,7 +14,7 @@ COPY . .
 RUN pnpm run build-only
 
 # Production: serve static build with Nginx
-FROM nginx:alpine AS production
+FROM docker.io/library/nginx:alpine AS production
 COPY --from=build /app/dist /usr/share/nginx/html
 # Nginx config will be provided by docker-compose volume mount
 EXPOSE 80
