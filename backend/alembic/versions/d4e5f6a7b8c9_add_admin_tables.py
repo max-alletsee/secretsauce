@@ -44,7 +44,7 @@ def upgrade() -> None:
         sa.Column('admin_id', sa.UUID(), nullable=False),
         sa.Column('action', sa.String(length=20), nullable=False),
         sa.Column('target_user_id', sa.UUID(), nullable=True),
-        sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default="'{}'::jsonb"),
+        sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default=sa.text("'{}'::jsonb")),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(['admin_id'], ['users.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['target_user_id'], ['users.id'], ondelete='SET NULL'),
