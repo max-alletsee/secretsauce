@@ -29,7 +29,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, log_file: str) -> None:
         super().__init__(app)
         self._log_file = Path(log_file)
-        self._log_file.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            self._log_file.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
 
     async def dispatch(self, request: Request, call_next) -> Response:
         start = time.monotonic()
