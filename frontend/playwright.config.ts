@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: 'html',
   timeout: 30_000,
   use: {
-    baseURL: process.env.BASE_URL ?? 'http://localhost',
+    baseURL: process.env.BASE_URL ?? 'http://localhost:5173',
     trace: 'on-first-retry',
   },
   projects: [
