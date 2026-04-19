@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16
+    image: docker.io/library/postgres:16
     env_file: .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-secretsauce}
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:alpine
+    image: docker.io/library/nginx:alpine
     ports:
       - "8080:8080"
       - "8443:8443"
