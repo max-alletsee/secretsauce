@@ -82,7 +82,7 @@ This starts:
 The backend container must be running before applying migrations:
 
 ```bash
-podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
+podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade heads
 ```
 
 ### 4. Verify the stack is healthy
@@ -125,24 +125,78 @@ The production stack (`docker-compose.yml`) adds Nginx as a reverse proxy with T
 
 ### 1. Provision a server
 
-A small VPS (e.g., DigitalOcean Droplet, Hetzner Cloud CX22) running Ubuntu 24.04 LTS is recommended — it ships Podman 4.9.3 natively. Install Podman and podman-compose:
+A small VPS (e.g., DigitalOcean Droplet, Hetzner Cloud CX22) running Ubuntu 24.04 LTS is recommended — it ships Podman 4.9.3 natively. 
+
+SSH into the server:
+
+```bash
+ssh root@<your-server-ip>
+```
+
+> **IPv6-only servers:** Hetzner CX servers are IPv6-only by default. Many services (including GitHub) do not support IPv6, so the server needs a NAT64/DNS64 gateway to reach them. Hetzner's built-in DNS64 servers are unreliable — use Google's instead. Edit the netplan config:
+>
+> ```bash
+> nano /etc/netplan/50-cloud-init.yaml
+> ```
+>
+> Replace the `nameservers` block with:
+>
+> ```yaml
+>       nameservers:
+>         addresses:
+>         - 2001:4860:4860::6464
+>         - 2001:4860:4860::64
+> ```
+>
+> Apply the change:
+>
+> ```bash
+> netplan apply
+> ```
+>
+> You only need to do this once. After this, `curl`, `git clone`, and `apt` will all reach IPv4 hosts normally via NAT64.
+
+Install Podman system-wide (as root):
 
 ```bash
 apt install podman
-uv tool install podman-compose
 ```
 
-If `uv` is not yet installed on the server:
+#### Rootless setup (recommended)
+
+Running Podman rootless means container processes run as an unprivileged user. A container breakout yields only that user account, not root on the host. The ports used by this stack (8080, 8443, 8000) are all above 1024, so rootless binding works without any special kernel configuration.
+
+**Create a dedicated deploy user and enable linger** (linger allows containers to keep running after you log out):
 
 ```bash
+useradd -m -s /bin/bash deploy
+mkdir -p /home/deploy/.ssh
+cp ~/.ssh/authorized_keys /home/deploy/.ssh/
+chown -R deploy:deploy /home/deploy/.ssh
+chmod 700 /home/deploy/.ssh && chmod 600 /home/deploy/.ssh/authorized_keys
+loginctl enable-linger deploy
+```
+
+**Install uv and podman-compose as the deploy user:**
+
+```bash
+su - deploy
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.local/bin/env  # reload PATH so uv is available in the current shell
+uv tool install podman-compose
+exit  # back to root
+```
+
+All subsequent steps in this section (clone, `.env`, compose commands, migrations) should be run as the `deploy` user:
+
+```bash
+su - deploy
 ```
 
 ### 2. Clone the repo on the server
 
 ```bash
-git clone https://github.com/your-org/secretsauce.git
+git clone https://github.com/max-alletsee/secretsauce.git
 cd secretsauce
 ```
 
@@ -159,7 +213,7 @@ DATABASE_URL=postgresql+asyncpg://secretsauce:STRONG_PASSWORD@postgres:5432/secr
 SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
 GEMINI_API_KEY=<your Gemini API key>
 UPLOAD_DIR=/tmp/secretsauce-uploads
-CORS_ORIGINS=["https://yourdomain.com"]
+CORS_ORIGINS=["https://secretsauce.food"]
 
 POSTGRES_USER=secretsauce
 POSTGRES_PASSWORD=STRONG_PASSWORD
@@ -170,29 +224,43 @@ Use a strong, unique `POSTGRES_PASSWORD` — it must match the password in `DATA
 
 ### 4. Obtain TLS certificates
 
-Use certbot with the standalone plugin (stop any existing nginx first):
+Use certbot with the standalone plugin (run as root — certbot requires root).
+
+**Install certbot via snap, not apt.** The apt version (2.9.0) shipped with Ubuntu 24.04 has a bug where it fails with "No such authorization" when fetching ACME authorizations from Let's Encrypt's Boulder server. The snap version (3.x) fixes this.
 
 ```bash
-apt install certbot
-certbot certonly --standalone -d yourdomain.com -d www.yourdomain.com
+snap install --classic certbot
+ln -sf /snap/bin/certbot /usr/bin/certbot
+apt install acl
+certbot certonly --standalone -d secretsauce.food -d www.secretsauce.food
 ```
 
-Certificates will be written to `/etc/letsencrypt/live/yourdomain.com/`.
+Certificates will be written to `/etc/letsencrypt/live/secretsauce.food/`.
 
-Create the `certs/` directory the compose file expects and symlink the certificates:
+**Grant the deploy user read access to the certificates** (certbot directories are root-only by default):
+
+```bash
+setfacl -R -m u:deploy:rX /etc/letsencrypt/live /etc/letsencrypt/archive
+```
+
+Then, as the `deploy` user, create the `certs/` directory the compose file expects and symlink the certificates:
 
 ```bash
 mkdir -p certs
-ln -sf /etc/letsencrypt/live/yourdomain.com/fullchain.pem certs/cert.pem
-ln -sf /etc/letsencrypt/live/yourdomain.com/privkey.pem certs/key.pem
+ln -sf /etc/letsencrypt/live/secretsauce.food/fullchain.pem certs/cert.pem
+ln -sf /etc/letsencrypt/live/secretsauce.food/privkey.pem certs/key.pem
 ```
 
 ### 5. Update nginx.conf for your domain
 
-Edit `nginx/nginx.conf` and replace `server_name _;` with your actual domain:
+Edit `nginx/nginx.conf` (full path: `/home/deploy/secretsauce/nginx/nginx.conf`) and replace `server_name _;` with your actual domain:
+
+```bash
+nano /home/deploy/secretsauce/nginx/nginx.conf
+```
 
 ```nginx
-server_name yourdomain.com www.yourdomain.com;
+server_name secretsauce.food www.secretsauce.food;
 ```
 
 ### 6. Build the frontend
@@ -209,20 +277,26 @@ Alternatively, let Podman build it — the `frontend` service Dockerfile builds 
 podman-compose up -d --build
 ```
 
+If a container is already running, it may be necessary to first stop it altogether and restart it: 
+
+```bash
+podman-compose down && podman-compose up -d
+```
+
 ### 7. Run database migrations
 
 ```bash
-podman-compose exec backend uv run alembic upgrade head
+podman-compose exec backend uv run alembic upgrade heads
 ```
 
 ### 8. Verify
 
 ```bash
-curl https://yourdomain.com:8443/api/v1/health
+curl https://secretsauce.food:8443/api/v1/health
 # Expected: {"status": "ok", "db": "connected"}
 ```
 
-Visit `https://yourdomain.com:8443` in a browser to confirm the frontend loads.
+Visit `https://secretsauce.food:8443` in a browser to confirm the frontend loads.
 
 ### 9. Create the first superuser
 
@@ -247,31 +321,23 @@ podman-compose exec postgres psql -U secretsauce -d secretsauce \
 
 ### TLS Certificate Renewal
 
-Certbot auto-renews certificates via a systemd timer. After renewal, nginx needs to reload to pick up the new certs. Add a renewal hook:
+Certbot auto-renews certificates via a systemd timer. After renewal, nginx needs to reload to pick up the new certs. Add a renewal hook (run as root — certbot hooks run as root):
 
 ```bash
 cat > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh << 'EOF'
 #!/bin/bash
-podman-compose -f /path/to/secretsauce/docker-compose.yml exec nginx nginx -s reload
+su - deploy -c "cd /home/deploy/secretsauce/prod && podman-compose exec nginx nginx -s reload"
 EOF
 chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
 ```
 
 ### Database Backups
 
-Set up a daily cron job to dump the database:
+Set up a daily cron job to dump the database. Run this as the `deploy` user (`crontab -e`), not in `/etc/cron.daily` — rootless Podman containers are only accessible to the user who started them:
 
 ```bash
-cat > /etc/cron.daily/secretsauce-backup << 'EOF'
-#!/bin/bash
-BACKUP_DIR=/var/backups/secretsauce
-mkdir -p $BACKUP_DIR
-podman-compose -f /path/to/secretsauce/docker-compose.yml exec -T postgres \
-  pg_dump -U secretsauce secretsauce | gzip > $BACKUP_DIR/$(date +%Y%m%d).sql.gz
-# Retain 7 daily backups
-find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
-EOF
-chmod +x /etc/cron.daily/secretsauce-backup
+# Run as deploy user: crontab -e
+0 2 * * * BACKUP_DIR=/home/deploy/backups/secretsauce && mkdir -p $BACKUP_DIR && cd /home/deploy/secretsauce/prod && podman-compose exec -T postgres pg_dump -U secretsauce secretsauce | gzip > $BACKUP_DIR/$(date +\%Y\%m\%d).sql.gz && find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
 ```
 
 ---
@@ -309,7 +375,7 @@ In your repository's **Settings → Secrets and variables → Actions**, add:
 | Secret | Value |
 |---|---|
 | `SSH_HOST` | IP address or hostname of your production server |
-| `SSH_USER` | SSH username (e.g., `ubuntu` or `deploy`) |
+| `SSH_USER` | `deploy` (the rootless user created in Step 1) |
 | `SSH_PRIVATE_KEY` | Private SSH key with access to the server |
 | `SSH_KNOWN_HOSTS` | Output of `ssh-keyscan your-server-ip` |
 
@@ -418,7 +484,7 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           script: |
             set -e
-            cd /path/to/secretsauce
+            cd /home/deploy/secretsauce/prod
 
             # Pull latest code
             git pull origin main
@@ -470,23 +536,23 @@ You can run both a test/staging environment and a production environment concurr
 Use two separate git clones in distinct directories. Each directory is an independent checkout tracking its own branch.
 
 ```
-/opt/secretsauce/
+/home/deploy/secretsauce/
 ├── prod/   # tracks main — runs docker-compose.yml
 └── test/   # tracks develop — runs docker-compose.test.yml
 ```
 
-Set this up once on the server:
+Set this up once on the server as the `deploy` user:
 
 ```bash
 # Production clone
-git clone https://github.com/your-org/secretsauce.git /opt/secretsauce/prod
-cd /opt/secretsauce/prod
+git clone https://github.com/your-org/secretsauce.git /home/deploy/secretsauce/prod
+cd /home/deploy/secretsauce/prod
 git checkout main
 cp .env.example .env    # fill in production values
 
 # Test clone
-git clone https://github.com/your-org/secretsauce.git /opt/secretsauce/test
-cd /opt/secretsauce/test
+git clone https://github.com/your-org/secretsauce.git /home/deploy/secretsauce/test
+cd /home/deploy/secretsauce/test
 git checkout develop    # or staging, or whichever branch feeds test
 # No .env needed — docker-compose.test.yml hardcodes test credentials
 ```
@@ -494,20 +560,22 @@ git checkout develop    # or staging, or whichever branch feeds test
 Because podman-compose uses the directory name as the project name, the two stacks get fully isolated container names, networks, and volumes automatically. Verify with:
 
 ```bash
-podman-compose -f /opt/secretsauce/prod/docker-compose.yml ps
-podman-compose -f /opt/secretsauce/test/docker-compose.test.yml ps
+podman-compose -f /home/deploy/secretsauce/prod/docker-compose.yml ps
+podman-compose -f /home/deploy/secretsauce/test/docker-compose.test.yml ps
 ```
 
 ### Starting both stacks
 
+Run these as the `deploy` user:
+
 ```bash
 # Production (from prod directory)
-cd /opt/secretsauce/prod
+cd /home/deploy/secretsauce/prod
 podman-compose up -d --build
 podman-compose exec backend uv run alembic upgrade head
 
 # Test (from test directory)
-cd /opt/secretsauce/test
+cd /home/deploy/secretsauce/test
 podman-compose -f docker-compose.test.yml up -d --build
 podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
 ```
@@ -525,8 +593,8 @@ Port `8000` (the test backend) should not be open to the internet. Use the Hetzn
 To push a new commit to the test environment without touching production:
 
 ```bash
-# On the server
-cd /opt/secretsauce/test
+# On the server, as the deploy user
+cd /home/deploy/secretsauce/test
 
 # Pull the latest from the develop branch
 git pull origin develop
@@ -573,7 +641,7 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           script: |
             set -e
-            cd /opt/secretsauce/test
+            cd /home/deploy/secretsauce/test
 
             git pull origin develop
 
@@ -601,7 +669,7 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           script: |
             set -e
-            cd /opt/secretsauce/prod
+            cd /home/deploy/secretsauce/prod
 
             git pull origin main
 
@@ -630,10 +698,12 @@ feature branches → develop → (review + test deploy) → main → production 
 
 ## Rollback
 
-If a production deploy goes wrong:
+If a production deploy goes wrong, run as the `deploy` user:
 
 ```bash
-# On the server — find the previous commit
+cd /home/deploy/secretsauce/prod
+
+# Find the previous commit
 git log --oneline -5
 
 # Roll back to it
