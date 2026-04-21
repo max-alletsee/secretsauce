@@ -3,6 +3,18 @@ import axios, { type InternalAxiosRequestConfig } from 'axios'
 const client = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
+  paramsSerializer: (params) => {
+    const parts: string[] = []
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null) continue
+      if (Array.isArray(value)) {
+        for (const v of value) parts.push(`${key}=${encodeURIComponent(v)}`)
+      } else {
+        parts.push(`${key}=${encodeURIComponent(value)}`)
+      }
+    }
+    return parts.join('&')
+  },
 })
 
 // Attach access token to every outgoing request

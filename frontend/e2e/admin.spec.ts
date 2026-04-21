@@ -34,8 +34,14 @@ test('superuser can access admin users table', async ({ page }) => {
   await page.waitForURL('/recipes')
 
   const token = await page.evaluate(() => localStorage.getItem('access_token') ?? '')
-
   test.skip(!token, 'Requires pre-seeded superuser in test DB')
+
+  // Verify the logged-in user is actually a superuser before proceeding
+  const meRes = await page.request.get('/api/v1/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const me = await meRes.json()
+  test.skip(!me.is_superuser, 'Requires pre-seeded superuser in test DB')
 
   await page.goto('/admin')
   await expect(

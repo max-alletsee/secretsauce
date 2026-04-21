@@ -15,6 +15,7 @@ const userStore = useUserStore()
 const error = ref('')
 const deleting = ref(false)
 const isNotFound = ref(false)
+const confirmingDelete = ref(false)
 
 const recipe = computed(() => recipeStore.currentRecipe)
 const isOwner = computed(() => recipe.value?.owner_id === userStore.user?.id)
@@ -42,8 +43,13 @@ async function loadRecipe() {
 
 onMounted(loadRecipe)
 
-async function handleDelete() {
-  if (!recipe.value || !confirm('Delete this recipe? This cannot be undone.')) return
+function handleDelete() {
+  confirmingDelete.value = true
+}
+
+async function confirmDelete() {
+  if (!recipe.value) return
+  confirmingDelete.value = false
   deleting.value = true
   try {
     await recipeStore.deleteRecipe(recipe.value.id)
@@ -88,7 +94,13 @@ async function handleRestore(versionId: string) {
           <RouterLink :to="`/recipes/${recipe.id}/edit`" class="btn btn--secondary">
             Edit
           </RouterLink>
+          <template v-if="confirmingDelete">
+            <button class="btn btn--danger" @click="confirmDelete">Yes, delete</button>
+            <button class="btn btn--secondary" @click="confirmingDelete = false">Cancel</button>
+          </template>
           <button
+            v-else
+            data-testid="delete-recipe"
             class="btn btn--danger"
             :disabled="deleting"
             @click="handleDelete"

@@ -133,8 +133,8 @@ function submit() {
 <template>
   <form class="recipe-form" @submit.prevent="submit" novalidate>
     <div class="recipe-form__field">
-      <label for="rf-title">Title</label>
-      <input id="rf-title" v-model="title" type="text" required />
+      <label for="recipe-title">Title</label>
+      <input id="recipe-title" v-model="title" type="text" required />
     </div>
 
     <div class="recipe-form__field">

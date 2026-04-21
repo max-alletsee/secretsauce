@@ -34,6 +34,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/recipes/import',
+      redirect: '/recipes',
+    },
+    {
       path: '/recipes/:id',
       name: 'recipe-detail',
       component: () => import('@/views/RecipeDetailView.vue'),
@@ -106,8 +110,10 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const userStore = useUserStore()
+
+  await userStore.authReady
 
   if (to.meta.requiresGuest && userStore.isAuthenticated) {
     return { name: 'recipes' }

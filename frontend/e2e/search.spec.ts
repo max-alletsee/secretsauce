@@ -7,6 +7,24 @@ test.beforeAll(async ({ request }) => {
   await request.post('/api/v1/auth/register', {
     data: { email: TEST_EMAIL, password: TEST_PASSWORD },
   })
+
+  const loginRes = await request.post('/api/v1/auth/login', {
+    form: { username: TEST_EMAIL, password: TEST_PASSWORD },
+  })
+  const { access_token } = await loginRes.json()
+
+  await request.post('/api/v1/recipes', {
+    data: { title: 'Mushroom Risotto', ingredients: [], steps: [], servings: 2, tags: ['italian', 'dinner'] },
+    headers: { Authorization: `Bearer ${access_token}` },
+  })
+  await request.post('/api/v1/recipes', {
+    data: { title: 'Chicken Tacos', ingredients: [], steps: [], servings: 4, tags: ['mexican', 'dinner'] },
+    headers: { Authorization: `Bearer ${access_token}` },
+  })
+  await request.post('/api/v1/recipes', {
+    data: { title: 'Banana Smoothie', ingredients: [], steps: [], servings: 1, tags: ['breakfast', 'vegan'] },
+    headers: { Authorization: `Bearer ${access_token}` },
+  })
 })
 
 test.beforeEach(async ({ page }) => {
@@ -17,24 +35,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForURL('/recipes')
 })
 
-async function seedRecipes(page: import('@playwright/test').Page) {
-  const token = await page.evaluate(() => localStorage.getItem('access_token'))
-  await page.request.post('/api/v1/recipes', {
-    data: { title: 'Mushroom Risotto', ingredients: [], steps: [], servings: 2, tags: ['italian', 'dinner'] },
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  await page.request.post('/api/v1/recipes', {
-    data: { title: 'Chicken Tacos', ingredients: [], steps: [], servings: 4, tags: ['mexican', 'dinner'] },
-    headers: { Authorization: `Bearer ${token}` },
-  })
-  await page.request.post('/api/v1/recipes', {
-    data: { title: 'Banana Smoothie', ingredients: [], steps: [], servings: 1, tags: ['breakfast', 'vegan'] },
-    headers: { Authorization: `Bearer ${token}` },
-  })
-}
-
 test('search returns matching recipes', async ({ page }) => {
-  await seedRecipes(page)
   await page.goto('/recipes')
 
   const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]')
@@ -47,7 +48,6 @@ test('search returns matching recipes', async ({ page }) => {
 })
 
 test('tag filter narrows results to matching tag', async ({ page }) => {
-  await seedRecipes(page)
   await page.goto('/recipes')
 
   // Click the "breakfast" tag — adapt selector to TagFilter component
@@ -60,7 +60,6 @@ test('tag filter narrows results to matching tag', async ({ page }) => {
 })
 
 test('clearing the search shows all recipes again', async ({ page }) => {
-  await seedRecipes(page)
   await page.goto('/recipes')
 
   const searchInput = page.locator('input[type="search"], input[placeholder*="search" i]')

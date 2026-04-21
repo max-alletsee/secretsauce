@@ -27,7 +27,7 @@ test('can create a meal plan and navigate to it', async ({ page }) => {
   await page.fill('#end-date', '2026-04-13')
   await page.click('button[type="submit"]')
 
-  await page.waitForURL(/\/meal-plans\/[a-z0-9-]+$/)
+  await page.waitForURL(/\/meal-plans\/[0-9a-f-]{36}$/)
   await expect(page.locator('h1, .plan-title')).toContainText('E2E Test Plan')
 })
 
@@ -38,7 +38,7 @@ test('can type free text into a meal slot', async ({ page }) => {
   await page.fill('#start-date', '2026-04-07')
   await page.fill('#end-date', '2026-04-09')
   await page.click('button[type="submit"]')
-  await page.waitForURL(/\/meal-plans\/[a-z0-9-]+$/)
+  await page.waitForURL(/\/meal-plans\/[0-9a-f-]{36}$/)
 
   // Click the first empty slot
   const emptySlot = page.locator('[data-testid="slot-empty"]').first()
@@ -59,7 +59,7 @@ test('can confirm a plan', async ({ page }) => {
   await page.fill('#start-date', '2026-04-07')
   await page.fill('#end-date', '2026-04-09')
   await page.click('button[type="submit"]')
-  await page.waitForURL(/\/meal-plans\/[a-z0-9-]+$/)
+  await page.waitForURL(/\/meal-plans\/[0-9a-f-]{36}$/)
 
   await page.click('button:has-text("Confirm Plan")')
   await expect(page.locator('button:has-text("Log meals")')).toBeVisible()
@@ -73,7 +73,7 @@ test('can log a plan and see success message', async ({ page }) => {
   await page.fill('#start-date', '2026-04-07')
   await page.fill('#end-date', '2026-04-07')
   await page.click('button[type="submit"]')
-  await page.waitForURL(/\/meal-plans\/[a-z0-9-]+$/)
+  await page.waitForURL(/\/meal-plans\/[0-9a-f-]{36}$/)
   const planUrl = page.url()
   const planId = planUrl.split('/').pop()!
 

@@ -56,7 +56,7 @@ async function submit() {
     <CarryoverBanner v-if="submitted" :carryovers="carryovers" />
 
     <div v-if="submitted" class="done-actions">
-      <p>Plan logged successfully.</p>
+      <p>Plan logged successfully</p>
       <button class="btn-primary" @click="router.push({ name: 'meal-plans' })">
         Back to plans
       </button>

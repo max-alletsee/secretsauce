@@ -25,5 +25,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
+    # Set to true in test environments to bypass rate limiting
+    RATE_LIMIT_DISABLED: bool = False
+
 
 settings = Settings()

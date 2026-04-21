@@ -8,6 +8,9 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(null)
   const isAuthenticated = ref(false)
   const isSuperuser = computed(() => user.value?.is_superuser ?? false)
+  // Resolves once initFromStorage() completes — router guard waits on this
+  let _resolveReady!: () => void
+  const authReady = new Promise<void>((resolve) => { _resolveReady = resolve })
 
   function _setTokens(accessToken: string, refreshToken: string) {
     localStorage.setItem('access_token', accessToken)
@@ -69,13 +72,18 @@ export const useUserStore = defineStore('user', () => {
   /** Restore auth state from localStorage on app startup. */
   async function initFromStorage() {
     const token = localStorage.getItem('access_token')
-    if (!token) return
+    if (!token) {
+      _resolveReady()
+      return
+    }
     try {
       await _fetchProfile()
     } catch {
       _clearTokens()
       user.value = null
       isAuthenticated.value = false
+    } finally {
+      _resolveReady()
     }
   }
 
@@ -83,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
     user,
     isAuthenticated,
     isSuperuser,
+    authReady,
     login,
     register,
     logout,

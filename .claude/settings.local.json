@@ -46,7 +46,9 @@
       "Bash(npx tsc:*)",
       "Bash(cat)",
       "Read(//tmp/**)",
-      "Bash(uv add:*)"
+      "Bash(uv add:*)",
+      "Bash(curl *)",
+      "Bash(podman logs *)"
     ]
   }
 }

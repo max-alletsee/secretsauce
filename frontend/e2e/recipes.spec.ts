@@ -20,11 +20,52 @@ test.beforeEach(async ({ page }) => {
 test('can create a recipe manually', async ({ page }) => {
   await page.goto('/recipes/new')
 
-  await page.fill('#recipe-title, input[name="title"], input[placeholder*="title" i]', 'E2E Test Recipe')
-  await page.click('button[type="submit"], button:has-text("Save"), button:has-text("Create")')
+  // Fill basic fields
+  await page.fill('#recipe-title', 'Garlic Pasta')
+  await page.fill('#rf-desc', 'A simple and delicious weeknight pasta.')
+  await page.fill('#rf-servings', '4')
+  await page.fill('#rf-prep', '10')
+  await page.fill('#rf-cook', '20')
 
-  await page.waitForURL(/\/recipes\/[a-z0-9-]+/)
-  await expect(page.locator('h1, .recipe-title')).toContainText('E2E Test Recipe')
+  // Add an ingredient via the drawer
+  await page.click('button:has-text("+ Add ingredient")')
+  await page.fill('#ing-name', 'spaghetti')
+  await page.fill('#ing-qty', '400')
+  await page.selectOption('#ing-unit', 'g')
+  await page.click('.drawer .btn--primary')
+
+  // Add a second ingredient
+  await page.click('button:has-text("+ Add ingredient")')
+  await page.fill('#ing-name', 'garlic')
+  await page.fill('#ing-qty', '4')
+  await page.selectOption('#ing-unit', 'clove')
+  await page.click('.drawer .btn--primary')
+
+  // Add a step via the drawer
+  await page.click('button:has-text("+ Add step")')
+  await page.fill('#step-instruction', 'Boil salted water and cook spaghetti until al dente.')
+  await page.click('.drawer .btn--primary')
+
+  // Add a second step
+  await page.click('button:has-text("+ Add step")')
+  await page.fill('#step-instruction', 'Fry garlic in olive oil and toss with drained pasta.')
+  await page.click('.drawer .btn--primary')
+
+  // Submit
+  await page.click('button[type="submit"]')
+
+  await page.waitForURL(/\/recipes\/[0-9a-f-]{36}$/)
+
+  // Verify all fields are visible on the detail page
+  await expect(page.locator('h1')).toContainText('Garlic Pasta')
+  await expect(page.locator('.recipe-detail__description')).toContainText('A simple and delicious weeknight pasta.')
+  await expect(page.locator('.recipe-detail__meta')).toContainText('4 servings')
+  await expect(page.locator('.recipe-detail__meta')).toContainText('10 min prep')
+  await expect(page.locator('.recipe-detail__meta')).toContainText('20 min cook')
+  await expect(page.locator('.recipe-detail__ingredients')).toContainText('spaghetti')
+  await expect(page.locator('.recipe-detail__ingredients')).toContainText('garlic')
+  await expect(page.locator('.recipe-detail__steps')).toContainText('Boil salted water')
+  await expect(page.locator('.recipe-detail__steps')).toContainText('Fry garlic in olive oil')
 })
 
 test('newly created recipe appears in the recipe list', async ({ page }) => {

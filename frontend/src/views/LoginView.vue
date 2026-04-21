@@ -20,8 +20,12 @@ async function submit() {
     await userStore.login({ email: email.value, password: password.value })
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/recipes'
     router.push(redirect)
-  } catch {
-    error.value = 'Invalid email or password.'
+  } catch (err: any) {
+    if (err?.response?.status === 429) {
+      error.value = 'Too many login attempts. Please wait a minute and try again.'
+    } else {
+      error.value = 'Invalid email or password.'
+    }
   } finally {
     loading.value = false
   }

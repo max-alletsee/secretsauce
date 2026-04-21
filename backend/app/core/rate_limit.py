@@ -5,6 +5,8 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from app.core.config import settings
+
 # Paths to rate-limit: 10 attempts per minute per client IP
 _AUTH_PATHS = {"/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/jwt/login"}
 _AUTH_LIMIT = 10
@@ -20,6 +22,9 @@ _import_attempts: dict[str, list[datetime]] = defaultdict(list)
 
 
 async def rate_limit_middleware(request: Request, call_next):
+    if settings.RATE_LIMIT_DISABLED:
+        return await call_next(request)
+
     client_ip = request.client.host if request.client else "unknown"
     now = datetime.now(timezone.utc)
 
