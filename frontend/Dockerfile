@@ -13,9 +13,7 @@ RUN pnpm install --no-frozen-lockfile
 COPY . .
 RUN pnpm run build-only
 
-# Production: serve static build with Nginx
-FROM docker.io/library/nginx:alpine AS production
-COPY --from=build /app/dist /usr/share/nginx/html
-# Nginx config will be provided by docker-compose volume mount
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Production: copy built assets to a volume-friendly output stage
+FROM docker.io/library/busybox AS production
+COPY --from=build /app/dist /dist
+CMD ["sh", "-c", "cp -r /dist/. /usr/share/nginx/html/ && echo 'Frontend assets copied'"]
