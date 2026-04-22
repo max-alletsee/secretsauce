@@ -17,7 +17,7 @@ services:
     build: ./frontend
     volumes:
       - frontend_dist:/usr/share/nginx/html
-    restart: on-failure
+    restart: "no"
 
   postgres:
     image: docker.io/library/postgres:16
