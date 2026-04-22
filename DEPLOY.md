@@ -237,18 +237,30 @@ certbot certonly --standalone -d secretsauce.food -d www.secretsauce.food
 
 Certificates will be written to `/etc/letsencrypt/live/secretsauce.food/`.
 
-**Grant the deploy user read access to the certificates** (certbot directories are root-only by default):
+**Copy the certificates into the repo's `certs/` directory** (as root). Do not use symlinks — the nginx process runs inside a rootless Podman container with remapped UIDs and cannot follow symlinks into `/etc/letsencrypt/`:
 
 ```bash
-setfacl -R -m u:deploy:rX /etc/letsencrypt/live /etc/letsencrypt/archive
+mkdir -p /home/deploy/secretsauce/certs
+cp /etc/letsencrypt/live/secretsauce.food/fullchain.pem /home/deploy/secretsauce/certs/cert.pem
+cp /etc/letsencrypt/live/secretsauce.food/privkey.pem /home/deploy/secretsauce/certs/key.pem
+chown deploy:deploy /home/deploy/secretsauce/certs/*.pem
+chmod 644 /home/deploy/secretsauce/certs/cert.pem
+chmod 600 /home/deploy/secretsauce/certs/key.pem
 ```
 
-Then, as the `deploy` user, create the `certs/` directory the compose file expects and symlink the certificates:
+Update the renewal hook to copy instead of reload, so renewed certs are picked up automatically (run as root):
 
 ```bash
-mkdir -p certs
-ln -sf /etc/letsencrypt/live/secretsauce.food/fullchain.pem certs/cert.pem
-ln -sf /etc/letsencrypt/live/secretsauce.food/privkey.pem certs/key.pem
+cat > /etc/letsencrypt/renewal-hooks/deploy/copy-certs.sh << 'EOF'
+#!/bin/bash
+cp /etc/letsencrypt/live/secretsauce.food/fullchain.pem /home/deploy/secretsauce/certs/cert.pem
+cp /etc/letsencrypt/live/secretsauce.food/privkey.pem /home/deploy/secretsauce/certs/key.pem
+chown deploy:deploy /home/deploy/secretsauce/certs/*.pem
+chmod 644 /home/deploy/secretsauce/certs/cert.pem
+chmod 600 /home/deploy/secretsauce/certs/key.pem
+su - deploy -c "cd /home/deploy/secretsauce && podman-compose exec nginx nginx -s reload"
+EOF
+chmod +x /etc/letsencrypt/renewal-hooks/deploy/copy-certs.sh
 ```
 
 ### 5. Update nginx.conf for your domain
@@ -321,15 +333,7 @@ podman-compose exec postgres psql -U secretsauce -d secretsauce \
 
 ### TLS Certificate Renewal
 
-Certbot auto-renews certificates via a systemd timer. After renewal, nginx needs to reload to pick up the new certs. Add a renewal hook (run as root — certbot hooks run as root):
-
-```bash
-cat > /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh << 'EOF'
-#!/bin/bash
-su - deploy -c "cd /home/deploy/secretsauce/prod && podman-compose exec nginx nginx -s reload"
-EOF
-chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
-```
+Certbot auto-renews certificates via a systemd timer. The renewal hook created in Step 4 (`copy-certs.sh`) copies the renewed files into `certs/` and signals nginx to reload — no further setup needed.
 
 ### Database Backups
 
@@ -741,6 +745,7 @@ podman-compose exec backend uv run alembic history
 podman-compose exec backend uv run alembic current
 ```
 
-**TLS certificate errors**
-- Confirm `certs/cert.pem` and `certs/key.pem` exist and are readable
-- Check the symlinks point to the right certbot paths: `ls -la certs/`
+**TLS certificate errors / nginx won't start**
+- Confirm `certs/cert.pem` and `certs/key.pem` exist: `ls -la certs/`
+- Do not use symlinks into `/etc/letsencrypt/` — rootless Podman containers remap UIDs and cannot read through them. Copy the files as described in Step 4.
+- Verify the deploy user owns the files: `stat certs/cert.pem`
