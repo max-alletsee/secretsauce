@@ -125,3 +125,27 @@ async def test_google_oauth_routes_absent_without_credentials(client):
     """Without GOOGLE_CLIENT_ID set, Google OAuth routes must not be registered."""
     response = await client.get("/api/v1/auth/google/authorize")
     assert response.status_code == 404
+
+
+async def test_update_meal_plan_preferences(client):
+    """PATCH /api/v1/users/me should accept and persist meal plan preference fields."""
+    email = unique_email("mealprefs")
+    await client.post("/api/v1/auth/register", json={"email": email, "password": "SecurePass123!"})
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": "SecurePass123!"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    token = login.json()["access_token"]
+    response = await client.patch(
+        "/api/v1/users/me",
+        json={
+            "meal_plan_meal_types": ["breakfast", "dinner"],
+            "meal_plan_days_ahead": 10,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["meal_plan_meal_types"] == ["breakfast", "dinner"]
+    assert data["meal_plan_days_ahead"] == 10

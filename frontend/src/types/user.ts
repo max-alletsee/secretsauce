@@ -14,6 +14,8 @@ export interface User {
   disliked_ingredients: string[]
   default_servings: number
   meal_plan_system_prompt: string | null
+  meal_plan_meal_types: string[]
+  meal_plan_days_ahead: number
   created_at: string
   updated_at: string
 }
@@ -44,4 +46,6 @@ export interface UserUpdatePayload {
   disliked_ingredients?: string[]
   default_servings?: number
   meal_plan_system_prompt?: string | null
+  meal_plan_meal_types?: string[]
+  meal_plan_days_ahead?: number
 }

@@ -16,6 +16,8 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     disliked_ingredients: list[str]
     default_servings: int
     meal_plan_system_prompt: str | None
+    meal_plan_meal_types: list[str]
+    meal_plan_days_ahead: int
     created_at: datetime
     updated_at: datetime
 
@@ -33,6 +35,8 @@ class UserUpdate(schemas.BaseUserUpdate):
     disliked_ingredients: list[str] | None = None
     default_servings: int | None = None
     meal_plan_system_prompt: str | None = None
+    meal_plan_meal_types: list[str] | None = None
+    meal_plan_days_ahead: int | None = None
 
 
 # Token schemas for the custom login + refresh endpoints

@@ -28,6 +28,8 @@ const mockUser = {
   disliked_ingredients: [],
   default_servings: 2,
   meal_plan_system_prompt: null,
+  meal_plan_meal_types: ['dinner'],
+  meal_plan_days_ahead: 7,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
