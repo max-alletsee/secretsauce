@@ -81,7 +81,7 @@ describe('useImportPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(onComplete).toHaveBeenCalledWith('recipe-42')
+    expect(onComplete).toHaveBeenCalledWith('recipe-42', undefined)
     scope.stop()
   })
 

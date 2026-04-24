@@ -19,7 +19,11 @@ logger = logging.getLogger(__name__)
 def _build_recipe_payload(recipe, version) -> dict:
     """Serialize recipe + version into the result_data["recipe"] dict."""
     version_data = RecipeVersionResponse.model_validate(version, from_attributes=True).model_dump(mode="json")
-    return {"id": str(recipe.id), "current_version": version_data}
+    return {
+        "id": str(recipe.id),
+        "visibility": recipe.visibility,
+        "current_version": version_data,
+    }
 
 
 async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -> None:

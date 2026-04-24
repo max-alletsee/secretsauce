@@ -102,7 +102,11 @@ describe('RecipeListView — import flow', () => {
     await vi.advanceTimersByTimeAsync(3000)
     await wrapper.vm.$nextTick()
 
-    expect(mockPush).toHaveBeenCalledWith('/recipes/recipe-42/edit')
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'recipe-edit',
+      params: { id: 'recipe-42' },
+      state: { importedRecipe: null },
+    })
   })
 
   it('shows error message and re-enables form when task fails', async () => {
@@ -185,7 +189,11 @@ describe('RecipeListView — import flow', () => {
     await vi.advanceTimersByTimeAsync(3000)
     await wrapper.vm.$nextTick()
 
-    expect(mockPush).toHaveBeenCalledWith('/recipes/recipe-img-99/edit')
+    expect(mockPush).toHaveBeenCalledWith({
+      name: 'recipe-edit',
+      params: { id: 'recipe-img-99' },
+      state: { importedRecipe: null },
+    })
   })
 
   it('renders SearchBar component', () => {

@@ -22,6 +22,7 @@ export interface RecipeVersionData {
 
 export interface RecipeData {
   id: string
+  visibility: 'private' | 'shared'
   current_version: RecipeVersionData
 }
 

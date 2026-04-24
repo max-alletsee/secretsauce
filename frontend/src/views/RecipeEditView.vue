@@ -34,9 +34,7 @@ const initialData = computed<Partial<RecipeCreatePayload> | undefined>(() => {
     cook_time_minutes: v.cook_time_minutes,
     tags: v.tags,
     recipe_source: v.recipe_source as Partial<RecipeCreatePayload>['recipe_source'],
-    visibility: (
-      'visibility' in source ? (source as { visibility: string }).visibility : recipeStore.currentRecipe?.visibility
-    ) as Partial<RecipeCreatePayload>['visibility'],
+    visibility: source.visibility,
   }
 })
 

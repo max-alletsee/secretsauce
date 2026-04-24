@@ -1,7 +1,7 @@
 <!-- frontend/src/views/RecipeListView.vue -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, type HistoryState } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import * as importTasksApi from '@/api/importTasks'
 import RecipeCard from '@/components/RecipeCard.vue'
@@ -22,8 +22,7 @@ const { status: importStatus, error: importError, startPolling } = useImportPoll
     router.push({
       name: 'recipe-edit',
       params: { id: recipeId },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      state: { importedRecipe: (recipeData ?? null) as any },
+      state: { importedRecipe: (recipeData ?? null) as unknown as HistoryState },
     })
   },
 )
