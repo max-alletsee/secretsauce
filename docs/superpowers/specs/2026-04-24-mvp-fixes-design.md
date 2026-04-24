@@ -165,6 +165,10 @@ Default fetch window: `from = today - 2 days`, `to = today + meal_plan_days_ahea
 
 **Rename/replace:** `MealPlanDetailView` → `TimelineView`. Route: `/meal-plan` (singular, no ID param).
 
+**`TimelineView` layout:**
+- Top panel (collapsible on mobile): AI suggestions panel + shortlist panel, side by side. These are unchanged in purpose — the shortlist remains a staging area where users park recipes they're considering before dragging them onto a specific day/meal slot. The AI suggestions panel continues to show generated suggestions with the regenerate/steer controls.
+- Main area: the rolling grid (days as rows, meal types as columns).
+
 **`TimelineView` behaviour:**
 - On mount: fetch entries for `[today - 2, today + meal_plan_days_ahead]`.
 - Scroll position anchors to today's row on first load.
