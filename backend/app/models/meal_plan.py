@@ -43,11 +43,21 @@ class MealPlanEntry(SQLModel, table=True):
     __tablename__ = "meal_plan_entries"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    meal_plan_id: uuid.UUID = Field(
+    meal_plan_id: uuid.UUID | None = Field(
+        default=None,
         sa_column=Column(
             Uuid(),
             ForeignKey("meal_plans.id", name="fk_meal_plan_entries_plan_id"),
-            nullable=False,
+            nullable=True,
+            index=True,
+        )
+    )
+    user_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            Uuid(),
+            ForeignKey("users.id", name="fk_meal_plan_entries_user_id"),
+            nullable=True,
             index=True,
         )
     )

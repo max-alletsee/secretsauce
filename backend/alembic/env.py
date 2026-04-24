@@ -14,6 +14,7 @@ from app.models import user  # noqa: F401
 from app.models import recipe  # noqa: F401
 from app.models import import_task  # noqa: F401
 from app.models import shopping_list as _shopping_list_models  # noqa: F401
+from app.models import meal_plan as _meal_plan_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
