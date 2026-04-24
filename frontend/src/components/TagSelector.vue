@@ -34,6 +34,7 @@ function toggle(tag: string) {
 
 <template>
   <div class="tag-selector">
+    <p class="tag-selector__hint">Choose from categories</p>
     <fieldset v-for="group in TAG_GROUPS" :key="group.label" class="tag-selector__group">
       <legend class="tag-selector__legend">{{ group.label }}</legend>
       <div class="tag-selector__chips">
@@ -87,5 +88,10 @@ function toggle(tag: string) {
   background: #2563eb;
   color: white;
   border-color: #2563eb;
+}
+.tag-selector__hint {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.5rem;
 }
 </style>
