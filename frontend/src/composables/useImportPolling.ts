@@ -1,9 +1,11 @@
 // frontend/src/composables/useImportPolling.ts
 import { ref, onScopeDispose } from 'vue'
 import * as importTasksApi from '@/api/importTasks'
-import type { ImportStatus } from '@/types/importTask'
+import type { ImportStatus, RecipeData } from '@/types/importTask'
 
-export function useImportPolling(onComplete: (recipeId: string) => void) {
+export function useImportPolling(
+  onComplete: (recipeId: string, recipeData?: RecipeData) => void,
+) {
   const status = ref<ImportStatus>('idle')
   const error = ref<string | null>(null)
   let intervalId: ReturnType<typeof setInterval> | null = null
@@ -24,7 +26,7 @@ export function useImportPolling(onComplete: (recipeId: string) => void) {
         status.value = task.status as ImportStatus
         if (task.status === 'completed' && task.recipe_id) {
           stopPolling()
-          onComplete(task.recipe_id)
+          onComplete(task.recipe_id, task.result_data?.recipe)
         } else if (task.status === 'failed') {
           stopPolling()
           error.value = task.error_message ?? 'Import failed'

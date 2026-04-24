@@ -9,6 +9,7 @@ import SearchBar from '@/components/SearchBar.vue'
 import SortControl from '@/components/SortControl.vue'
 import TagFilter from '@/components/TagFilter.vue'
 import { useImportPolling } from '@/composables/useImportPolling'
+import type { RecipeData } from '@/types/importTask'
 
 const recipeStore = useRecipeStore()
 const router = useRouter()
@@ -17,7 +18,14 @@ const importUrl = ref('')
 const imageInputRef = ref<HTMLInputElement | null>(null)
 
 const { status: importStatus, error: importError, startPolling } = useImportPolling(
-  (recipeId: string) => router.push(`/recipes/${recipeId}/edit`),
+  (recipeId: string, recipeData?: RecipeData) => {
+    router.push({
+      name: 'recipe-edit',
+      params: { id: recipeId },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      state: { importedRecipe: (recipeData ?? null) as any },
+    })
+  },
 )
 
 const isImporting = computed(

@@ -6,6 +6,7 @@ import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import RecipeForm from '@/components/RecipeForm.vue'
 import type { RecipeCreatePayload, RecipeUpdatePayload } from '@/types/recipe'
+import type { RecipeData } from '@/types/importTask'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,26 +17,34 @@ const ready = ref(false)
 
 const recipeId = route.params.id as string
 
+const importedRecipe = (history.state?.importedRecipe ?? null) as RecipeData | null
+
 const initialData = computed<Partial<RecipeCreatePayload> | undefined>(() => {
-  const r = recipeStore.currentRecipe
-  if (!r) return undefined
-  const v = r.current_version
+  const source = importedRecipe ?? recipeStore.currentRecipe
+  if (!source) return undefined
+  const v = source.current_version
   return {
     title: v.title,
     description: v.description,
-    ingredients: v.ingredients,
+    ingredients: v.ingredients.map((ing) => ({ ...ing, quantity: ing.quantity ?? '' })),
     steps: v.steps,
     servings: v.servings,
     prep_time_minutes: v.prep_time_minutes,
     waiting_time_minutes: v.waiting_time_minutes,
     cook_time_minutes: v.cook_time_minutes,
     tags: v.tags,
-    recipe_source: v.recipe_source,
-    visibility: r.visibility,
+    recipe_source: v.recipe_source as Partial<RecipeCreatePayload>['recipe_source'],
+    visibility: (
+      'visibility' in source ? (source as { visibility: string }).visibility : recipeStore.currentRecipe?.visibility
+    ) as Partial<RecipeCreatePayload>['visibility'],
   }
 })
 
 onMounted(async () => {
+  if (importedRecipe) {
+    ready.value = true
+    return
+  }
   try {
     await recipeStore.fetchRecipe(recipeId)
     if (recipeStore.currentRecipe?.owner_id !== userStore.user?.id) {
