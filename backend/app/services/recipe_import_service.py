@@ -10,10 +10,16 @@ from app.core.constants import ALL_TAGS
 from app.core.database import async_session_factory
 from app.models.import_task import ImportTask, ImportTaskStatus
 from app.schemas.ai_responses import RecipeImportResult
-from app.schemas.recipe import Ingredient, RecipeCreate, RecipeSource, Step
+from app.schemas.recipe import Ingredient, RecipeCreate, RecipeSource, RecipeVersionResponse, Step
 from app.services import ai_service, recipe_service
 
 logger = logging.getLogger(__name__)
+
+
+def _build_recipe_payload(recipe, version) -> dict:
+    """Serialize recipe + version into the result_data["recipe"] dict."""
+    version_data = RecipeVersionResponse.model_validate(version, from_attributes=True).model_dump(mode="json")
+    return {"id": str(recipe.id), "current_version": version_data}
 
 
 async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -> None:
@@ -64,10 +70,11 @@ async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -
                 recipe_source=RecipeSource(type="url", url=url),
             )
 
-            recipe, _ = await recipe_service.create_recipe(db, user_id, recipe_data)
+            recipe, version = await recipe_service.create_recipe(db, user_id, recipe_data)
 
             task.status = ImportTaskStatus.COMPLETED
             task.recipe_id = recipe.id
+            task.result_data = {"recipe": _build_recipe_payload(recipe, version)}
             task.updated_at = datetime.now(timezone.utc)
 
         except Exception as exc:
@@ -139,10 +146,11 @@ async def process_image_import(
                 recipe_source=None,
             )
 
-            recipe, _ = await recipe_service.create_recipe(db, user_id, recipe_data)
+            recipe, version = await recipe_service.create_recipe(db, user_id, recipe_data)
 
             task.status = ImportTaskStatus.COMPLETED
             task.recipe_id = recipe.id
+            task.result_data = {"recipe": _build_recipe_payload(recipe, version)}
             task.updated_at = datetime.now(timezone.utc)
             logger.info(
                 "process_image_import: task %s completed, recipe %s", task_id, recipe.id

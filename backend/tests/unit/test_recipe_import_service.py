@@ -18,6 +18,28 @@ from app.services.recipe_import_service import process_image_import, process_url
 _URL = "https://example.com/pasta"
 
 
+def _make_version_mock(recipe_id: uuid.UUID) -> MagicMock:
+    """Return a MagicMock with all fields required by RecipeVersionResponse."""
+    import datetime as _dt
+
+    v = MagicMock()
+    v.id = uuid.uuid4()
+    v.recipe_id = recipe_id
+    v.version_number = 1
+    v.title = "Pasta"
+    v.description = "Simple pasta"
+    v.ingredients = [{"name": "pasta", "quantity": "200", "unit": "g"}]
+    v.steps = [{"order": 1, "instruction": "Cook pasta until al dente"}]
+    v.servings = 2
+    v.prep_time_minutes = 5
+    v.waiting_time_minutes = None
+    v.cook_time_minutes = 10
+    v.tags = ["italian", "dinner"]
+    v.recipe_source = None
+    v.created_at = _dt.datetime(2026, 1, 1, tzinfo=_dt.timezone.utc)
+    return v
+
+
 def _valid_result(url: str = _URL) -> RecipeImportResult:
     return RecipeImportResult(
         title="Pasta",
@@ -55,6 +77,7 @@ async def test_process_url_import_happy_path():
     mock_task = MagicMock(spec=ImportTask)
     mock_recipe = MagicMock()
     mock_recipe.id = recipe_id
+    mock_version = _make_version_mock(recipe_id)
     mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
 
     with patch(
@@ -67,7 +90,7 @@ async def test_process_url_import_happy_path():
         ):
             with patch(
                 "app.services.recipe_import_service.recipe_service.create_recipe",
-                AsyncMock(return_value=(mock_recipe, MagicMock())),
+                AsyncMock(return_value=(mock_recipe, mock_version)),
             ):
                 await process_url_import(task_id, _URL, user_id)
 
@@ -79,17 +102,19 @@ async def test_process_url_import_happy_path():
 async def test_process_url_import_filters_unknown_tags():
     task_id = uuid.uuid4()
     user_id = uuid.uuid4()
+    recipe_id = uuid.uuid4()
 
     mock_task = MagicMock(spec=ImportTask)
     mock_recipe = MagicMock()
-    mock_recipe.id = uuid.uuid4()
+    mock_recipe.id = recipe_id
+    mock_version = _make_version_mock(recipe_id)
     mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
 
     captured: dict = {}
 
     async def capture_create(db, owner_id, data):
         captured["tags"] = data.tags
-        return (mock_recipe, MagicMock())
+        return (mock_recipe, mock_version)
 
     with patch(
         "app.services.recipe_import_service.async_session_factory",
@@ -220,6 +245,7 @@ async def test_process_image_import_happy_path():
     mock_task = MagicMock(spec=ImportTask)
     mock_recipe = MagicMock()
     mock_recipe.id = recipe_id
+    mock_version = _make_version_mock(recipe_id)
     mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
 
     with patch(
@@ -236,7 +262,7 @@ async def test_process_image_import_happy_path():
             ):
                 with patch(
                     "app.services.recipe_import_service.recipe_service.create_recipe",
-                    AsyncMock(return_value=(mock_recipe, MagicMock())),
+                    AsyncMock(return_value=(mock_recipe, mock_version)),
                 ):
                     await process_image_import(task_id, _IMAGE_PATH, user_id)
 
@@ -268,6 +294,134 @@ async def test_process_image_import_sets_failed_on_ai_error():
 
     assert mock_task.status == ImportTaskStatus.FAILED
     assert "Gemini timed out" in mock_task.error_message
+
+
+@pytest.mark.asyncio
+async def test_process_url_import_embeds_result_data():
+    """After a successful import, task.result_data["recipe"] must be a dict with title/ingredients/steps."""
+    task_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    recipe_id = uuid.uuid4()
+
+    fake_result = RecipeImportResult(
+        title="Pasta Carbonara",
+        description="A classic Roman pasta.",
+        ingredients=[ImportedIngredient(name="spaghetti", quantity="200", unit="g")],
+        steps=[ImportedStep(order=1, instruction="Cook pasta.")],
+        servings=2,
+        tags=["italian", "dinner"],
+    )
+
+    import datetime as _dt
+
+    mock_recipe = MagicMock()
+    mock_recipe.id = recipe_id
+
+    mock_version = MagicMock()
+    mock_version.id = uuid.uuid4()
+    mock_version.recipe_id = recipe_id
+    mock_version.version_number = 1
+    mock_version.title = "Pasta Carbonara"
+    mock_version.description = "A classic Roman pasta."
+    mock_version.ingredients = [{"name": "spaghetti", "quantity": "200", "unit": "g"}]
+    mock_version.steps = [{"order": 1, "instruction": "Cook pasta."}]
+    mock_version.servings = 2
+    mock_version.prep_time_minutes = None
+    mock_version.waiting_time_minutes = None
+    mock_version.cook_time_minutes = None
+    mock_version.tags = ["italian", "dinner"]
+    mock_version.recipe_source = None
+    mock_version.created_at = _dt.datetime(2026, 1, 1, tzinfo=_dt.timezone.utc)
+
+    mock_task = MagicMock()
+    mock_task.id = task_id
+    mock_task.result_data = None
+
+    mock_db = AsyncMock()
+    mock_db.get = AsyncMock(return_value=mock_task)
+    mock_db.commit = AsyncMock()
+
+    with (
+        patch("app.services.recipe_import_service.async_session_factory") as mock_factory,
+        patch("app.services.recipe_import_service.ai_service.import_recipe_from_url", new_callable=AsyncMock, return_value=fake_result),
+        patch("app.services.recipe_import_service.recipe_service.create_recipe", return_value=(mock_recipe, mock_version)),
+    ):
+        mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        from app.services.recipe_import_service import process_url_import
+        await process_url_import(task_id, "https://example.com/recipe", user_id)
+
+    assert mock_task.result_data is not None
+    assert "recipe" in mock_task.result_data
+    recipe_data = mock_task.result_data["recipe"]
+    assert recipe_data["id"] == str(recipe_id)
+    assert recipe_data["current_version"]["title"] == "Pasta Carbonara"
+    assert len(recipe_data["current_version"]["ingredients"]) == 1
+    assert len(recipe_data["current_version"]["steps"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_process_image_import_embeds_result_data():
+    """After a successful image import, task.result_data["recipe"] must contain version data."""
+    task_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    recipe_id = uuid.uuid4()
+    import datetime as _dt
+
+    fake_result = RecipeImportResult(
+        title="Omelette",
+        description="Simple egg dish.",
+        ingredients=[ImportedIngredient(name="eggs", quantity="3", unit="")],
+        steps=[ImportedStep(order=1, instruction="Beat eggs.")],
+        servings=1,
+        tags=["breakfast"],
+    )
+
+    mock_recipe = MagicMock()
+    mock_recipe.id = recipe_id
+
+    mock_version = MagicMock()
+    mock_version.id = uuid.uuid4()
+    mock_version.recipe_id = recipe_id
+    mock_version.version_number = 1
+    mock_version.title = "Omelette"
+    mock_version.description = "Simple egg dish."
+    mock_version.ingredients = [{"name": "eggs", "quantity": "3", "unit": ""}]
+    mock_version.steps = [{"order": 1, "instruction": "Beat eggs."}]
+    mock_version.servings = 1
+    mock_version.prep_time_minutes = None
+    mock_version.waiting_time_minutes = None
+    mock_version.cook_time_minutes = None
+    mock_version.tags = ["breakfast"]
+    mock_version.recipe_source = None
+    mock_version.created_at = _dt.datetime(2026, 1, 1, tzinfo=_dt.timezone.utc)
+
+    mock_task = MagicMock()
+    mock_task.id = task_id
+    mock_task.result_data = None
+
+    mock_db = AsyncMock()
+    mock_db.get = AsyncMock(return_value=mock_task)
+    mock_db.commit = AsyncMock()
+
+    with (
+        patch("app.services.recipe_import_service.async_session_factory") as mock_factory,
+        patch("app.services.recipe_import_service.ai_service.import_recipe_from_image", new_callable=AsyncMock, return_value=fake_result),
+        patch("app.services.recipe_import_service.recipe_service.create_recipe", return_value=(mock_recipe, mock_version)),
+        patch("asyncio.to_thread", new_callable=AsyncMock, return_value=b"fake-image-bytes"),
+        patch("mimetypes.guess_type", return_value=("image/jpeg", None)),
+    ):
+        mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_db)
+        mock_factory.return_value.__aexit__ = AsyncMock(return_value=False)
+
+        from app.services.recipe_import_service import process_image_import
+        await process_image_import(task_id, "/tmp/fake.jpg", user_id)
+
+    assert mock_task.result_data is not None
+    assert "recipe" in mock_task.result_data
+    assert mock_task.result_data["recipe"]["id"] == str(recipe_id)
+    assert mock_task.result_data["recipe"]["current_version"]["title"] == "Omelette"
 
 
 @pytest.mark.asyncio
