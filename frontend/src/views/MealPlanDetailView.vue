@@ -7,6 +7,7 @@ import { useRecipeStore } from '@/stores/useRecipeStore'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
+import type { TimelineEntry } from '@/types/timeline'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,6 +34,24 @@ const recipeTitles = computed(() => {
     }
   }
   return map
+})
+
+// Map MealPlanEntry[] to TimelineEntry[] for MealPlanGrid
+const timelineEntries = computed((): TimelineEntry[] => {
+  if (!planStore.currentPlan) return []
+  return planStore.currentPlan.entries.map((e) => ({
+    ...e,
+    user_id: null,
+  }))
+})
+
+// Derive unique meal types from entries, preserving canonical order
+const mealTypes = computed((): string[] => {
+  if (!planStore.currentPlan) return ['dinner']
+  const order: Array<'breakfast' | 'lunch' | 'dinner' | 'snack'> = ['breakfast', 'lunch', 'dinner', 'snack']
+  const seen = new Set(planStore.currentPlan.entries.map((e) => e.meal_type))
+  const types = order.filter((t) => seen.has(t))
+  return types.length > 0 ? types : ['dinner']
 })
 
 async function handleSaveText(date: string, mealType: string, text: string) {
@@ -113,8 +132,12 @@ async function handleConfirm() {
         </div>
 
         <MealPlanGrid
-          :plan="planStore.currentPlan"
+          :from-date="planStore.currentPlan.start_date"
+          :to-date="planStore.currentPlan.end_date"
+          :meal-types="mealTypes"
+          :entries="timelineEntries"
           :recipe-titles="recipeTitles"
+          today-str="9999-12-31"
           @save-text="handleSaveText"
           @clear-entry="handleClearEntry"
         />

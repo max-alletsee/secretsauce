@@ -2,11 +2,12 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import MealSlot from './MealSlot.vue'
-import type { MealPlanEntry } from '@/types/mealPlan'
+import type { TimelineEntry } from '@/types/timeline'
 
-const mockEntry: MealPlanEntry = {
+const mockEntry: TimelineEntry = {
   id: 'e1',
-  meal_plan_id: 'p1',
+  user_id: 'u1',
+  meal_plan_id: null,
   date: '2026-04-07',
   meal_type: 'dinner',
   recipe_id: 'r1',
@@ -59,5 +60,13 @@ describe('MealSlot', () => {
     await wrapper.find('[data-testid="slot-text-input"]').setValue('Restaurant X')
     await wrapper.find('[data-testid="slot-text-input"]').trigger('keyup.enter')
     expect(wrapper.emitted('save-text')?.[0]).toEqual(['Restaurant X'])
+  })
+
+  it('does not start editing when disabled', async () => {
+    const wrapper = mount(MealSlot, {
+      props: { entry: null, mealType: 'dinner', disabled: true },
+    })
+    await wrapper.find('[data-testid="slot-empty"]').trigger('click')
+    expect(wrapper.find('[data-testid="slot-text-input"]').exists()).toBe(false)
   })
 })

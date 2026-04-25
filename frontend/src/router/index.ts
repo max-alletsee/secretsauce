@@ -50,27 +50,9 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/meal-plans',
-      name: 'meal-plans',
-      component: () => import('@/views/MealPlanListView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/meal-plans/new',
-      name: 'meal-plan-create',
-      component: () => import('@/views/MealPlanCreateView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/meal-plans/:id',
-      name: 'meal-plan-detail',
-      component: () => import('@/views/MealPlanDetailView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/meal-plans/:id/log',
-      name: 'meal-plan-log',
-      component: () => import('@/views/MealPlanLogView.vue'),
+      path: '/meal-plan',
+      name: 'meal-plan',
+      component: () => import('@/views/TimelineView.vue'),
       meta: { requiresAuth: true },
     },
     {
