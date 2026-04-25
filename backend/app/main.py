@@ -11,6 +11,7 @@ from app.api.routes import meal_plans as meal_plans_routes
 from app.api.routes import shopping_lists as shopping_lists_routes
 from app.api.routes.import_tasks import recipes_router as import_recipes_router
 from app.api.routes.import_tasks import tasks_router as import_tasks_router
+from app.api.routes.timeline import router as timeline_router
 from app.api.routes.users import auth_router, users_router
 from app.core.config import settings
 from app.core.logging import RequestLoggingMiddleware
@@ -51,3 +52,4 @@ app.include_router(import_tasks_router, prefix="/api/v1/import-tasks", tags=["im
 app.include_router(admin_routes.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(meal_plans_routes.router, prefix="/api/v1/meal-plans", tags=["meal-plans"])
 app.include_router(shopping_lists_routes.router, prefix="/api/v1/shopping-lists", tags=["shopping-lists"])
+app.include_router(timeline_router, prefix="/api/v1/timeline", tags=["timeline"])
