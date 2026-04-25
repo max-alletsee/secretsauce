@@ -74,16 +74,9 @@ async def update_timeline_entry(
     entry = await db.get(MealPlanEntry, entry_id)
     if entry is None or entry.user_id != user.id:
         raise HTTPException(status_code=404, detail="Entry not found")
-    if data.recipe_id is not None:
-        entry.recipe_id = data.recipe_id
-    if data.note is not None:
-        entry.note = data.note
-    if data.entry_type is not None:
-        entry.entry_type = data.entry_type
-    if data.servings is not None:
-        entry.servings = data.servings
-    if data.position is not None:
-        entry.position = data.position
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(entry, field, value)
     db.add(entry)
     await db.commit()
     await db.refresh(entry)

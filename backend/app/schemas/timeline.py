@@ -3,16 +3,16 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TimelineEntryCreate(BaseModel):
     date: date
-    meal_type: str
+    meal_type: Literal["breakfast", "lunch", "dinner", "snack"]
     recipe_id: uuid.UUID | None = None
     note: str | None = None
     entry_type: Literal["recipe", "suggestion", "freetext"] = "recipe"
-    servings: int = 2
+    servings: int = Field(default=2, ge=1)
     source: Literal["ai_suggested", "manual", "carryover"] = "manual"
     position: int = 0
 
