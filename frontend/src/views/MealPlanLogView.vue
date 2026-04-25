@@ -57,7 +57,7 @@ async function submit() {
 
     <div v-if="submitted" class="done-actions">
       <p>Plan logged successfully</p>
-      <button class="btn-primary" @click="router.push({ name: 'meal-plans' })">
+      <button class="btn-primary" @click="router.push({ name: 'meal-plan' })">
         Back to plans
       </button>
     </div>

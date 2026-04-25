@@ -14,7 +14,7 @@ onMounted(() => store.fetchPlans())
   <div class="meal-plan-list-view">
     <div class="list-header">
       <h1>Meal Plans</h1>
-      <button class="btn-primary" @click="router.push({ name: 'meal-plan-create' })">
+      <button class="btn-primary" @click="router.push({ name: 'meal-plan' })">
         + New Plan
       </button>
     </div>
@@ -30,7 +30,7 @@ onMounted(() => store.fetchPlans())
         v-for="plan in store.plans"
         :key="plan.id"
         :plan="plan"
-        @click="router.push({ name: 'meal-plan-detail', params: { id: plan.id } })"
+        @click="router.push({ name: 'meal-plan' })"
       />
     </div>
   </div>

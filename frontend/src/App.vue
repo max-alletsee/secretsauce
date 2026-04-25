@@ -16,7 +16,7 @@ async function handleLogout() {
   <nav v-if="userStore.isAuthenticated" class="app-nav">
     <div class="app-nav__links">
       <RouterLink to="/recipes">Recipes</RouterLink>
-      <RouterLink to="/meal-plans">Meal Plans</RouterLink>
+      <RouterLink to="/meal-plan">Meal Plan</RouterLink>
       <RouterLink v-if="userStore.isSuperuser" to="/admin">Admin</RouterLink>
     </div>
     <button data-testid="logout" class="app-nav__logout" @click="handleLogout">

@@ -25,7 +25,7 @@ async function submit() {
       start_date: startDate.value,
       end_date: endDate.value,
     })
-    router.push({ name: 'meal-plan-detail', params: { id: plan.id } })
+    router.push({ name: 'meal-plan' })
   } catch {
     error.value = 'Failed to create plan. Please try again.'
   } finally {
