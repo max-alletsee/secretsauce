@@ -444,3 +444,70 @@ async def test_process_image_import_task_not_found_returns_early():
 
     # commit should not be called if task is missing
     mock_db.commit.assert_not_called()
+
+
+# --- Generate task tests ---
+
+
+@pytest.mark.asyncio
+async def test_process_generate_task_happy_path():
+    task_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+    recipe_id = uuid.uuid4()
+
+    mock_task = MagicMock(spec=ImportTask)
+    mock_recipe = MagicMock()
+    mock_recipe.id = recipe_id
+    mock_version = _make_version_mock(recipe_id)
+    mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
+
+    fake_result = RecipeImportResult(
+        title="Chicken Tikka Masala",
+        description="Rich Indian curry.",
+        ingredients=[ImportedIngredient(name="chicken", quantity="500", unit="g")],
+        steps=[ImportedStep(order=1, instruction="Marinate chicken.")],
+        servings=4,
+        tags=["indian", "dinner"],
+    )
+
+    from app.services.recipe_import_service import process_generate_task
+
+    with patch(
+        "app.services.recipe_import_service.async_session_factory",
+        return_value=mock_session_ctx,
+    ), patch(
+        "app.services.recipe_import_service.ai_service.generate_recipe_from_title",
+        AsyncMock(return_value=fake_result),
+    ), patch(
+        "app.services.recipe_import_service.recipe_service.create_recipe",
+        AsyncMock(return_value=(mock_recipe, mock_version)),
+    ):
+        await process_generate_task(task_id, "Chicken Tikka Masala", user_id)
+
+    assert mock_task.status == ImportTaskStatus.COMPLETED
+    assert mock_task.recipe_id == recipe_id
+    assert mock_task.result_data is not None
+    assert mock_task.result_data["recipe"]["current_version"]["title"] == "Pasta"
+
+
+@pytest.mark.asyncio
+async def test_process_generate_task_ai_failure():
+    task_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+
+    mock_task = MagicMock(spec=ImportTask)
+    mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
+
+    from app.services.recipe_import_service import process_generate_task
+
+    with patch(
+        "app.services.recipe_import_service.async_session_factory",
+        return_value=mock_session_ctx,
+    ), patch(
+        "app.services.recipe_import_service.ai_service.generate_recipe_from_title",
+        AsyncMock(side_effect=AIServiceError("Gemini timed out")),
+    ):
+        await process_generate_task(task_id, "Chicken Tikka Masala", user_id)
+
+    assert mock_task.status == ImportTaskStatus.FAILED
+    assert "Gemini timed out" in mock_task.error_message
