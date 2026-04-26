@@ -1,20 +1,30 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useShortlistStore } from '@/stores/useShortlistStore'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useMealPlanStore } from '@/stores/useMealPlanStore'
+import { useImportPolling } from '@/composables/useImportPolling'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
+import { generateRecipe } from '@/api/recipes'
 import type { DragItem } from '@/types/dragItem'
 
+const router = useRouter()
 const timelineStore = useTimelineStore()
 const shortlistStore = useShortlistStore()
 const recipeStore = useRecipeStore()
 const userStore = useUserStore()
 const planStore = useMealPlanStore()
+
+const { startPolling } = useImportPolling((recipeId: string) => {
+  router.push(`/recipes/${recipeId}/edit`)
+})
+
+const convertError = ref<string | null>(null)
 
 const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -115,13 +125,20 @@ async function handleDropItem(item: unknown, date: string, mealType: string) {
 }
 
 async function handleConvertToRecipe(title: string) {
-  // Placeholder — will be wired to POST /api/v1/recipes/generate in Plan C Task 2
-  console.log('Convert to recipe:', title)
+  convertError.value = null
+  try {
+    const { data } = await generateRecipe(title)
+    startPolling(data.task_id)
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+    convertError.value = msg ?? 'Failed to start recipe generation. Please try again.'
+  }
 }
 </script>
 
 <template>
   <div class="timeline-view">
+    <p v-if="convertError" class="convert-error">{{ convertError }}</p>
     <div class="sources-row">
       <MealSuggestionPanel
         :suggestions="planStore.suggestions"
@@ -205,6 +222,11 @@ async function handleConvertToRecipe(title: string) {
   cursor: pointer;
 }
 .show-earlier-btn:hover { background: #f3f4f6; color: #6b7280; }
+.convert-error {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
 @media (max-width: 767px) {
   .sources-row { flex-direction: column; }
 }
