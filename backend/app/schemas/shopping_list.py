@@ -37,7 +37,7 @@ class ShoppingListResponse(BaseModel):
 
 
 class ShoppingListGenerateRequest(BaseModel):
-    entry_ids: list[str]
+    entry_ids: list[uuid.UUID]
     name: str
 
 

@@ -1,6 +1,5 @@
 # backend/app/api/routes/shopping_lists.py
 import uuid
-import uuid as _uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy import select
@@ -60,7 +59,7 @@ async def generate_shopping_list_endpoint(
     background_tasks.add_task(
         process_shopping_generate,
         task.id,
-        [_uuid.UUID(eid) for eid in payload.entry_ids],
+        payload.entry_ids,
         payload.name,
         user.id,
     )

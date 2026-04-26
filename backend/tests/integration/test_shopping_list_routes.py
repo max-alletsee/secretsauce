@@ -169,8 +169,8 @@ async def test_regenerate_returns_items_from_ai(client):
 
 async def test_generate_shopping_list_returns_202(client):
     _, token = await _auth_token(client)
-    from unittest.mock import patch
-    with patch("app.services.shopping.process_shopping_generate"):
+    from unittest.mock import patch, AsyncMock
+    with patch("app.api.routes.shopping_lists.process_shopping_generate", new=AsyncMock()):
         response = await client.post(
             "/api/v1/shopping-lists/generate",
             json={"entry_ids": [], "name": "Test list"},
