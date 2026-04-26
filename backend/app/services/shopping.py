@@ -1,4 +1,5 @@
 # backend/app/services/shopping.py
+import datetime as _dt
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -236,8 +237,6 @@ async def generate_shopping_list_from_entries(
     name: str,
 ) -> ShoppingList:
     """Create a new shopping list from a set of timeline entry IDs."""
-    import datetime as _dt
-
     entries_result = await db.execute(
         select(MealPlanEntry).where(
             MealPlanEntry.id.in_(entry_ids),
