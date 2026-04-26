@@ -229,6 +229,122 @@ async def regenerate_shopping_list(
     return shopping_list
 
 
+async def generate_shopping_list_from_entries(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    entry_ids: list[uuid.UUID],
+    name: str,
+) -> ShoppingList:
+    """Create a new shopping list from a set of timeline entry IDs."""
+    import datetime as _dt
+
+    entries_result = await db.execute(
+        select(MealPlanEntry).where(
+            MealPlanEntry.id.in_(entry_ids),
+            MealPlanEntry.user_id == user_id,
+            MealPlanEntry.recipe_id.is_not(None),
+        )
+    )
+    entries = list(entries_result.scalars().all())
+
+    dates = [e.date for e in entries]
+    from_date: _dt.date | None = min(dates) if dates else None
+    to_date: _dt.date | None = max(dates) if dates else None
+
+    raw_lines: list[str] = []
+    recipe_name_to_id: dict[str, uuid.UUID] = {}
+
+    for entry in entries:
+        recipe = await db.get(Recipe, entry.recipe_id)
+        if recipe is None or recipe.current_version_id is None:
+            continue
+        version = await db.get(RecipeVersion, recipe.current_version_id)
+        if version is None:
+            continue
+        recipe_name_to_id[version.title] = recipe.id
+        scaled = _scale_ingredients(
+            version.ingredients or [],
+            entry_servings=entry.servings,
+            recipe_servings=version.servings,
+        )
+        for ing in scaled:
+            n = ing.get("name", "")
+            u = ing.get("unit") or ""
+            q = ing["scaled_qty"]
+            raw_lines.append(f"{q:.3g} {u} {n} — for {version.title}")
+
+    shopping_list = ShoppingList(
+        user_id=user_id,
+        entry_ids=[str(eid) for eid in entry_ids],
+        from_date=from_date,
+        to_date=to_date,
+        name=name,
+    )
+    db.add(shopping_list)
+    await db.commit()
+    await db.refresh(shopping_list)
+
+    if raw_lines:
+        from app.services import ai_service
+        try:
+            ai_result = await ai_service.call_ai_structured(_build_ai_prompt(raw_lines), ShoppingListAIResult)
+        except ai_service.AIServiceError as exc:
+            logger.error("Shopping list AI generation failed: %s", exc)
+            # Return list without items rather than failing the whole task
+            return shopping_list
+
+        for item in ai_result.items:
+            recipe_ids = [str(recipe_name_to_id[rn]) for rn in item.recipe_names if rn in recipe_name_to_id]
+            db.add(ShoppingListItem(
+                shopping_list_id=shopping_list.id,
+                ingredient_name=item.ingredient_name,
+                total_quantity=item.total_quantity,
+                unit=item.unit,
+                detail=item.detail,
+                category=item.category,
+                recipe_ids=recipe_ids,
+            ))
+        await db.commit()
+
+    return shopping_list
+
+
+async def process_shopping_generate(
+    task_id: uuid.UUID,
+    entry_ids: list[uuid.UUID],
+    name: str,
+    user_id: uuid.UUID,
+) -> None:
+    """Background task: generate a shopping list from entry_ids, update task status."""
+    from app.core.database import async_session_factory
+    from app.models.import_task import ImportTask, ImportTaskStatus
+
+    async with async_session_factory() as db:
+        task = await db.get(ImportTask, task_id)
+        if task is None:
+            logger.error("process_shopping_generate: task %s not found", task_id)
+            return
+
+        task.status = ImportTaskStatus.PROCESSING
+        task.updated_at = datetime.now(timezone.utc)
+        db.add(task)
+        await db.commit()
+
+        try:
+            shopping_list = await generate_shopping_list_from_entries(db, user_id, entry_ids, name)
+            task.status = ImportTaskStatus.COMPLETED
+            task.result_data = {"shopping_list_id": str(shopping_list.id)}
+            task.updated_at = datetime.now(timezone.utc)
+        except Exception as exc:
+            logger.error("process_shopping_generate: task %s failed: %s", task_id, exc)
+            task.status = ImportTaskStatus.FAILED
+            task.error_message = str(exc)
+            task.updated_at = datetime.now(timezone.utc)
+
+        db.add(task)
+        await db.commit()
+
+
 async def toggle_item_checked(
     db: AsyncSession,
     user_id: uuid.UUID,

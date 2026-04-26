@@ -167,6 +167,30 @@ async def test_regenerate_returns_items_from_ai(client):
 
 # ── PATCH /api/v1/shopping-lists/{meal_plan_id}/items/{item_id} ──────────────
 
+async def test_generate_shopping_list_returns_202(client):
+    _, token = await _auth_token(client)
+    from unittest.mock import patch
+    with patch("app.services.shopping.process_shopping_generate"):
+        response = await client.post(
+            "/api/v1/shopping-lists/generate",
+            json={"entry_ids": [], "name": "Test list"},
+            headers=_auth(token),
+        )
+    assert response.status_code == 202
+    data = response.json()
+    assert "task_id" in data
+
+
+async def test_list_shopping_lists_empty(client):
+    _, token = await _auth_token(client)
+    response = await client.get(
+        "/api/v1/shopping-lists",
+        headers=_auth(token),
+    )
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 async def test_toggle_item_checked(client):
     """Toggle an item to checked=True, then back to False."""
     _, token = await _auth_token(client)

@@ -1,6 +1,6 @@
 # backend/app/schemas/shopping_list.py
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
@@ -29,8 +29,23 @@ class ShoppingListResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
-    meal_plan_id: uuid.UUID
+    meal_plan_id: uuid.UUID | None
     name: str
     items: list[ShoppingListItemResponse] = []
     created_at: datetime
     updated_at: datetime
+
+
+class ShoppingListGenerateRequest(BaseModel):
+    entry_ids: list[str]
+    name: str
+
+
+class ShoppingListSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    from_date: date | None
+    to_date: date | None
+    created_at: datetime

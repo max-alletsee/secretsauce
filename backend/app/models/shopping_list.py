@@ -1,16 +1,17 @@
 # backend/app/models/shopping_list.py
+import datetime as _dt
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     Float,
     ForeignKey,
     String,
     Text,
-    UniqueConstraint,
     Uuid,
     text,
 )
@@ -20,9 +21,6 @@ from sqlmodel import Field, SQLModel
 
 class ShoppingList(SQLModel, table=True):
     __tablename__ = "shopping_lists"
-    __table_args__ = (
-        UniqueConstraint("meal_plan_id", name="uq_shopping_lists_meal_plan_id"),
-    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     user_id: uuid.UUID = Field(
@@ -33,12 +31,25 @@ class ShoppingList(SQLModel, table=True):
             index=True,
         )
     )
-    meal_plan_id: uuid.UUID = Field(
+    meal_plan_id: uuid.UUID | None = Field(
+        default=None,
         sa_column=Column(
             Uuid(),
             ForeignKey("meal_plans.id", name="fk_shopping_lists_meal_plan_id"),
-            nullable=False,
+            nullable=True,
         )
+    )
+    entry_ids: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
+    )
+    from_date: _dt.date | None = Field(
+        default=None,
+        sa_column=Column(Date, nullable=True),
+    )
+    to_date: _dt.date | None = Field(
+        default=None,
+        sa_column=Column(Date, nullable=True),
     )
     name: str = Field(sa_column=Column(String(255), nullable=False))
     created_at: datetime = Field(
