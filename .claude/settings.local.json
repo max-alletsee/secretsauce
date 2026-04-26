@@ -48,7 +48,17 @@
       "Read(//tmp/**)",
       "Bash(uv add:*)",
       "Bash(curl *)",
-      "Bash(podman logs *)"
+      "Bash(podman logs *)",
+      "Bash(bash *)",
+      "PowerShell(podman ps *)",
+      "PowerShell(podman machine *)",
+      "PowerShell(podman start *)",
+      "PowerShell(podman inspect *)",
+      "PowerShell(podman exec *)",
+      "PowerShell(podman images *)",
+      "PowerShell(podman build *)",
+      "PowerShell(podman run *)",
+      "Bash(npm test *)"
     ]
   }
 }

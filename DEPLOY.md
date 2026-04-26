@@ -312,23 +312,11 @@ Visit `https://secretsauce.food:8443` in a browser to confirm the frontend loads
 
 ### 9. Create the first superuser
 
-Use the FastAPI users CLI or a direct database call. With the backend container running:
-
-```bash
-podman-compose exec backend uv run python -c "
-import asyncio
-from app.core.database import get_async_session
-from app.models.user import User
-from app.core.security import get_user_manager
-# See fastapi-users docs for the create_user helper
-"
-```
-
-Or register via the UI and then promote the user in the database:
+Register an account via the registration page (`https://yourdomain.com:8443/register`), then promote it to superuser via the database. Run from the repo directory:
 
 ```bash
 podman-compose exec postgres psql -U secretsauce -d secretsauce \
-  -c "UPDATE \"user\" SET is_superuser = true WHERE email = 'you@example.com';"
+  -c "UPDATE users SET is_superuser = true WHERE email = 'you@example.com';"
 ```
 
 ### TLS Certificate Renewal
