@@ -8,6 +8,7 @@ import { useMealPlanStore } from '@/stores/useMealPlanStore'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
+import type { DragItem } from '@/types/dragItem'
 
 const timelineStore = useTimelineStore()
 const shortlistStore = useShortlistStore()
@@ -69,6 +70,54 @@ async function handleRegenerate(steerPrompt?: string) {
 async function handleRemoveFromShortlist(id: string) {
   await shortlistStore.removeEntry(id)
 }
+
+async function handleDropItem(item: unknown, date: string, mealType: string) {
+  const drag = item as DragItem
+  if (drag.kind === 'suggestion') {
+    const s = drag.suggestion
+    if (s.entry_type === 'recipe' && s.matched_recipe_id) {
+      await timelineStore.addEntry({
+        date,
+        meal_type: mealType,
+        recipe_id: s.matched_recipe_id,
+        entry_type: 'recipe',
+        source: 'ai_suggested',
+      })
+    } else {
+      await timelineStore.addEntry({
+        date,
+        meal_type: mealType,
+        note: s.title,
+        entry_type: 'suggestion',
+        source: 'ai_suggested',
+      })
+    }
+  } else if (drag.kind === 'shortlist') {
+    const entry = drag.entry
+    if (entry.recipe_id) {
+      await timelineStore.addEntry({
+        date,
+        meal_type: mealType,
+        recipe_id: entry.recipe_id,
+        entry_type: 'recipe',
+        source: 'manual',
+      })
+    } else {
+      await timelineStore.addEntry({
+        date,
+        meal_type: mealType,
+        note: entry.note ?? '',
+        entry_type: 'suggestion',
+        source: 'manual',
+      })
+    }
+  }
+}
+
+async function handleConvertToRecipe(title: string) {
+  // Placeholder — will be wired to POST /api/v1/recipes/generate in Plan C Task 2
+  console.log('Convert to recipe:', title)
+}
 </script>
 
 <template>
@@ -78,6 +127,7 @@ async function handleRemoveFromShortlist(id: string) {
         :suggestions="planStore.suggestions"
         :loading="planStore.suggestionLoading"
         @regenerate="handleRegenerate"
+        @convert-to-recipe="handleConvertToRecipe"
       />
       <ShortlistPanel
         :entries="shortlistStore.entries"
@@ -104,6 +154,7 @@ async function handleRemoveFromShortlist(id: string) {
         :today-str="todayStr"
         @save-text="handleSaveText"
         @clear-entry="handleClearEntry"
+        @drop-item="handleDropItem"
       />
     </div>
   </div>

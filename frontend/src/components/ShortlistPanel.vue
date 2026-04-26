@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import type { ShortlistEntry } from '@/types/mealPlan'
+import type { DragItem } from '@/types/dragItem'
 
 defineProps<{ entries: ShortlistEntry[] }>()
 const emit = defineEmits<{
   (e: 'remove', id: string): void
-  (e: 'drop', suggestion: unknown): void
+  (e: 'drag-start', item: DragItem): void
 }>()
+
+function onDragStart(event: DragEvent, entry: ShortlistEntry) {
+  const item: DragItem = { kind: 'shortlist', entry }
+  event.dataTransfer?.setData('application/json', JSON.stringify(item))
+  emit('drag-start', item)
+}
 </script>
 
 <template>
@@ -21,6 +28,7 @@ const emit = defineEmits<{
         class="shortlist-entry"
         :class="entry.entry_type"
         draggable="true"
+        @dragstart="(e) => onDragStart(e, entry)"
       >
         <span class="entry-icon">{{ entry.entry_type === 'recipe' ? '📚' : '✨' }}</span>
         <span class="entry-note">{{ entry.note ?? entry.recipe_id }}</span>
@@ -33,12 +41,7 @@ const emit = defineEmits<{
         </button>
       </div>
 
-      <div
-        class="drop-zone"
-        data-testid="shortlist-drop-zone"
-      >
-        drop here to save for later
-      </div>
+      <div class="drop-zone">drop here to save for later</div>
     </div>
   </div>
 </template>
@@ -50,9 +53,7 @@ const emit = defineEmits<{
   padding: 0.75rem 1rem;
   min-width: 180px;
 }
-.panel-header {
-  margin-bottom: 0.5rem;
-}
+.panel-header { margin-bottom: 0.5rem; }
 .panel-label {
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -60,11 +61,7 @@ const emit = defineEmits<{
   color: #888;
   font-weight: 600;
 }
-.entry-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
+.entry-list { display: flex; flex-direction: column; gap: 0.35rem; }
 .shortlist-entry {
   display: flex;
   align-items: center;
@@ -74,18 +71,9 @@ const emit = defineEmits<{
   font-size: 0.875rem;
   cursor: grab;
 }
-.shortlist-entry.recipe {
-  background: #e8f0fe;
-  border-left: 3px solid #2ecc71;
-}
-.shortlist-entry.suggestion {
-  background: #fff8e1;
-  border-left: 3px solid #27ae60;
-  font-style: italic;
-}
-.entry-note {
-  flex: 1;
-}
+.shortlist-entry.recipe { background: #e8f0fe; border-left: 3px solid #2ecc71; }
+.shortlist-entry.suggestion { background: #fff8e1; border-left: 3px solid #27ae60; font-style: italic; }
+.entry-note { flex: 1; }
 .remove-btn {
   background: none;
   border: none;

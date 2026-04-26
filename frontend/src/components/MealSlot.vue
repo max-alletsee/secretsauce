@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { TimelineEntry } from '@/types/timeline'
+import type { DragItem } from '@/types/dragItem'
 
 const props = defineProps<{
   entry: TimelineEntry | null
@@ -12,10 +13,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'save-text', text: string): void
   (e: 'clear'): void
+  (e: 'drop-item', item: DragItem): void
 }>()
 
 const editing = ref(false)
 const inputText = ref('')
+const dragOver = ref(false)
 
 function startEditing() {
   editing.value = true
@@ -32,12 +35,38 @@ function submitText() {
 function cancelEdit() {
   editing.value = false
 }
+
+function onDragOver(event: DragEvent) {
+  if (props.disabled) return
+  event.preventDefault()
+  dragOver.value = true
+}
+
+function onDragLeave() {
+  dragOver.value = false
+}
+
+function onDrop(event: DragEvent) {
+  dragOver.value = false
+  if (props.disabled) return
+  const raw = event.dataTransfer?.getData('application/json')
+  if (!raw) return
+  try {
+    const item: DragItem = JSON.parse(raw)
+    emit('drop-item', item)
+  } catch {
+    // ignore malformed drag data
+  }
+}
 </script>
 
 <template>
   <div
     class="meal-slot"
-    :class="[entry?.entry_type, { 'meal-slot--disabled': disabled }]"
+    :class="[entry?.entry_type, { 'meal-slot--disabled': disabled, 'meal-slot--drag-over': dragOver }]"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
   >
     <span class="slot-label">{{ mealType.toUpperCase() }}</span>
 
@@ -72,7 +101,7 @@ function cancelEdit() {
     </span>
 
     <button
-      v-if="entry && !editing"
+      v-if="entry && !editing && !disabled"
       class="clear-btn"
       data-testid="slot-clear"
       @click.stop="emit('clear')"
@@ -93,8 +122,10 @@ function cancelEdit() {
   padding: 0.5rem 0.75rem;
   min-height: 2.25rem;
   cursor: pointer;
+  transition: background 0.1s;
 }
 .meal-slot--disabled { cursor: default; }
+.meal-slot--drag-over { background: #dbeafe; outline: 2px dashed #2563eb; }
 .slot-label { font-size: 0.7rem; color: #999; font-weight: 600; flex-shrink: 0; }
 .slot-content { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot-content.recipe { color: #1a73e8; }

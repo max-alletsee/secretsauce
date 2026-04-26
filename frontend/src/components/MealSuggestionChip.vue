@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import type { MealSuggestion } from '@/types/mealPlan'
+import type { DragItem } from '@/types/dragItem'
 
-defineProps<{ suggestion: MealSuggestion }>()
-const emit = defineEmits<{ (e: 'convert-to-recipe', title: string): void }>()
+const props = defineProps<{ suggestion: MealSuggestion }>()
+const emit = defineEmits<{
+  (e: 'convert-to-recipe', title: string): void
+  (e: 'drag-start', item: DragItem): void
+}>()
+
+function onDragStart(event: DragEvent) {
+  const item: DragItem = { kind: 'suggestion', suggestion: props.suggestion }
+  event.dataTransfer?.setData('application/json', JSON.stringify(item))
+  emit('drag-start', item)
+}
 </script>
 
 <template>
@@ -11,6 +21,7 @@ const emit = defineEmits<{ (e: 'convert-to-recipe', title: string): void }>()
     :class="suggestion.entry_type"
     :data-testid="`chip-${suggestion.entry_type}`"
     draggable="true"
+    @dragstart="onDragStart"
   >
     <span class="chip-icon">{{ suggestion.entry_type === 'recipe' ? '📚' : '✨' }}</span>
     <span class="chip-title">{{ suggestion.title }}</span>
@@ -54,7 +65,5 @@ const emit = defineEmits<{ (e: 'convert-to-recipe', title: string): void }>()
   padding: 0;
   margin-left: 0.25rem;
 }
-.convert-btn:hover {
-  color: #333;
-}
+.convert-btn:hover { color: #333; }
 </style>

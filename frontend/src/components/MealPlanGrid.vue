@@ -74,6 +74,7 @@ function dayLabel(dateStr: string): string {
         :disabled="isPast(day)"
         @save-text="(text) => emit('save-text', day, mealType, text)"
         @clear="() => { const e = entryFor(day, mealType); if (e) emit('clear-entry', e.id) }"
+        @drop-item="(item) => emit('drop-item', item, day, mealType)"
       />
     </div>
   </div>
