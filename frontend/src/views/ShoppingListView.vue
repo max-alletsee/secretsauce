@@ -23,9 +23,9 @@ const CATEGORY_ORDER = [
 
 const route = useRoute()
 const store = useShoppingListStore()
-const mealPlanId = String(route.params.mealPlanId)
+const listId = String(route.params.id)
 
-onMounted(() => store.fetchList(mealPlanId))
+onMounted(() => store.fetchList(listId))
 
 const groupedItems = computed(() => {
   if (!store.list) return []
@@ -46,7 +46,7 @@ const groupedItems = computed(() => {
 })
 
 async function handleToggle(itemId: string, currentChecked: boolean) {
-  await store.toggleItem(mealPlanId, itemId, !currentChecked)
+  await store.toggleItem(listId, itemId, !currentChecked)
 }
 
 function formatQty(n: number): string {
@@ -54,7 +54,7 @@ function formatQty(n: number): string {
 }
 
 async function handleRegenerate() {
-  await store.regenerate(mealPlanId)
+  await store.regenerate(listId)
 }
 </script>
 

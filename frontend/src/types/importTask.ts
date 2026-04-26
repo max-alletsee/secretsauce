@@ -31,8 +31,8 @@ export interface ImportTask {
   status: 'pending' | 'processing' | 'completed' | 'failed'
   recipe_id: string | null
   error_message: string | null
-  import_type: 'url' | 'image' | 'meal_suggestions'
-  result_data: { recipe?: RecipeData; suggestions?: unknown[] } | null
+  import_type: 'url' | 'image' | 'meal_suggestions' | 'recipe_generate' | 'shopping_generate'
+  result_data: { recipe?: RecipeData; suggestions?: unknown[]; shopping_list_id?: string } | null
   created_at: string
   updated_at: string
 }

@@ -1,5 +1,13 @@
 // frontend/src/types/shoppingList.ts
 
+export interface ShoppingListSummary {
+  id: string
+  name: string
+  from_date: string | null
+  to_date: string | null
+  created_at: string
+}
+
 export interface ShoppingListItem {
   id: string
   shopping_list_id: string

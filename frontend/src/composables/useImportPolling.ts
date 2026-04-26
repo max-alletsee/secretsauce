@@ -4,7 +4,11 @@ import * as importTasksApi from '@/api/importTasks'
 import type { ImportStatus, RecipeData } from '@/types/importTask'
 
 export function useImportPolling(
-  onComplete: (recipeId: string, recipeData?: RecipeData) => void,
+  onComplete: (
+    recipeId: string,
+    recipeData?: RecipeData,
+    resultData?: Record<string, unknown>,
+  ) => void,
 ) {
   const status = ref<ImportStatus>('idle')
   const error = ref<string | null>(null)
@@ -26,7 +30,10 @@ export function useImportPolling(
         status.value = task.status as ImportStatus
         if (task.status === 'completed' && task.recipe_id) {
           stopPolling()
-          onComplete(task.recipe_id, task.result_data?.recipe)
+          onComplete(task.recipe_id, task.result_data?.recipe, task.result_data ?? undefined)
+        } else if (task.status === 'completed') {
+          stopPolling()
+          onComplete('', undefined, task.result_data ?? undefined)
         } else if (task.status === 'failed') {
           stopPolling()
           error.value = task.error_message ?? 'Import failed'
