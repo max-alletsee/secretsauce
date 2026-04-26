@@ -5,7 +5,8 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict
+import pydantic
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
 
 from app.models.import_task import ImportTaskStatus
 
@@ -15,6 +16,17 @@ if TYPE_CHECKING:
 
 class RecipeImportURLRequest(BaseModel):
     url: AnyHttpUrl
+
+
+class RecipeGenerateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+
+    @pydantic.field_validator("title")
+    @classmethod
+    def title_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("title must not be empty")
+        return v.strip()
 
 
 class ImportTaskCreated(BaseModel):
@@ -29,7 +41,7 @@ class ImportTaskRead(BaseModel):
     status: ImportTaskStatus
     recipe_id: uuid.UUID | None
     error_message: str | None
-    import_type: Literal["url", "image", "meal_suggestions"]
+    import_type: Literal["url", "image", "meal_suggestions", "recipe_generate"]
     result_data: dict | None = None
     created_at: datetime
     updated_at: datetime
@@ -37,7 +49,9 @@ class ImportTaskRead(BaseModel):
     @classmethod
     def from_orm_task(cls, task: ImportTask) -> ImportTaskRead:
         if task.task_type == "meal_suggestions":
-            import_type: Literal["url", "image", "meal_suggestions"] = "meal_suggestions"
+            import_type: Literal["url", "image", "meal_suggestions", "recipe_generate"] = "meal_suggestions"
+        elif task.task_type == "recipe_generate":
+            import_type = "recipe_generate"
         elif task.image_path is not None:
             import_type = "image"
         else:
