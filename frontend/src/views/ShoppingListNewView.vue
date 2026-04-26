@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -27,10 +27,20 @@ const listName = ref('')
 const generating = ref(false)
 const error = ref('')
 
-const { startPolling } = useImportPolling((_recipeId, _recipeData, resultData) => {
-  const listId = resultData?.shopping_list_id
-  if (listId) {
-    router.push(`/shopping-lists/${listId}`)
+const { startPolling, status: pollingStatus, error: pollingError } = useImportPolling(
+  (_recipeId, _recipeData, resultData) => {
+    generating.value = false
+    const listId = resultData?.shopping_list_id
+    if (listId) {
+      router.push(`/shopping-lists/${listId}`)
+    }
+  },
+)
+
+watch(pollingStatus, (s) => {
+  if (s === 'failed') {
+    generating.value = false
+    error.value = pollingError.value ?? 'Shopping list generation failed'
   }
 })
 

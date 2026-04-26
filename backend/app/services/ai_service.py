@@ -29,6 +29,18 @@ _IMPORT_PROMPT_TEMPLATE = (
     "middle-eastern, american, korean."
 )
 
+_GENERATE_PROMPT_TEMPLATE = (
+    "Create a complete, detailed recipe for: {title}\n\n"
+    "Return all fields including ingredients with quantities and units, numbered steps, "
+    "prep/cook/waiting times in minutes, servings, a short description, and appropriate tags. "
+    "For tags, only use values from this exact list: "
+    "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
+    "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
+    "spring, summer, autumn, winter, breakfast, lunch, dinner, snack, dessert, "
+    "italian, mexican, japanese, chinese, indian, thai, french, greek, "
+    "middle-eastern, american, korean."
+)
+
 _IMAGE_IMPORT_PROMPT_TEMPLATE = """Extract the recipe from the provided image into structured JSON.
 
 The image may be:
@@ -237,6 +249,78 @@ async def import_recipe_from_image(
     )
     raise AIServiceError(
         f"Image import failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
+    ) from last_error
+
+
+async def generate_recipe_from_title(
+    title: str,
+    user_id: "_uuid.UUID | None" = None,
+    db=None,  # AsyncSession | None
+) -> RecipeImportResult:
+    """Call Gemini to generate a complete recipe from a title.
+
+    Retries up to AI_MAX_RETRIES times with exponential backoff.
+    Raises AIServiceError on permanent failure.
+    """
+    client = _get_client()
+    prompt = _GENERATE_PROMPT_TEMPLATE.format(title=title)
+    last_error: Exception | None = None
+    elapsed: float = 0.0
+
+    for attempt in range(settings.AI_MAX_RETRIES):
+        start = time.monotonic()
+        try:
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=settings.AI_MODEL,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=RecipeImportResult,
+                    ),
+                ),
+                timeout=settings.AI_TIMEOUT_SECONDS,
+            )
+            elapsed = time.monotonic() - start
+            usage = response.usage_metadata
+            logger.info(
+                "AI generate success | model=%s title=%r latency=%.2fs tokens_in=%d tokens_out=%d",
+                settings.AI_MODEL,
+                title,
+                elapsed,
+                usage.prompt_token_count if usage else 0,
+                usage.candidates_token_count if usage else 0,
+            )
+            await _write_ai_log(
+                db, user_id=user_id, call_type="recipe_generate", model=settings.AI_MODEL,
+                prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+                input_tokens=usage.prompt_token_count if usage else 0,
+                output_tokens=usage.candidates_token_count if usage else 0,
+                success=True, error_message=None,
+            )
+            return RecipeImportResult.model_validate_json(response.text)
+        except Exception as exc:
+            elapsed = time.monotonic() - start
+            logger.warning(
+                "AI generate attempt %d/%d failed | title=%r latency=%.2fs error=%s",
+                attempt + 1,
+                settings.AI_MAX_RETRIES,
+                title,
+                elapsed,
+                exc,
+            )
+            last_error = exc
+            if attempt < settings.AI_MAX_RETRIES - 1:
+                await asyncio.sleep(2**attempt)
+
+    await _write_ai_log(
+        db, user_id=user_id, call_type="recipe_generate", model=settings.AI_MODEL,
+        prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
+        input_tokens=0, output_tokens=0,
+        success=False, error_message=str(last_error),
+    )
+    raise AIServiceError(
+        f"Recipe generation failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
 
 

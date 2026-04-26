@@ -12,8 +12,8 @@ from app.core.rate_limit import check_import_rate_limit
 from app.core.security import current_active_user
 from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
-from app.schemas.import_task import ImportTaskCreated, ImportTaskRead, RecipeImportURLRequest
-from app.services.recipe_import_service import process_image_import, process_url_import
+from app.schemas.import_task import ImportTaskCreated, ImportTaskRead, RecipeGenerateRequest, RecipeImportURLRequest
+from app.services.recipe_import_service import process_generate_task, process_image_import, process_url_import
 
 # Mounted at /api/v1/recipes in main.py
 recipes_router = APIRouter()
@@ -36,6 +36,23 @@ async def import_recipe_from_url(
     await db.refresh(task)
     # process_url_import creates its own session — do NOT pass db here
     background_tasks.add_task(process_url_import, task.id, str(payload.url), user.id)
+    return ImportTaskCreated(task_id=task.id, status=ImportTaskStatus.PENDING)
+
+
+@recipes_router.post("/generate", status_code=202, response_model=ImportTaskCreated)
+async def generate_recipe(
+    payload: RecipeGenerateRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> ImportTaskCreated:
+    check_import_rate_limit(str(user.id))
+    task = ImportTask(user_id=user.id, task_type="recipe_generate")
+    db.add(task)
+    await db.commit()
+    await db.refresh(task)
+    # process_generate_task creates its own session — do NOT pass db here
+    background_tasks.add_task(process_generate_task, task.id, payload.title, user.id)
     return ImportTaskCreated(task_id=task.id, status=ImportTaskStatus.PENDING)
 
 

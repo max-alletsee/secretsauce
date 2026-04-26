@@ -6,6 +6,7 @@ import type {
   RecipeVersion,
 } from '@/types/recipe'
 import type { PaginatedResponse } from '@/types/common'
+import type { ImportTaskCreated } from '@/types/importTask'
 
 export const getRecipes = (params?: {
   cursor?: string
@@ -32,3 +33,6 @@ export const getVersions = (id: string) =>
 
 export const restoreVersion = (id: string, versionId: string) =>
   client.post<Recipe>(`/recipes/${id}/versions/${versionId}/restore`)
+
+export const generateRecipe = (title: string) =>
+  client.post<ImportTaskCreated>('/recipes/generate', { title })
