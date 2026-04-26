@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, watchEffect, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -77,33 +77,33 @@ function isDayIndeterminate(dateStr: string): boolean {
 function toggleDay(dateStr: string) {
   const dayEntries = (entriesByDate.value[dateStr] ?? []).filter((e) => e.recipe_id)
   const allChecked = isDayChecked(dateStr)
+  const next = new Set(checkedEntryIds.value)
   for (const e of dayEntries) {
-    if (allChecked) {
-      checkedEntryIds.value.delete(e.id)
-    } else {
-      checkedEntryIds.value.add(e.id)
-    }
+    if (allChecked) next.delete(e.id)
+    else next.add(e.id)
   }
+  checkedEntryIds.value = next
 }
 
 function toggleEntry(entryId: string) {
-  if (checkedEntryIds.value.has(entryId)) {
-    checkedEntryIds.value.delete(entryId)
-  } else {
-    checkedEntryIds.value.add(entryId)
-  }
+  const next = new Set(checkedEntryIds.value)
+  if (next.has(entryId)) next.delete(entryId)
+  else next.add(entryId)
+  checkedEntryIds.value = next
 }
 
 function selectAllUpcoming() {
+  const next = new Set(checkedEntryIds.value)
   for (const day of days.value) {
     for (const e of entriesByDate.value[day] ?? []) {
-      if (e.recipe_id) checkedEntryIds.value.add(e.id)
+      if (e.recipe_id) next.add(e.id)
     }
   }
+  checkedEntryIds.value = next
 }
 
 function clearAll() {
-  checkedEntryIds.value.clear()
+  checkedEntryIds.value = new Set()
 }
 
 const selectedCount = computed(() => checkedEntryIds.value.size)
@@ -160,9 +160,17 @@ function dayLabel(dateStr: string): string {
   return `${DAY_NAMES[d.getDay()]} ${dateStr}`
 }
 
-function setDayIndeterminate(el: HTMLInputElement | null, dateStr: string) {
-  if (el) el.indeterminate = isDayIndeterminate(dateStr)
-}
+const dayCheckboxRefs = ref<Record<string, HTMLInputElement | null>>({})
+
+watchEffect(() => {
+  void checkedEntryIds.value  // track reactively
+  nextTick(() => {
+    for (const day of days.value) {
+      const el = dayCheckboxRefs.value[day]
+      if (el) el.indeterminate = isDayIndeterminate(day)
+    }
+  })
+})
 </script>
 
 <template>
@@ -198,7 +206,7 @@ function setDayIndeterminate(el: HTMLInputElement | null, dateStr: string) {
             <td class="col-check">
               <input
                 type="checkbox"
-                :ref="(el) => setDayIndeterminate(el as HTMLInputElement | null, day)"
+                :ref="(el) => { dayCheckboxRefs[day] = el as HTMLInputElement | null }"
                 :checked="isDayChecked(day)"
                 @change="toggleDay(day)"
               />
