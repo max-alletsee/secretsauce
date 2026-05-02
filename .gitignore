@@ -40,3 +40,4 @@ Thumbs.db
 certs/
 
 DEPLOY.md
+/frontend/playwright-report
