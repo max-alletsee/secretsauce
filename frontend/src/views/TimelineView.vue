@@ -25,6 +25,7 @@ const { startPolling } = useImportPolling((recipeId: string) => {
 })
 
 const convertError = ref<string | null>(null)
+const shortlistError = ref<string | null>(null)
 
 const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -86,28 +87,31 @@ async function handleRemoveFromShortlist(id: string) {
 }
 
 async function handleAddToShortlist(item: DragItem) {
-  const drag = item as DragItem
-  if (drag.kind === 'suggestion') {
-    const s = drag.suggestion
-    if (s.matched_recipe_id) {
-      await shortlistStore.addEntry({ recipe_id: s.matched_recipe_id, entry_type: 'recipe', note: s.title })
-    } else {
-      await shortlistStore.addEntry({ recipe_id: null, entry_type: 'suggestion', note: s.title })
+  shortlistError.value = null
+  try {
+    if (item.kind === 'suggestion') {
+      const s = item.suggestion
+      await shortlistStore.addEntry(
+        s.matched_recipe_id
+          ? { recipe_id: s.matched_recipe_id, entry_type: 'recipe', note: s.title }
+          : { recipe_id: null, entry_type: 'suggestion', note: s.title }
+      )
+    } else if (item.kind === 'timeline-entry') {
+      const entry = item.entry
+      await shortlistStore.addEntry(
+        entry.recipe_id
+          ? { recipe_id: entry.recipe_id, entry_type: 'recipe', note: entry.note ?? undefined }
+          : { recipe_id: null, entry_type: 'suggestion', note: entry.note ?? '' }
+      )
     }
-  } else if (drag.kind === 'timeline-entry') {
-    const entry = drag.entry
-    if (entry.recipe_id) {
-      await shortlistStore.addEntry({ recipe_id: entry.recipe_id, entry_type: 'recipe', note: entry.note ?? undefined })
-    } else {
-      await shortlistStore.addEntry({ recipe_id: null, entry_type: 'suggestion', note: entry.note ?? '' })
-    }
+  } catch {
+    shortlistError.value = 'Failed to save to shortlist. Please try again.'
   }
 }
 
-async function handleDropItem(item: unknown, date: string, mealType: string) {
-  const drag = item as DragItem
-  if (drag.kind === 'suggestion') {
-    const s = drag.suggestion
+async function handleDropItem(item: DragItem, date: string, mealType: string) {
+  if (item.kind === 'suggestion') {
+    const s = item.suggestion
     if (s.entry_type === 'recipe' && s.matched_recipe_id) {
       await timelineStore.addEntry({
         date,
@@ -125,8 +129,8 @@ async function handleDropItem(item: unknown, date: string, mealType: string) {
         source: 'ai_suggested',
       })
     }
-  } else if (drag.kind === 'shortlist') {
-    const entry = drag.entry
+  } else if (item.kind === 'shortlist') {
+    const entry = item.entry
     if (entry.recipe_id) {
       await timelineStore.addEntry({
         date,
@@ -162,6 +166,7 @@ async function handleConvertToRecipe(title: string) {
 <template>
   <div class="timeline-view">
     <p v-if="convertError" class="convert-error">{{ convertError }}</p>
+    <p v-if="shortlistError" class="convert-error">{{ shortlistError }}</p>
     <div class="sources-row">
       <MealSuggestionPanel
         :suggestions="planStore.suggestions"

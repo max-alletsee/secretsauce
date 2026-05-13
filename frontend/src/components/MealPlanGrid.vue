@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import MealSlot from './MealSlot.vue'
 import type { TimelineEntry } from '@/types/timeline'
+import type { DragItem } from '@/types/dragItem'
 
 const props = defineProps<{
   fromDate: string       // YYYY-MM-DD
@@ -15,8 +16,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'save-text', date: string, mealType: string, text: string): void
   (e: 'clear-entry', entryId: string): void
-  (e: 'drop-item', item: unknown, date: string, mealType: string): void
-  (e: 'drag-start', item: unknown): void
+  (e: 'drop-item', item: DragItem, date: string, mealType: string): void
+  (e: 'drag-start', item: DragItem): void
 }>()
 
 const days = computed(() => {

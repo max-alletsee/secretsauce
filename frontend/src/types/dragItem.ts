@@ -1,6 +1,5 @@
 // frontend/src/types/dragItem.ts
-import type { MealSuggestion } from '@/types/mealPlan'
-import type { ShortlistEntry } from '@/types/mealPlan'
+import type { MealSuggestion, ShortlistEntry } from '@/types/mealPlan'
 import type { TimelineEntry } from '@/types/timeline'
 
 export type DragItem =

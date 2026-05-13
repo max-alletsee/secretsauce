@@ -6,7 +6,6 @@ import type { DragItem } from '@/types/dragItem'
 defineProps<{ entries: ShortlistEntry[] }>()
 const emit = defineEmits<{
   (e: 'remove', id: string): void
-  (e: 'drag-start', item: DragItem): void
   (e: 'add-to-shortlist', item: DragItem): void
 }>()
 
@@ -15,7 +14,6 @@ const dragOver = ref(false)
 function onDragStart(event: DragEvent, entry: ShortlistEntry) {
   const item: DragItem = { kind: 'shortlist', entry }
   event.dataTransfer?.setData('application/json', JSON.stringify(item))
-  emit('drag-start', item)
 }
 
 function onDragOver(event: DragEvent) {
@@ -23,7 +21,10 @@ function onDragOver(event: DragEvent) {
   dragOver.value = true
 }
 
-function onDragLeave() {
+function onDragLeave(event: DragEvent) {
+  if (event.currentTarget instanceof Element && event.currentTarget.contains(event.relatedTarget as Node)) {
+    return
+  }
   dragOver.value = false
 }
 
@@ -32,8 +33,9 @@ function onDrop(event: DragEvent) {
   const raw = event.dataTransfer?.getData('application/json')
   if (!raw) return
   try {
-    const item: DragItem = JSON.parse(raw)
-    // Don't add shortlist-to-shortlist drops
+    const parsed = JSON.parse(raw)
+    if (parsed?.kind !== 'suggestion' && parsed?.kind !== 'shortlist' && parsed?.kind !== 'timeline-entry') return
+    const item = parsed as DragItem
     if (item.kind !== 'shortlist') {
       emit('add-to-shortlist', item)
     }
@@ -59,7 +61,7 @@ function onDrop(event: DragEvent) {
         @dragstart="(e) => onDragStart(e, entry)"
       >
         <span class="entry-icon">{{ entry.entry_type === 'recipe' ? '📚' : '✨' }}</span>
-        <span class="entry-note">{{ entry.note ?? entry.recipe_id }}</span>
+        <span class="entry-note">{{ entry.note ?? entry.recipe_id ?? 'Unnamed entry' }}</span>
         <button
           class="remove-btn"
           :data-testid="`remove-shortlist-${entry.id}`"
@@ -72,6 +74,7 @@ function onDrop(event: DragEvent) {
       <div
         class="drop-zone"
         :class="{ 'drop-zone--active': dragOver }"
+        data-testid="shortlist-drop-zone"
         @dragover="onDragOver"
         @dragleave="onDragLeave"
         @drop="onDrop"
