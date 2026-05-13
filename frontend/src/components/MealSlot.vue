@@ -15,6 +15,7 @@ const emit = defineEmits<{
   (e: 'clear'): void
   (e: 'drop-item', item: DragItem): void
   (e: 'drag-start', item: DragItem): void
+  (e: 'open-recipe', recipeId: string): void
 }>()
 
 const editing = ref(false)
@@ -92,9 +93,10 @@ function onDrop(event: DragEvent) {
 
     <span
       v-else-if="entry && entry.entry_type === 'recipe'"
-      class="slot-content recipe"
+      class="slot-content recipe clickable"
       draggable="true"
       @dragstart.stop="onEntryDragStart"
+      @click.stop="entry.recipe_id && emit('open-recipe', entry.recipe_id)"
     >
       {{ recipeTitle ?? entry.recipe_id }}
     </span>
@@ -152,6 +154,8 @@ function onDrop(event: DragEvent) {
 .slot-label { font-size: 0.7rem; color: #999; font-weight: 600; flex-shrink: 0; }
 .slot-content { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot-content.recipe { color: #1a73e8; }
+.clickable { cursor: pointer; text-decoration: underline dotted; }
+.clickable:hover { text-decoration: underline; }
 .slot-content.suggestion { color: #f5a623; font-style: italic; }
 .slot-content.freetext { color: #333; }
 .slot-empty { flex: 1; font-size: 0.85rem; color: #bbb; font-style: italic; }

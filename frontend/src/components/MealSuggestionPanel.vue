@@ -3,12 +3,13 @@ import { ref } from 'vue'
 import MealSuggestionChip from './MealSuggestionChip.vue'
 import type { MealSuggestion } from '@/types/mealPlan'
 
-defineProps<{ suggestions: MealSuggestion[]; loading: boolean }>()
+defineProps<{ suggestions: MealSuggestion[]; loading: boolean; convertingTitle?: string | null }>()
 const emit = defineEmits<{
   (e: 'regenerate', steerPrompt?: string): void
   (e: 'drop-to-plan', suggestion: MealSuggestion, date: string, mealType: string): void
   (e: 'drop-to-shortlist', suggestion: MealSuggestion): void
   (e: 'convert-to-recipe', title: string): void
+  (e: 'open-recipe', recipeId: string): void
 }>()
 
 const steerVisible = ref(false)
@@ -70,7 +71,9 @@ function handleConvertToRecipe(title: string) {
         v-for="(s, i) in suggestions"
         :key="i"
         :suggestion="s"
+        :converting="convertingTitle === s.title"
         @convert-to-recipe="handleConvertToRecipe"
+        @open-recipe="(id) => emit('open-recipe', id)"
       />
       <span v-if="suggestions.length === 0 && !loading" class="empty-hint">
         Click Regen to generate suggestions

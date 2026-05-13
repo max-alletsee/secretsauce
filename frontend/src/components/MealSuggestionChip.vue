@@ -2,10 +2,11 @@
 import type { MealSuggestion } from '@/types/mealPlan'
 import type { DragItem } from '@/types/dragItem'
 
-const props = defineProps<{ suggestion: MealSuggestion }>()
+const props = defineProps<{ suggestion: MealSuggestion; converting?: boolean }>()
 const emit = defineEmits<{
   (e: 'convert-to-recipe', title: string): void
   (e: 'drag-start', item: DragItem): void
+  (e: 'open-recipe', recipeId: string): void
 }>()
 
 function onDragStart(event: DragEvent) {
@@ -22,6 +23,7 @@ function onDragStart(event: DragEvent) {
     :data-testid="`chip-${suggestion.entry_type}`"
     draggable="true"
     @dragstart="onDragStart"
+    @click.stop="suggestion.entry_type === 'recipe' && suggestion.matched_recipe_id && emit('open-recipe', suggestion.matched_recipe_id)"
   >
     <span class="chip-icon">{{ suggestion.entry_type === 'recipe' ? '📚' : '✨' }}</span>
     <span class="chip-title">{{ suggestion.title }}</span>
@@ -29,9 +31,10 @@ function onDragStart(event: DragEvent) {
       v-if="suggestion.entry_type === 'suggestion'"
       class="convert-btn"
       data-testid="convert-to-recipe"
-      @click.stop="emit('convert-to-recipe', suggestion.title)"
+      :disabled="converting"
+      @click.stop="!converting && emit('convert-to-recipe', suggestion.title)"
     >
-      → recipe
+      {{ converting ? '…' : '→ recipe' }}
     </button>
   </div>
 </template>
@@ -66,4 +69,5 @@ function onDragStart(event: DragEvent) {
   margin-left: 0.25rem;
 }
 .convert-btn:hover { color: #333; }
+.convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

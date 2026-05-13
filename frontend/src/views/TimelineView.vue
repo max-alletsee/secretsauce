@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useShortlistStore } from '@/stores/useShortlistStore'
 import { useRecipeStore } from '@/stores/useRecipeStore'
@@ -10,18 +9,53 @@ import { useImportPolling } from '@/composables/useImportPolling'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
+import RecipeDrawer from '@/components/RecipeDrawer.vue'
 import { generateRecipe } from '@/api/recipes'
 import type { DragItem } from '@/types/dragItem'
+import type { RecipeVersionData } from '@/types/importTask'
+import type { Recipe } from '@/types/recipe'
 
-const router = useRouter()
 const timelineStore = useTimelineStore()
 const shortlistStore = useShortlistStore()
 const recipeStore = useRecipeStore()
 const userStore = useUserStore()
 const planStore = useMealPlanStore()
 
-const { startPolling } = useImportPolling((recipeId: string) => {
-  router.push(`/recipes/${recipeId}/edit`)
+const drawerOpen = ref(false)
+const drawerRecipeId = ref<string | null>(null)
+const drawerDraftRecipe = ref<RecipeVersionData | null>(null)
+const convertingTitle = ref<string | null>(null)
+
+function openRecipeDrawer(recipeId: string) {
+  drawerDraftRecipe.value = null
+  drawerRecipeId.value = recipeId
+  drawerOpen.value = true
+}
+
+function openDraftDrawer(draft: RecipeVersionData) {
+  drawerRecipeId.value = null
+  drawerDraftRecipe.value = draft
+  drawerOpen.value = true
+}
+
+function closeDrawer() {
+  drawerOpen.value = false
+  drawerRecipeId.value = null
+  drawerDraftRecipe.value = null
+}
+
+function handleDrawerSaved(_recipe: Recipe) {
+  closeDrawer()
+}
+
+const { startPolling } = useImportPolling((recipeId: string, _recipeData, resultData) => {
+  convertingTitle.value = null
+  const recipe = resultData?.['recipe'] as RecipeVersionData | undefined
+  if (recipe?.title) {
+    openDraftDrawer(recipe)
+  } else if (recipeId) {
+    openRecipeDrawer(recipeId)
+  }
 })
 
 const convertError = ref<string | null>(null)
@@ -152,6 +186,8 @@ async function handleDropItem(item: DragItem, date: string, mealType: string) {
 }
 
 async function handleConvertToRecipe(title: string) {
+  if (convertingTitle.value !== null) return
+  convertingTitle.value = title
   convertError.value = null
   try {
     const { data } = await generateRecipe(title)
@@ -159,6 +195,7 @@ async function handleConvertToRecipe(title: string) {
   } catch (err: unknown) {
     const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
     convertError.value = msg ?? 'Failed to start recipe generation. Please try again.'
+    convertingTitle.value = null
   }
 }
 </script>
@@ -171,8 +208,10 @@ async function handleConvertToRecipe(title: string) {
       <MealSuggestionPanel
         :suggestions="planStore.suggestions"
         :loading="planStore.suggestionLoading"
+        :converting-title="convertingTitle"
         @regenerate="handleRegenerate"
         @convert-to-recipe="handleConvertToRecipe"
+        @open-recipe="openRecipeDrawer"
       />
       <ShortlistPanel
         :entries="shortlistStore.entries"
@@ -201,12 +240,21 @@ async function handleConvertToRecipe(title: string) {
         @save-text="handleSaveText"
         @clear-entry="handleClearEntry"
         @drop-item="handleDropItem"
+        @open-recipe="openRecipeDrawer"
       />
 
       <button class="show-later-btn" @click="loadLater">
         ↓ Show later
       </button>
     </div>
+
+    <RecipeDrawer
+      v-if="drawerOpen"
+      :recipe-id="drawerRecipeId ?? undefined"
+      :draft-recipe="drawerDraftRecipe ?? undefined"
+      @close="closeDrawer"
+      @saved="handleDrawerSaved"
+    />
   </div>
 </template>
 

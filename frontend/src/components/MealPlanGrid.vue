@@ -18,6 +18,7 @@ const emit = defineEmits<{
   (e: 'clear-entry', entryId: string): void
   (e: 'drop-item', item: DragItem, date: string, mealType: string): void
   (e: 'drag-start', item: DragItem): void
+  (e: 'open-recipe', recipeId: string): void
 }>()
 
 const days = computed(() => {
@@ -78,6 +79,7 @@ function dayLabel(dateStr: string): string {
         @clear="() => { const e = entryFor(day, mealType); if (e) emit('clear-entry', e.id) }"
         @drop-item="(item) => emit('drop-item', item, day, mealType)"
         @drag-start="(item) => emit('drag-start', item)"
+        @open-recipe="(id) => emit('open-recipe', id)"
       />
     </div>
   </div>
