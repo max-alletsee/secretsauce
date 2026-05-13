@@ -14,6 +14,7 @@ const emit = defineEmits<{
   (e: 'save-text', text: string): void
   (e: 'clear'): void
   (e: 'drop-item', item: DragItem): void
+  (e: 'drag-start', item: DragItem): void
 }>()
 
 const editing = ref(false)
@@ -34,6 +35,13 @@ function submitText() {
 
 function cancelEdit() {
   editing.value = false
+}
+
+function onEntryDragStart(event: DragEvent) {
+  if (!props.entry) return
+  const item: DragItem = { kind: 'timeline-entry', entry: props.entry }
+  event.dataTransfer?.setData('application/json', JSON.stringify(item))
+  emit('drag-start', item)
 }
 
 function onDragOver(event: DragEvent) {
@@ -82,13 +90,28 @@ function onDrop(event: DragEvent) {
       />
     </div>
 
-    <span v-else-if="entry && entry.entry_type === 'recipe'" class="slot-content recipe">
+    <span
+      v-else-if="entry && entry.entry_type === 'recipe'"
+      class="slot-content recipe"
+      draggable="true"
+      @dragstart.stop="onEntryDragStart"
+    >
       {{ recipeTitle ?? entry.recipe_id }}
     </span>
-    <span v-else-if="entry && entry.entry_type === 'suggestion'" class="slot-content suggestion">
+    <span
+      v-else-if="entry && entry.entry_type === 'suggestion'"
+      class="slot-content suggestion"
+      draggable="true"
+      @dragstart.stop="onEntryDragStart"
+    >
       ✨ {{ entry.note }}
     </span>
-    <span v-else-if="entry && entry.entry_type === 'freetext'" class="slot-content freetext">
+    <span
+      v-else-if="entry && entry.entry_type === 'freetext'"
+      class="slot-content freetext"
+      draggable="true"
+      @dragstart.stop="onEntryDragStart"
+    >
       {{ entry.note }}
     </span>
     <span

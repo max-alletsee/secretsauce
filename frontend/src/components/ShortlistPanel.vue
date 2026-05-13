@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { ShortlistEntry } from '@/types/mealPlan'
 import type { DragItem } from '@/types/dragItem'
 
@@ -6,12 +7,39 @@ defineProps<{ entries: ShortlistEntry[] }>()
 const emit = defineEmits<{
   (e: 'remove', id: string): void
   (e: 'drag-start', item: DragItem): void
+  (e: 'add-to-shortlist', item: DragItem): void
 }>()
+
+const dragOver = ref(false)
 
 function onDragStart(event: DragEvent, entry: ShortlistEntry) {
   const item: DragItem = { kind: 'shortlist', entry }
   event.dataTransfer?.setData('application/json', JSON.stringify(item))
   emit('drag-start', item)
+}
+
+function onDragOver(event: DragEvent) {
+  event.preventDefault()
+  dragOver.value = true
+}
+
+function onDragLeave() {
+  dragOver.value = false
+}
+
+function onDrop(event: DragEvent) {
+  dragOver.value = false
+  const raw = event.dataTransfer?.getData('application/json')
+  if (!raw) return
+  try {
+    const item: DragItem = JSON.parse(raw)
+    // Don't add shortlist-to-shortlist drops
+    if (item.kind !== 'shortlist') {
+      emit('add-to-shortlist', item)
+    }
+  } catch {
+    // ignore malformed drag data
+  }
 }
 </script>
 
@@ -41,7 +69,15 @@ function onDragStart(event: DragEvent, entry: ShortlistEntry) {
         </button>
       </div>
 
-      <div class="drop-zone">drop here to save for later</div>
+      <div
+        class="drop-zone"
+        :class="{ 'drop-zone--active': dragOver }"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+      >
+        drop here to save for later
+      </div>
     </div>
   </div>
 </template>
@@ -91,5 +127,10 @@ function onDragStart(event: DragEvent, entry: ShortlistEntry) {
   font-size: 0.75rem;
   color: #aaa;
   text-align: center;
+}
+.drop-zone--active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #2563eb;
 }
 </style>

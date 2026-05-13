@@ -85,6 +85,25 @@ async function handleRemoveFromShortlist(id: string) {
   await shortlistStore.removeEntry(id)
 }
 
+async function handleAddToShortlist(item: DragItem) {
+  const drag = item as DragItem
+  if (drag.kind === 'suggestion') {
+    const s = drag.suggestion
+    if (s.matched_recipe_id) {
+      await shortlistStore.addEntry({ recipe_id: s.matched_recipe_id, entry_type: 'recipe', note: s.title })
+    } else {
+      await shortlistStore.addEntry({ recipe_id: null, entry_type: 'suggestion', note: s.title })
+    }
+  } else if (drag.kind === 'timeline-entry') {
+    const entry = drag.entry
+    if (entry.recipe_id) {
+      await shortlistStore.addEntry({ recipe_id: entry.recipe_id, entry_type: 'recipe', note: entry.note ?? undefined })
+    } else {
+      await shortlistStore.addEntry({ recipe_id: null, entry_type: 'suggestion', note: entry.note ?? '' })
+    }
+  }
+}
+
 async function handleDropItem(item: unknown, date: string, mealType: string) {
   const drag = item as DragItem
   if (drag.kind === 'suggestion') {
@@ -153,6 +172,7 @@ async function handleConvertToRecipe(title: string) {
       <ShortlistPanel
         :entries="shortlistStore.entries"
         @remove="handleRemoveFromShortlist"
+        @add-to-shortlist="handleAddToShortlist"
       />
     </div>
 
