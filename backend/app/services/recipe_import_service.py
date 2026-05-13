@@ -92,8 +92,10 @@ async def process_url_import(task_id: uuid.UUID, url: str, user_id: uuid.UUID) -
 
 
 async def process_generate_task(task_id: uuid.UUID, title: str, user_id: uuid.UUID) -> None:
-    """Background task: call Gemini to generate a recipe from a title, save it, update the task.
+    """Background task: call Gemini to generate a recipe from a title.
 
+    Stores the generated recipe data in result_data WITHOUT saving to the database.
+    The frontend shows a draft preview; the user explicitly saves if they want it.
     Creates its own AsyncSession because BackgroundTasks run after the request session closes.
     """
     async with async_session_factory() as db:
@@ -119,37 +121,33 @@ async def process_generate_task(task_id: uuid.UUID, title: str, user_id: uuid.UU
             if not result.steps:
                 raise ValueError("Generated recipe has no steps")
 
-            # Drop any tags Gemini returned that aren't in the pre-built set
             filtered_tags = [t for t in (result.tags or []) if t in ALL_TAGS]
 
-            recipe_data = RecipeCreate(
-                title=result.title,
-                description=result.description,
-                ingredients=[
-                    Ingredient(name=i.name, quantity=i.quantity, unit=i.unit)
-                    for i in result.ingredients
-                ],
-                steps=[
-                    Step(order=s.order, instruction=s.instruction)
-                    for s in result.steps
-                ],
-                servings=result.servings if result.servings is not None else 2,
-                prep_time_minutes=result.prep_time_minutes,
-                waiting_time_minutes=result.waiting_time_minutes,
-                cook_time_minutes=result.cook_time_minutes,
-                tags=filtered_tags,
-                recipe_source=None,
-            )
-
-            recipe, version = await recipe_service.create_recipe(db, user_id, recipe_data)
-
+            # Store as a draft — no recipe_id, no DB recipe created.
+            # The frontend reads result_data["recipe"] and shows a preview drawer.
             task.status = ImportTaskStatus.COMPLETED
-            task.recipe_id = recipe.id
-            task.result_data = {"recipe": _build_recipe_payload(recipe, version)}
+            task.recipe_id = None
+            task.result_data = {
+                "recipe": {
+                    "title": result.title,
+                    "description": result.description,
+                    "ingredients": [
+                        {"name": i.name, "quantity": i.quantity, "unit": i.unit}
+                        for i in result.ingredients
+                    ],
+                    "steps": [
+                        {"order": s.order, "instruction": s.instruction}
+                        for s in result.steps
+                    ],
+                    "servings": result.servings if result.servings is not None else 2,
+                    "prep_time_minutes": result.prep_time_minutes,
+                    "waiting_time_minutes": result.waiting_time_minutes,
+                    "cook_time_minutes": result.cook_time_minutes,
+                    "tags": filtered_tags,
+                }
+            }
             task.updated_at = datetime.now(timezone.utc)
-            logger.info(
-                "process_generate_task: task %s completed, recipe %s", task_id, recipe.id
-            )
+            logger.info("process_generate_task: task %s completed (draft only)", task_id)
 
         except Exception as exc:
             logger.error("process_generate_task: task %s failed: %s", task_id, exc)

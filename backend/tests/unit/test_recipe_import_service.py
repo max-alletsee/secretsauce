@@ -450,44 +450,47 @@ async def test_process_image_import_task_not_found_returns_early():
 
 
 @pytest.mark.asyncio
-async def test_process_generate_task_happy_path():
+async def test_process_generate_task_stores_draft_without_saving():
+    """process_generate_task must complete with result_data["recipe"] set but recipe_id=None."""
     task_id = uuid.uuid4()
     user_id = uuid.uuid4()
-    recipe_id = uuid.uuid4()
-
     mock_task = MagicMock(spec=ImportTask)
-    mock_recipe = MagicMock()
-    mock_recipe.id = recipe_id
-    mock_version = _make_version_mock(recipe_id)
+    mock_task.id = task_id
+    mock_task.status = ImportTaskStatus.PENDING
+
     mock_db, mock_session_ctx = _make_db_and_session_ctx(mock_task)
 
-    fake_result = RecipeImportResult(
-        title="Chicken Tikka Masala",
-        description="Rich Indian curry.",
-        ingredients=[ImportedIngredient(name="chicken", quantity="500", unit="g")],
-        steps=[ImportedStep(order=1, instruction="Marinate chicken.")],
-        servings=4,
-        tags=["indian", "dinner"],
+    ai_result = RecipeImportResult(
+        title="Pizza Margherita",
+        description="Classic Neapolitan pizza",
+        ingredients=[ImportedIngredient(name="flour", quantity="300", unit="g")],
+        steps=[ImportedStep(order=1, instruction="Mix dough")],
+        servings=2,
+        prep_time_minutes=20,
+        waiting_time_minutes=60,
+        cook_time_minutes=15,
+        tags=["italian", "dinner"],
     )
 
-    from app.services.recipe_import_service import process_generate_task
-
-    with patch(
-        "app.services.recipe_import_service.async_session_factory",
-        return_value=mock_session_ctx,
-    ), patch(
-        "app.services.recipe_import_service.ai_service.generate_recipe_from_title",
-        AsyncMock(return_value=fake_result),
-    ), patch(
-        "app.services.recipe_import_service.recipe_service.create_recipe",
-        AsyncMock(return_value=(mock_recipe, mock_version)),
+    with (
+        patch(
+            "app.services.recipe_import_service.async_session_factory",
+            return_value=mock_session_ctx,
+        ),
+        patch(
+            "app.services.recipe_import_service.ai_service.generate_recipe_from_title",
+            new=AsyncMock(return_value=ai_result),
+        ),
     ):
-        await process_generate_task(task_id, "Chicken Tikka Masala", user_id)
+        from app.services.recipe_import_service import process_generate_task
+        await process_generate_task(task_id, "Pizza Margherita", user_id)
 
     assert mock_task.status == ImportTaskStatus.COMPLETED
-    assert mock_task.recipe_id == recipe_id
+    assert mock_task.recipe_id is None  # must NOT be set — no DB recipe created
     assert mock_task.result_data is not None
-    assert mock_task.result_data["recipe"]["current_version"]["title"] == "Pasta"
+    assert mock_task.result_data["recipe"]["title"] == "Pizza Margherita"
+    assert mock_task.result_data["recipe"]["tags"] == ["italian", "dinner"]
+    assert len(mock_task.result_data["recipe"]["steps"]) == 1
 
 
 @pytest.mark.asyncio
