@@ -6,11 +6,13 @@ import { useRecipeStore } from '@/stores/useRecipeStore'
 import * as recipesApi from '@/api/recipes'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 import type { Recipe, RecipeCreatePayload, RecipeVersion } from '@/types/recipe'
-import type { RecipeVersionData } from '@/types/importTask'
+import type { DraftRecipeData } from '@/types/importTask'
+
+type VersionLike = DraftRecipeData | RecipeVersion
 
 const props = defineProps<{
   recipeId?: string
-  draftRecipe?: RecipeVersionData
+  draftRecipe?: DraftRecipeData
 }>()
 
 const emit = defineEmits<{
@@ -55,7 +57,7 @@ watch(
   { immediate: true },
 )
 
-const version = computed((): RecipeVersionData | RecipeVersion | null => {
+const version = computed((): VersionLike | null => {
   if (props.draftRecipe) return props.draftRecipe
   return fetchedRecipe.value?.current_version ?? null
 })

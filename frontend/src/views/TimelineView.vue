@@ -12,7 +12,7 @@ import ShortlistPanel from '@/components/ShortlistPanel.vue'
 import RecipeDrawer from '@/components/RecipeDrawer.vue'
 import { generateRecipe } from '@/api/recipes'
 import type { DragItem } from '@/types/dragItem'
-import type { RecipeVersionData } from '@/types/importTask'
+import type { DraftRecipeData } from '@/types/importTask'
 import type { Recipe } from '@/types/recipe'
 
 const timelineStore = useTimelineStore()
@@ -23,7 +23,7 @@ const planStore = useMealPlanStore()
 
 const drawerOpen = ref(false)
 const drawerRecipeId = ref<string | null>(null)
-const drawerDraftRecipe = ref<RecipeVersionData | null>(null)
+const drawerDraftRecipe = ref<DraftRecipeData | null>(null)
 const convertingTitle = ref<string | null>(null)
 
 function openRecipeDrawer(recipeId: string) {
@@ -32,7 +32,7 @@ function openRecipeDrawer(recipeId: string) {
   drawerOpen.value = true
 }
 
-function openDraftDrawer(draft: RecipeVersionData) {
+function openDraftDrawer(draft: DraftRecipeData) {
   drawerRecipeId.value = null
   drawerDraftRecipe.value = draft
   drawerOpen.value = true
@@ -51,7 +51,7 @@ async function handleDrawerSaved(_recipe: Recipe) {
 
 const { startPolling, error: pollingError } = useImportPolling((recipeId: string, _recipeData, resultData) => {
   convertingTitle.value = null
-  const recipe = resultData?.['recipe'] as RecipeVersionData | undefined
+  const recipe = resultData?.['recipe'] as DraftRecipeData | undefined
   if (recipe?.title) {
     openDraftDrawer(recipe)
   } else if (recipeId) {

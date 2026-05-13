@@ -26,6 +26,18 @@ export interface RecipeData {
   current_version: RecipeVersionData
 }
 
+export interface DraftRecipeData {
+  title: string
+  description: string | null
+  ingredients: Array<{ name: string; quantity: string | null; unit: string | null }>
+  steps: Array<{ order: number; instruction: string }>
+  servings: number
+  prep_time_minutes: number | null
+  waiting_time_minutes: number | null
+  cook_time_minutes: number | null
+  tags: string[]
+}
+
 export interface ImportTask {
   id: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
