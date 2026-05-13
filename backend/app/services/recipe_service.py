@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import ARRAY as SA_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import RecipeVisibility
+from app.models.meal_plan import MealPlanEntry, ShortlistEntry, RecipeCookLog, CarryoverMeal
 from app.models.recipe import Recipe, RecipeVersion
 from app.schemas.recipe import RecipeCreate, RecipeUpdate
 
@@ -338,8 +339,6 @@ async def delete_recipe(
     Before deleting, cleans up all FK references in other tables so PostgreSQL
     does not raise a constraint violation.
     """
-    from app.models.meal_plan import MealPlanEntry, ShortlistEntry, RecipeCookLog, CarryoverMeal
-
     recipe = await _get_recipe_as_owner(db, recipe_id, current_user_id)
 
     # Get the title for use as a fallback note in orphaned entries
