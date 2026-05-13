@@ -64,6 +64,18 @@ async def create_timeline_entry(
     return TimelineEntryResponse.model_validate(entry)
 
 
+@router.get("/entries/{entry_id}", response_model=TimelineEntryResponse)
+async def get_timeline_entry(
+    entry_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> TimelineEntryResponse:
+    entry = await db.get(MealPlanEntry, entry_id)
+    if entry is None or entry.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return TimelineEntryResponse.model_validate(entry)
+
+
 @router.patch("/entries/{entry_id}", response_model=TimelineEntryResponse)
 async def update_timeline_entry(
     entry_id: uuid.UUID,

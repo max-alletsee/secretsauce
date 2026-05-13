@@ -543,3 +543,41 @@ async def test_q_and_tags_work_together(client):
     titles = [item["current_version"]["title"] for item in r.json()["items"]]
     assert "Italian Chicken" in titles
     assert "Italian Pasta" not in titles
+
+
+async def test_delete_recipe_with_timeline_entry(client):
+    """Deleting a recipe that has a linked timeline entry must not return 500."""
+    token = await _auth_token(client)
+    # Create recipe
+    create = await client.post(
+        "/api/v1/recipes",
+        json={"title": "Linked Recipe"},
+        headers=_auth(token),
+    )
+    assert create.status_code == 201
+    recipe_id = create.json()["id"]
+
+    # Create a timeline entry referencing the recipe
+    entry_r = await client.post(
+        "/api/v1/timeline/entries",
+        json={
+            "date": "2026-06-01",
+            "meal_type": "dinner",
+            "recipe_id": recipe_id,
+            "entry_type": "recipe",
+        },
+        headers=_auth(token),
+    )
+    assert entry_r.status_code == 201
+
+    # Delete the recipe — must succeed (no FK crash)
+    r = await client.delete(f"/api/v1/recipes/{recipe_id}", headers=_auth(token))
+    assert r.status_code == 204
+
+    # The timeline entry must still exist but with recipe_id = null
+    entry_id = entry_r.json()["id"]
+    get_entry = await client.get(f"/api/v1/timeline/entries/{entry_id}", headers=_auth(token))
+    assert get_entry.status_code == 200
+    assert get_entry.json()["recipe_id"] is None
+    assert get_entry.json()["entry_type"] == "freetext"
+    assert get_entry.json()["note"] == "Linked Recipe"

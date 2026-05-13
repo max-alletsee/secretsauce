@@ -333,8 +333,47 @@ async def delete_recipe(
     recipe_id: uuid.UUID,
     current_user_id: uuid.UUID,
 ) -> None:
-    """Delete a recipe and all its versions. Owner only."""
+    """Delete a recipe and all its versions. Owner only.
+
+    Before deleting, cleans up all FK references in other tables so PostgreSQL
+    does not raise a constraint violation.
+    """
+    from app.models.meal_plan import MealPlanEntry, ShortlistEntry, RecipeCookLog, CarryoverMeal
+
     recipe = await _get_recipe_as_owner(db, recipe_id, current_user_id)
+
+    # Get the title for use as a fallback note in orphaned entries
+    version_result = await db.execute(
+        select(RecipeVersion).where(RecipeVersion.id == recipe.current_version_id)
+    )
+    current_version = version_result.scalar_one_or_none()
+    recipe_title = current_version.title if current_version else str(recipe_id)
+
+    # Nullify MealPlanEntry.recipe_id; preserve the slot as a freetext note
+    await db.execute(
+        sa_update(MealPlanEntry)
+        .where(MealPlanEntry.recipe_id == recipe_id)
+        .values(recipe_id=None, entry_type="freetext", note=recipe_title)
+        .execution_options(synchronize_session=False)
+    )
+
+    # Nullify ShortlistEntry.recipe_id
+    await db.execute(
+        sa_update(ShortlistEntry)
+        .where(ShortlistEntry.recipe_id == recipe_id)
+        .values(recipe_id=None)
+        .execution_options(synchronize_session=False)
+    )
+
+    # Delete RecipeCookLog rows (recipe_id is NOT NULL there)
+    await db.execute(
+        delete(RecipeCookLog).where(RecipeCookLog.recipe_id == recipe_id)
+    )
+
+    # Delete CarryoverMeal rows (recipe_id is NOT NULL there)
+    await db.execute(
+        delete(CarryoverMeal).where(CarryoverMeal.recipe_id == recipe_id)
+    )
 
     # Nullify current_version_id first to break the circular FK before deleting versions
     recipe.current_version_id = None
