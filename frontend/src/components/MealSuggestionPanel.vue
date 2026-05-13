@@ -6,8 +6,6 @@ import type { MealSuggestion } from '@/types/mealPlan'
 defineProps<{ suggestions: MealSuggestion[]; loading: boolean; convertingTitle?: string | null }>()
 const emit = defineEmits<{
   (e: 'regenerate', steerPrompt?: string): void
-  (e: 'drop-to-plan', suggestion: MealSuggestion, date: string, mealType: string): void
-  (e: 'drop-to-shortlist', suggestion: MealSuggestion): void
   (e: 'convert-to-recipe', title: string): void
   (e: 'open-recipe', recipeId: string): void
 }>()

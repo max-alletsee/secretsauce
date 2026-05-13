@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useShortlistStore } from '@/stores/useShortlistStore'
 import { useRecipeStore } from '@/stores/useRecipeStore'
@@ -44,11 +44,12 @@ function closeDrawer() {
   drawerDraftRecipe.value = null
 }
 
-function handleDrawerSaved(_recipe: Recipe) {
+async function handleDrawerSaved(_recipe: Recipe) {
   closeDrawer()
+  await recipeStore.fetchRecipes()
 }
 
-const { startPolling } = useImportPolling((recipeId: string, _recipeData, resultData) => {
+const { startPolling, error: pollingError } = useImportPolling((recipeId: string, _recipeData, resultData) => {
   convertingTitle.value = null
   const recipe = resultData?.['recipe'] as RecipeVersionData | undefined
   if (recipe?.title) {
@@ -56,6 +57,10 @@ const { startPolling } = useImportPolling((recipeId: string, _recipeData, result
   } else if (recipeId) {
     openRecipeDrawer(recipeId)
   }
+})
+
+watch(pollingError, (err) => {
+  if (err) convertingTitle.value = null
 })
 
 const convertError = ref<string | null>(null)
