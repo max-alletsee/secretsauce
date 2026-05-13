@@ -41,6 +41,13 @@ export const useTimelineStore = defineStore('timeline', () => {
     entries.value = [...newEntries, ...entries.value]
   }
 
+  async function appendEntries(fromDate: string, toDate: string) {
+    const { data } = await timelineApi.listEntries(fromDate, toDate)
+    const existingIds = new Set(entries.value.map((e) => e.id))
+    const newEntries = data.entries.filter((e) => !existingIds.has(e.id))
+    entries.value = [...entries.value, ...newEntries]
+  }
+
   async function addEntry(data: TimelineEntryCreate): Promise<TimelineEntry> {
     const { data: entry } = await timelineApi.createEntry(data)
     entries.value.push(entry)
@@ -66,6 +73,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     entriesFor,
     fetchEntries,
     prependEntries,
+    appendEntries,
     addEntry,
     updateEntry,
     removeEntry,

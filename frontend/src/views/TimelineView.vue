@@ -35,9 +35,7 @@ function addDays(dateStr: string, n: number): string {
 }
 
 const fromDate = ref(addDays(todayStr, -2))
-const toDate = computed(() =>
-  addDays(todayStr, userStore.user?.meal_plan_days_ahead ?? 7)
-)
+const toDate = ref(addDays(todayStr, userStore.user?.meal_plan_days_ahead ?? 7))
 
 const mealTypes = computed(() => userStore.user?.meal_plan_meal_types ?? ['dinner'])
 
@@ -63,6 +61,12 @@ async function loadEarlier() {
   const newFrom = addDays(fromDate.value, -7)
   await timelineStore.prependEntries(newFrom, addDays(fromDate.value, -1))
   fromDate.value = newFrom
+}
+
+async function loadLater() {
+  const newTo = addDays(toDate.value, 7)
+  await timelineStore.appendEntries(toDate.value, newTo)
+  toDate.value = newTo
 }
 
 async function handleSaveText(date: string, mealType: string, text: string) {
@@ -173,6 +177,10 @@ async function handleConvertToRecipe(title: string) {
         @clear-entry="handleClearEntry"
         @drop-item="handleDropItem"
       />
+
+      <button class="show-later-btn" @click="loadLater">
+        ↓ Show later
+      </button>
     </div>
   </div>
 </template>
@@ -222,6 +230,19 @@ async function handleConvertToRecipe(title: string) {
   cursor: pointer;
 }
 .show-earlier-btn:hover { background: #f3f4f6; color: #6b7280; }
+.show-later-btn {
+  display: block;
+  width: 100%;
+  padding: 0.35rem;
+  margin-top: 0.5rem;
+  background: none;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  cursor: pointer;
+}
+.show-later-btn:hover { background: #f3f4f6; color: #6b7280; }
 .convert-error {
   color: #dc2626;
   font-size: 0.85rem;
