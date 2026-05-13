@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import { useRecipeStore } from '@/stores/useRecipeStore'
@@ -27,23 +27,29 @@ const error = ref<string | null>(null)
 const saving = ref(false)
 
 const isOwner = computed(
-  () => fetchedRecipe.value?.owner_id === userStore.user?.id,
+  () =>
+    fetchedRecipe.value !== null &&
+    userStore.user !== null &&
+    fetchedRecipe.value.owner_id === userStore.user.id,
 )
+
+let latestReqId = 0
 
 watch(
   () => props.recipeId,
   async (id) => {
-    if (!id) return
+    if (!id || props.draftRecipe) return
+    const reqId = ++latestReqId
     loading.value = true
     error.value = null
     fetchedRecipe.value = null
     try {
       const { data } = await recipesApi.getRecipe(id)
-      fetchedRecipe.value = data
+      if (reqId === latestReqId) fetchedRecipe.value = data
     } catch {
-      error.value = 'Failed to load recipe.'
+      if (reqId === latestReqId) error.value = 'Failed to load recipe.'
     } finally {
-      loading.value = false
+      if (reqId === latestReqId) loading.value = false
     }
   },
   { immediate: true },
@@ -54,13 +60,19 @@ const version = computed((): RecipeVersionData | RecipeVersion | null => {
   return fetchedRecipe.value?.current_version ?? null
 })
 
-function totalTime(): number | null {
+const totalTime = computed((): number | null => {
   if (!version.value) return null
   const prep = version.value.prep_time_minutes ?? 0
   const wait = version.value.waiting_time_minutes ?? 0
   const cook = version.value.cook_time_minutes ?? 0
   return prep + wait + cook || null
+})
+
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') emit('close')
 }
+onMounted(() => document.addEventListener('keydown', onKeyDown))
+onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
 
 async function saveToMyRecipes() {
   if (!props.draftRecipe) return
@@ -112,7 +124,7 @@ async function saveToMyRecipes() {
 
         <div class="drawer-meta">
           <span v-if="version.servings">{{ version.servings }} servings</span>
-          <span v-if="totalTime()">{{ totalTime() }} min total</span>
+          <span v-if="totalTime">{{ totalTime }} min total</span>
           <span v-if="version.prep_time_minutes">{{ version.prep_time_minutes }} min prep</span>
           <span v-if="version.cook_time_minutes">{{ version.cook_time_minutes }} min cook</span>
         </div>
@@ -158,6 +170,7 @@ async function saveToMyRecipes() {
           </RouterLink>
         </div>
       </template>
+      <div v-else class="drawer-error">No recipe to display.</div>
     </div>
   </Teleport>
 </template>
