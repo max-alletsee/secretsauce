@@ -1,6 +1,7 @@
 <!-- frontend/src/components/RecipeCard.vue -->
 <script setup lang="ts">
 import { computed } from 'vue'
+import AddToPlanButton from './AddToPlanButton.vue'
 import type { Recipe } from '@/types/recipe'
 
 const props = defineProps<{
@@ -14,7 +15,13 @@ const extraTagCount = computed(() => Math.max(0, props.recipe.current_version.ta
 
 <template>
   <RouterLink :to="`/recipes/${recipe.id}`" class="recipe-card">
-    <h3 class="recipe-card__title">{{ recipe.current_version.title }}</h3>
+    <div class="recipe-card__top">
+      <h3 class="recipe-card__title">{{ recipe.current_version.title }}</h3>
+      <AddToPlanButton
+        :source="{ kind: 'recipe', recipeId: recipe.id, title: recipe.current_version.title }"
+        :label="`Add ${recipe.current_version.title} to meal plan`"
+      />
+    </div>
     <div class="recipe-card__meta">
       <span v-if="recipe.current_version.total_time_minutes">
         {{ recipe.current_version.total_time_minutes }} min
@@ -47,10 +54,17 @@ const extraTagCount = computed(() => Math.max(0, props.recipe.current_version.ta
 .recipe-card:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+.recipe-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
 .recipe-card__title {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0;
+  flex: 1;
 }
 .recipe-card__meta {
   display: flex;

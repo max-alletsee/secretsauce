@@ -1,70 +1,56 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import EntryActionsMenu from './EntryActionsMenu.vue'
+import RecipePicker from './RecipePicker.vue'
 import type { TimelineEntry } from '@/types/timeline'
-import type { DragItem } from '@/types/dragItem'
 
 const props = defineProps<{
-  entry: TimelineEntry | null
+  entries: TimelineEntry[]
+  date: string
   mealType: string
-  recipeTitle?: string
+  recipeTitles: Record<string, string>
   disabled?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'save-text', text: string): void
-  (e: 'clear'): void
-  (e: 'drop-item', item: DragItem): void
-  (e: 'drag-start', item: DragItem): void
   (e: 'open-recipe', recipeId: string): void
+  (e: 'move-to-slot', entry: TimelineEntry): void
+  (e: 'move-to-shortlist', entry: TimelineEntry): void
+  (e: 'save-to-shortlist', entry: TimelineEntry): void
+  (e: 'remove', entry: TimelineEntry): void
 }>()
 
-const editing = ref(false)
-const inputText = ref('')
-const dragOver = ref(false)
+const openMenuId = ref<string | null>(null)
+const pickerOpen = ref(false)
 
-function startEditing() {
-  editing.value = true
-  inputText.value = ''
+function toggleMenu(entryId: string) {
+  openMenuId.value = openMenuId.value === entryId ? null : entryId
 }
 
-function submitText() {
-  if (inputText.value.trim()) {
-    emit('save-text', inputText.value.trim())
+function closeMenu() {
+  openMenuId.value = null
+}
+
+function openPicker() {
+  if (props.disabled) return
+  pickerOpen.value = true
+}
+
+function closePicker() {
+  pickerOpen.value = false
+}
+
+function entryLabel(entry: TimelineEntry): string {
+  if (entry.entry_type === 'recipe') {
+    return entry.recipe_id ? props.recipeTitles[entry.recipe_id] ?? entry.recipe_id : 'Recipe'
   }
-  editing.value = false
+  if (entry.entry_type === 'suggestion') return `✨ ${entry.note ?? ''}`
+  return entry.note ?? ''
 }
 
-function cancelEdit() {
-  editing.value = false
-}
-
-function onEntryDragStart(event: DragEvent) {
-  if (!props.entry) return
-  const item: DragItem = { kind: 'timeline-entry', entry: props.entry }
-  event.dataTransfer?.setData('application/json', JSON.stringify(item))
-  emit('drag-start', item)
-}
-
-function onDragOver(event: DragEvent) {
-  if (props.disabled) return
-  event.preventDefault()
-  dragOver.value = true
-}
-
-function onDragLeave() {
-  dragOver.value = false
-}
-
-function onDrop(event: DragEvent) {
-  dragOver.value = false
-  if (props.disabled) return
-  const raw = event.dataTransfer?.getData('application/json')
-  if (!raw) return
-  try {
-    const item: DragItem = JSON.parse(raw)
-    emit('drop-item', item)
-  } catch {
-    // ignore malformed drag data
+function onEntryClick(entry: TimelineEntry) {
+  if (entry.entry_type === 'recipe' && entry.recipe_id) {
+    emit('open-recipe', entry.recipe_id)
   }
 }
 </script>
@@ -72,67 +58,69 @@ function onDrop(event: DragEvent) {
 <template>
   <div
     class="meal-slot"
-    :class="[entry?.entry_type, { 'meal-slot--disabled': disabled, 'meal-slot--drag-over': dragOver }]"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
+    :class="{ 'meal-slot--disabled': disabled, 'meal-slot--multi': entries.length > 1 }"
+    :data-testid="`meal-slot-${date}-${mealType}`"
   >
     <span class="slot-label">{{ mealType.toUpperCase() }}</span>
 
-    <div v-if="editing" class="slot-edit">
-      <input
-        v-model="inputText"
-        data-testid="slot-text-input"
-        type="text"
-        placeholder="Type a note…"
-        autofocus
-        @keyup.enter="submitText"
-        @keyup.escape="cancelEdit"
-      />
+    <div class="slot-entries">
+      <div
+        v-for="entry in entries"
+        :key="entry.id"
+        class="slot-entry"
+        :class="entry.entry_type"
+        :data-testid="`slot-entry-${entry.id}`"
+      >
+        <span
+          class="entry-content"
+          :class="{ clickable: entry.entry_type === 'recipe' && entry.recipe_id }"
+          @click.stop="onEntryClick(entry)"
+        >
+          {{ entryLabel(entry) }}
+        </span>
+        <div v-if="!disabled" class="entry-menu-wrap">
+          <button
+            type="button"
+            class="entry-menu-btn"
+            aria-label="Entry actions"
+            :data-testid="`entry-menu-btn-${entry.id}`"
+            @click.stop="toggleMenu(entry.id)"
+          >
+            ⋮
+          </button>
+          <EntryActionsMenu
+            v-if="openMenuId === entry.id"
+            :entry="entry"
+            :recipe-title="entry.recipe_id ? recipeTitles[entry.recipe_id] : undefined"
+            @open-recipe="(id) => emit('open-recipe', id)"
+            @move-to-slot="emit('move-to-slot', entry)"
+            @move-to-shortlist="emit('move-to-shortlist', entry)"
+            @save-to-shortlist="emit('save-to-shortlist', entry)"
+            @remove="emit('remove', entry)"
+            @close="closeMenu"
+          />
+        </div>
+      </div>
+
+      <button
+        v-if="!disabled"
+        type="button"
+        class="slot-add"
+        :data-testid="`slot-add-${date}-${mealType}`"
+        @click.stop="openPicker"
+      >
+        <span v-if="entries.length === 0">+ Add</span>
+        <span v-else>+</span>
+      </button>
     </div>
 
-    <span
-      v-else-if="entry && entry.entry_type === 'recipe'"
-      class="slot-content recipe clickable"
-      draggable="true"
-      @dragstart.stop="onEntryDragStart"
-      @click.stop="entry.recipe_id && emit('open-recipe', entry.recipe_id)"
-    >
-      {{ recipeTitle ?? entry.recipe_id }}
-    </span>
-    <span
-      v-else-if="entry && entry.entry_type === 'suggestion'"
-      class="slot-content suggestion"
-      draggable="true"
-      @dragstart.stop="onEntryDragStart"
-    >
-      ✨ {{ entry.note }}
-    </span>
-    <span
-      v-else-if="entry && entry.entry_type === 'freetext'"
-      class="slot-content freetext"
-      draggable="true"
-      @dragstart.stop="onEntryDragStart"
-    >
-      {{ entry.note }}
-    </span>
-    <span
-      v-else
-      class="slot-empty"
-      data-testid="slot-empty"
-      @click="!disabled && startEditing()"
-    >
-      drop here…
-    </span>
-
-    <button
-      v-if="entry && !editing && !disabled"
-      class="clear-btn"
-      data-testid="slot-clear"
-      @click.stop="emit('clear')"
-    >
-      ×
-    </button>
+    <RecipePicker
+      v-if="pickerOpen"
+      :date="date"
+      :meal-type="mealType"
+      @picked="closePicker"
+      @cancel="closePicker"
+    />
   </div>
 </template>
 
@@ -140,27 +128,64 @@ function onDrop(event: DragEvent) {
 .meal-slot {
   flex: 1;
   display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.3rem;
   background: #f0f4ff;
   border-radius: 6px;
   padding: 0.5rem 0.75rem;
   min-height: 2.25rem;
-  cursor: pointer;
-  transition: background 0.1s;
 }
-.meal-slot--disabled { cursor: default; }
-.meal-slot--drag-over { background: #dbeafe; outline: 2px dashed #2563eb; }
-.slot-label { font-size: 0.7rem; color: #999; font-weight: 600; flex-shrink: 0; }
-.slot-content { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.slot-content.recipe { color: #1a73e8; }
+.meal-slot--disabled { opacity: 0.6; }
+.slot-label {
+  font-size: 0.7rem;
+  color: #999;
+  font-weight: 600;
+}
+.slot-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.slot-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+}
+.entry-content {
+  flex: 1;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slot-entry.recipe .entry-content { color: #1a73e8; }
+.slot-entry.suggestion .entry-content { color: #f5a623; font-style: italic; }
+.slot-entry.freetext .entry-content { color: #333; }
 .clickable { cursor: pointer; text-decoration: underline dotted; }
 .clickable:hover { text-decoration: underline; }
-.slot-content.suggestion { color: #f5a623; font-style: italic; }
-.slot-content.freetext { color: #333; }
-.slot-empty { flex: 1; font-size: 0.85rem; color: #bbb; font-style: italic; }
-.slot-edit { flex: 1; }
-.slot-edit input { width: 100%; border: none; background: transparent; font-size: 0.9rem; outline: none; }
-.clear-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; flex-shrink: 0; }
-.clear-btn:hover { color: #e94560; }
+.entry-menu-wrap {
+  position: relative;
+}
+.entry-menu-btn {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+.entry-menu-btn:hover { color: #374151; }
+.slot-add {
+  align-self: flex-start;
+  background: none;
+  border: 1px dashed #cbd5e1;
+  color: #6b7280;
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.slot-add:hover { background: #e0e7ff; color: #1e3a8a; }
 </style>

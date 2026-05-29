@@ -10,6 +10,13 @@ vi.mock('@/api/mealPlans', () => ({
   reorderShortlist: vi.fn(),
 }))
 
+vi.mock('@/api/timeline', () => ({
+  listEntries: vi.fn().mockResolvedValue({ data: { entries: [] } }),
+  createEntry: vi.fn(),
+  updateEntry: vi.fn(),
+  deleteEntry: vi.fn().mockResolvedValue({ data: null }),
+}))
+
 import ShortlistPanel from './ShortlistPanel.vue'
 import type { ShortlistEntry } from '@/types/mealPlan'
 
@@ -41,8 +48,22 @@ describe('ShortlistPanel', () => {
     expect(wrapper.emitted('remove')?.[0]).toEqual(['s1'])
   })
 
-  it('renders empty drop zone when no entries', () => {
+  it('shows empty hint when no entries (no drop zone any more)', () => {
     const wrapper = mount(ShortlistPanel, { props: { entries: [] } })
-    expect(wrapper.find('[data-testid="shortlist-drop-zone"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="shortlist-drop-zone"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="shortlist-empty"]').exists()).toBe(true)
+  })
+
+  it('renders AddToPlanButton per entry', () => {
+    const wrapper = mount(ShortlistPanel, {
+      props: { entries: [mockEntry] },
+    })
+    expect(wrapper.find('[data-testid="add-to-plan-btn"]').exists()).toBe(true)
+  })
+
+  it('shortlist entries are not draggable', () => {
+    const wrapper = mount(ShortlistPanel, { props: { entries: [mockEntry] } })
+    const draggables = wrapper.findAll('[draggable="true"]')
+    expect(draggables.length).toBe(0)
   })
 })

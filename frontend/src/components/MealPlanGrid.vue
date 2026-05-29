@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import MealSlot from './MealSlot.vue'
 import type { TimelineEntry } from '@/types/timeline'
-import type { DragItem } from '@/types/dragItem'
 
 const props = defineProps<{
   fromDate: string       // YYYY-MM-DD
@@ -14,11 +13,11 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'save-text', date: string, mealType: string, text: string): void
-  (e: 'clear-entry', entryId: string): void
-  (e: 'drop-item', item: DragItem, date: string, mealType: string): void
-  (e: 'drag-start', item: DragItem): void
   (e: 'open-recipe', recipeId: string): void
+  (e: 'move-to-slot', entry: TimelineEntry): void
+  (e: 'move-to-shortlist', entry: TimelineEntry): void
+  (e: 'save-to-shortlist', entry: TimelineEntry): void
+  (e: 'remove', entry: TimelineEntry): void
 }>()
 
 const days = computed(() => {
@@ -34,13 +33,10 @@ function isPast(dateStr: string): boolean {
   return dateStr < props.todayStr
 }
 
-function entryFor(date: string, mealType: string): TimelineEntry | null {
-  return props.entries.find((e) => e.date === date && e.meal_type === mealType) ?? null
-}
-
-function recipeTitleFor(entry: TimelineEntry | null): string | undefined {
-  if (!entry?.recipe_id) return undefined
-  return props.recipeTitles[entry.recipe_id]
+function entriesFor(date: string, mealType: string): TimelineEntry[] {
+  return props.entries
+    .filter((e) => e.date === date && e.meal_type === mealType)
+    .sort((a, b) => a.position - b.position)
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -71,15 +67,16 @@ function dayLabel(dateStr: string): string {
       <MealSlot
         v-for="mealType in mealTypes"
         :key="mealType"
-        :entry="entryFor(day, mealType)"
+        :entries="entriesFor(day, mealType)"
+        :date="day"
         :meal-type="mealType"
-        :recipe-title="recipeTitleFor(entryFor(day, mealType))"
+        :recipe-titles="recipeTitles"
         :disabled="isPast(day)"
-        @save-text="(text) => emit('save-text', day, mealType, text)"
-        @clear="() => { const e = entryFor(day, mealType); if (e) emit('clear-entry', e.id) }"
-        @drop-item="(item) => emit('drop-item', item, day, mealType)"
-        @drag-start="(item) => emit('drag-start', item)"
         @open-recipe="(id) => emit('open-recipe', id)"
+        @move-to-slot="(e) => emit('move-to-slot', e)"
+        @move-to-shortlist="(e) => emit('move-to-shortlist', e)"
+        @save-to-shortlist="(e) => emit('save-to-shortlist', e)"
+        @remove="(e) => emit('remove', e)"
       />
     </div>
   </div>
