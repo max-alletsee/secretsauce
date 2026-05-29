@@ -9,7 +9,6 @@ This file covers frontend-specific implementation conventions. For project overv
 - **Vite** for dev server and build.
 - **Pinia** for state management.
 - **Vue Router** for routing with auth guards.
-- **vuedraggable** (based on Sortable.js) for drag-and-drop in meal plan management.
 - **axios** for HTTP requests.
 
 ## Directory Responsibilities

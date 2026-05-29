@@ -1,19 +1,12 @@
 <script setup lang="ts">
+import AddToPlanButton from './AddToPlanButton.vue'
 import type { MealSuggestion } from '@/types/mealPlan'
-import type { DragItem } from '@/types/dragItem'
 
 const props = defineProps<{ suggestion: MealSuggestion; converting?: boolean }>()
 const emit = defineEmits<{
   (e: 'convert-to-recipe', title: string): void
-  (e: 'drag-start', item: DragItem): void
   (e: 'open-recipe', recipeId: string): void
 }>()
-
-function onDragStart(event: DragEvent) {
-  const item: DragItem = { kind: 'suggestion', suggestion: props.suggestion }
-  event.dataTransfer?.setData('application/json', JSON.stringify(item))
-  emit('drag-start', item)
-}
 </script>
 
 <template>
@@ -21,12 +14,14 @@ function onDragStart(event: DragEvent) {
     class="suggestion-chip"
     :class="suggestion.entry_type"
     :data-testid="`chip-${suggestion.entry_type}`"
-    draggable="true"
-    @dragstart="onDragStart"
     @click.stop="suggestion.entry_type === 'recipe' && suggestion.matched_recipe_id && emit('open-recipe', suggestion.matched_recipe_id)"
   >
     <span class="chip-icon">{{ suggestion.entry_type === 'recipe' ? '📚' : '✨' }}</span>
     <span class="chip-title">{{ suggestion.title }}</span>
+    <AddToPlanButton
+      :source="{ kind: 'suggestion', title: props.suggestion.title, matchedRecipeId: props.suggestion.matched_recipe_id }"
+      :label="`Add ${props.suggestion.title} to meal plan`"
+    />
     <button
       v-if="suggestion.entry_type === 'suggestion'"
       class="convert-btn"
@@ -47,12 +42,12 @@ function onDragStart(event: DragEvent) {
   padding: 0.35rem 0.65rem;
   border-radius: 6px;
   font-size: 0.875rem;
-  cursor: grab;
   user-select: none;
 }
 .suggestion-chip.recipe {
   background: #e8f0fe;
   border-left: 3px solid #4285f4;
+  cursor: pointer;
 }
 .suggestion-chip.suggestion {
   background: #fff8e1;

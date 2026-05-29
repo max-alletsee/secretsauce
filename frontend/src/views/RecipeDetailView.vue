@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel.vue'
+import AddToPlanButton from '@/components/AddToPlanButton.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 
 const route = useRoute()
@@ -90,6 +91,12 @@ async function handleRestore(versionId: string) {
     <template v-else-if="recipe">
       <header class="recipe-detail__header">
         <h1>{{ recipe.current_version.title }}</h1>
+        <div class="recipe-detail__primary-actions">
+          <AddToPlanButton
+            :source="{ kind: 'recipe', recipeId: recipe.id, title: recipe.current_version.title }"
+            :label="`Add ${recipe.current_version.title} to meal plan`"
+          />
+        </div>
         <div v-if="isOwner" class="recipe-detail__owner-actions">
           <RouterLink :to="`/recipes/${recipe.id}/edit`" class="btn btn--secondary">
             Edit
@@ -208,6 +215,10 @@ async function handleRestore(versionId: string) {
   margin: 0;
 }
 .recipe-detail__owner-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.recipe-detail__primary-actions {
   display: flex;
   gap: 0.5rem;
 }

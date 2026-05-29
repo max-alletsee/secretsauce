@@ -6,20 +6,24 @@ import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useMealPlanStore } from '@/stores/useMealPlanStore'
 import { useImportPolling } from '@/composables/useImportPolling'
+import { useToast } from '@/composables/useToast'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
 import RecipeDrawer from '@/components/RecipeDrawer.vue'
+import BottomSheet from '@/components/BottomSheet.vue'
+import DayMealPicker from '@/components/DayMealPicker.vue'
 import { generateRecipe } from '@/api/recipes'
-import type { DragItem } from '@/types/dragItem'
 import type { DraftRecipeData } from '@/types/importTask'
 import type { Recipe } from '@/types/recipe'
+import type { TimelineEntry, TimelineEntryCreate } from '@/types/timeline'
 
 const timelineStore = useTimelineStore()
 const shortlistStore = useShortlistStore()
 const recipeStore = useRecipeStore()
 const userStore = useUserStore()
 const planStore = useMealPlanStore()
+const toast = useToast()
 
 const drawerOpen = ref(false)
 const drawerRecipeId = ref<string | null>(null)
@@ -64,7 +68,7 @@ watch(pollingError, (err) => {
 })
 
 const convertError = ref<string | null>(null)
-const shortlistError = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 
 const todayStr = new Date().toISOString().slice(0, 10)
 
@@ -89,6 +93,15 @@ const recipeTitles = computed(() => {
   return map
 })
 
+const occupied = computed<Record<string, number>>(() => {
+  const map: Record<string, number> = {}
+  for (const e of timelineStore.entries) {
+    const key = `${e.date}|${e.meal_type}`
+    map[key] = (map[key] ?? 0) + 1
+  }
+  return map
+})
+
 onMounted(async () => {
   await Promise.all([
     timelineStore.fetchEntries(fromDate.value, toDate.value),
@@ -109,14 +122,6 @@ async function loadLater() {
   toDate.value = newTo
 }
 
-async function handleSaveText(date: string, mealType: string, text: string) {
-  await timelineStore.addEntry({ date, meal_type: mealType, note: text, entry_type: 'freetext' })
-}
-
-async function handleClearEntry(entryId: string) {
-  await timelineStore.removeEntry(entryId)
-}
-
 async function handleRegenerate(steerPrompt?: string) {
   await planStore.generateSuggestions(steerPrompt, undefined)
 }
@@ -125,68 +130,160 @@ async function handleRemoveFromShortlist(id: string) {
   await shortlistStore.removeEntry(id)
 }
 
-async function handleAddToShortlist(item: DragItem) {
-  shortlistError.value = null
-  try {
-    if (item.kind === 'suggestion') {
-      const s = item.suggestion
-      await shortlistStore.addEntry(
-        s.matched_recipe_id
-          ? { recipe_id: s.matched_recipe_id, entry_type: 'recipe', note: s.title }
-          : { recipe_id: null, entry_type: 'suggestion', note: s.title }
-      )
-    } else if (item.kind === 'timeline-entry') {
-      const entry = item.entry
-      await shortlistStore.addEntry(
-        entry.recipe_id
-          ? { recipe_id: entry.recipe_id, entry_type: 'recipe', note: entry.note ?? undefined }
-          : { recipe_id: null, entry_type: 'suggestion', note: entry.note ?? '' }
-      )
+// Entry actions wired from EntryActionsMenu via MealSlot/MealPlanGrid:
+
+function entryLabel(entry: TimelineEntry): string {
+  if (entry.entry_type === 'recipe' && entry.recipe_id) {
+    return recipeTitles.value[entry.recipe_id] ?? 'Recipe'
+  }
+  return entry.note ?? 'Item'
+}
+
+function payloadForCopy(entry: TimelineEntry, date: string, mealType: string): TimelineEntryCreate {
+  const position = timelineStore.entriesFor(date, mealType).length
+  if (entry.entry_type === 'recipe' && entry.recipe_id) {
+    return {
+      date,
+      meal_type: mealType,
+      recipe_id: entry.recipe_id,
+      entry_type: 'recipe',
+      source: 'manual',
+      position,
     }
-  } catch {
-    shortlistError.value = 'Failed to save to shortlist. Please try again.'
+  }
+  if (entry.entry_type === 'suggestion') {
+    return {
+      date,
+      meal_type: mealType,
+      note: entry.note ?? '',
+      entry_type: 'suggestion',
+      source: 'manual',
+      position,
+    }
+  }
+  return {
+    date,
+    meal_type: mealType,
+    note: entry.note ?? '',
+    entry_type: 'freetext',
+    source: 'manual',
+    position,
   }
 }
 
-async function handleDropItem(item: DragItem, date: string, mealType: string) {
-  if (item.kind === 'suggestion') {
-    const s = item.suggestion
-    if (s.entry_type === 'recipe' && s.matched_recipe_id) {
-      await timelineStore.addEntry({
-        date,
-        meal_type: mealType,
-        recipe_id: s.matched_recipe_id,
-        entry_type: 'recipe',
-        source: 'ai_suggested',
-      })
-    } else {
-      await timelineStore.addEntry({
-        date,
-        meal_type: mealType,
-        note: s.title,
-        entry_type: 'suggestion',
-        source: 'ai_suggested',
-      })
+async function handleRemoveEntry(entry: TimelineEntry) {
+  actionError.value = null
+  try {
+    await timelineStore.removeEntry(entry.id)
+    toast.show({
+      message: `Removed "${entryLabel(entry)}" from plan`,
+    })
+  } catch {
+    actionError.value = 'Failed to remove entry.'
+  }
+}
+
+async function handleSaveToShortlist(entry: TimelineEntry) {
+  actionError.value = null
+  const payload = entry.recipe_id
+    ? { recipe_id: entry.recipe_id, entry_type: 'recipe' as const, note: entry.note ?? entryLabel(entry) }
+    : { recipe_id: null, entry_type: 'suggestion' as const, note: entry.note ?? '' }
+  try {
+    const created = await shortlistStore.addEntry(payload)
+    toast.show({
+      message: `Saved "${entryLabel(entry)}" to shortlist`,
+      undoLabel: 'Undo',
+      onUndo: async () => {
+        try {
+          await shortlistStore.removeEntry(created.id)
+        } catch {
+          /* swallow */
+        }
+      },
+    })
+  } catch {
+    actionError.value = 'Failed to save to shortlist.'
+  }
+}
+
+async function handleMoveToShortlist(entry: TimelineEntry) {
+  actionError.value = null
+  const payload = entry.recipe_id
+    ? { recipe_id: entry.recipe_id, entry_type: 'recipe' as const, note: entry.note ?? entryLabel(entry) }
+    : { recipe_id: null, entry_type: 'suggestion' as const, note: entry.note ?? '' }
+  try {
+    const created = await shortlistStore.addEntry(payload)
+    try {
+      await timelineStore.removeEntry(entry.id)
+    } catch {
+      actionError.value = 'Saved to shortlist but failed to remove from plan.'
+      return
     }
-  } else if (item.kind === 'shortlist') {
-    const entry = item.entry
-    if (entry.recipe_id) {
-      await timelineStore.addEntry({
-        date,
-        meal_type: mealType,
-        recipe_id: entry.recipe_id,
-        entry_type: 'recipe',
-        source: 'manual',
-      })
-    } else {
-      await timelineStore.addEntry({
-        date,
-        meal_type: mealType,
-        note: entry.note ?? '',
-        entry_type: 'suggestion',
-        source: 'manual',
-      })
+    toast.show({
+      message: `Moved "${entryLabel(entry)}" to shortlist`,
+      undoLabel: 'Undo',
+      onUndo: async () => {
+        try {
+          await shortlistStore.removeEntry(created.id)
+          await timelineStore.addEntry(payloadForCopy(entry, entry.date, entry.meal_type))
+        } catch {
+          /* swallow */
+        }
+      },
+    })
+  } catch {
+    actionError.value = 'Failed to move to shortlist.'
+  }
+}
+
+// Move-to-slot: open the DayMealPicker in a sheet.
+const moveSheetOpen = ref(false)
+const movingEntry = ref<TimelineEntry | null>(null)
+
+function handleMoveToSlot(entry: TimelineEntry) {
+  movingEntry.value = entry
+  moveSheetOpen.value = true
+}
+
+function closeMoveSheet() {
+  moveSheetOpen.value = false
+  movingEntry.value = null
+}
+
+async function confirmMoveToSlot(date: string, mealType: string) {
+  const entry = movingEntry.value
+  if (!entry) return
+  if (date === entry.date && mealType === entry.meal_type) {
+    closeMoveSheet()
+    return
+  }
+  actionError.value = null
+  const payload = payloadForCopy(entry, date, mealType)
+  try {
+    const created = await timelineStore.addEntry(payload)
+    try {
+      await timelineStore.removeEntry(entry.id)
+    } catch {
+      actionError.value = 'Created new entry but failed to remove old one.'
+      closeMoveSheet()
+      return
     }
+    closeMoveSheet()
+    toast.show({
+      message: `Moved "${entryLabel(entry)}" to ${date} ${mealType}`,
+      undoLabel: 'Undo',
+      onUndo: async () => {
+        try {
+          await timelineStore.removeEntry(created.id)
+          await timelineStore.addEntry(payloadForCopy(entry, entry.date, entry.meal_type))
+        } catch {
+          /* swallow */
+        }
+      },
+    })
+  } catch {
+    actionError.value = 'Failed to move entry.'
+    closeMoveSheet()
   }
 }
 
@@ -208,7 +305,7 @@ async function handleConvertToRecipe(title: string) {
 <template>
   <div class="timeline-view">
     <p v-if="convertError" class="convert-error">{{ convertError }}</p>
-    <p v-if="shortlistError" class="convert-error">{{ shortlistError }}</p>
+    <p v-if="actionError" class="convert-error">{{ actionError }}</p>
     <div class="sources-row">
       <MealSuggestionPanel
         :suggestions="planStore.suggestions"
@@ -221,7 +318,6 @@ async function handleConvertToRecipe(title: string) {
       <ShortlistPanel
         :entries="shortlistStore.entries"
         @remove="handleRemoveFromShortlist"
-        @add-to-shortlist="handleAddToShortlist"
       />
     </div>
 
@@ -242,10 +338,11 @@ async function handleConvertToRecipe(title: string) {
         :entries="timelineStore.entries"
         :recipe-titles="recipeTitles"
         :today-str="todayStr"
-        @save-text="handleSaveText"
-        @clear-entry="handleClearEntry"
-        @drop-item="handleDropItem"
         @open-recipe="openRecipeDrawer"
+        @move-to-slot="handleMoveToSlot"
+        @move-to-shortlist="handleMoveToShortlist"
+        @save-to-shortlist="handleSaveToShortlist"
+        @remove="handleRemoveEntry"
       />
 
       <button class="show-later-btn" @click="loadLater">
@@ -260,6 +357,25 @@ async function handleConvertToRecipe(title: string) {
       @close="closeDrawer"
       @saved="handleDrawerSaved"
     />
+
+    <BottomSheet
+      v-if="moveSheetOpen"
+      title="Move to another slot"
+      testid="move-to-slot-sheet"
+      @close="closeMoveSheet"
+    >
+      <DayMealPicker
+        :from-date="fromDate"
+        :to-date="toDate"
+        :meal-types="mealTypes"
+        :today-str="todayStr"
+        :occupied="occupied"
+        :initial-date="movingEntry?.date"
+        :initial-meal-type="movingEntry?.meal_type"
+        @select="confirmMoveToSlot"
+        @cancel="closeMoveSheet"
+      />
+    </BottomSheet>
   </div>
 </template>
 

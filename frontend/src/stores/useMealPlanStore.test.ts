@@ -20,7 +20,7 @@ vi.mock('@/api/mealPlans', () => ({
 
 import * as mealPlansApi from '@/api/mealPlans'
 import { useMealPlanStore } from './useMealPlanStore'
-import type { MealPlan, MealPlanWithEntries } from '@/types/mealPlan'
+import type { MealPlan } from '@/types/mealPlan'
 
 const mockPlan: MealPlan = {
   id: 'p1',
