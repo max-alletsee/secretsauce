@@ -37,7 +37,12 @@ client.interceptors.response.use(
     // axios v1: error.config is InternalAxiosRequestConfig, not AxiosRequestConfig
     const originalRequest: InternalAxiosRequestConfig & { _retry?: boolean } = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A 401 on the refresh call itself must NOT trigger another refresh — otherwise
+    // it gets queued behind the in-flight refresh and never settles, hanging the
+    // original request. Let it reject so the outer catch clears tokens and redirects.
+    const isRefreshCall = originalRequest?.url?.includes('/auth/token/refresh')
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
       originalRequest._retry = true
 
       if (isRefreshing) {
