@@ -61,7 +61,13 @@
       "Bash(npm test *)",
       "Bash(podman-compose *)",
       "Bash(podman ps *)",
-      "Bash(podman exec *)"
+      "Bash(podman exec *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\github\\\\secretsauce\\\\frontend\\\\src\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Skill(superpowers:executing-plans)",
+      "Bash(podman machine *)",
+      "Skill(superpowers:finishing-a-development-branch)",
+      "Bash(gh --version)"
     ]
   }
 }
