@@ -82,7 +82,7 @@ This starts:
 The backend container must be running before applying migrations:
 
 ```bash
-podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade heads
+podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
 ```
 
 ### 4. Verify the stack is healthy
@@ -298,7 +298,7 @@ podman-compose down && podman-compose up -d
 ### 7. Run database migrations
 
 ```bash
-podman-compose exec backend uv run alembic upgrade heads
+podman-compose exec backend uv run alembic upgrade head
 ```
 
 ### 8. Verify
@@ -315,8 +315,7 @@ Visit `https://secretsauce.food:8443` in a browser to confirm the frontend loads
 Register an account via the registration page (`https://yourdomain.com:8443/register`), then promote it to superuser via the database. Run from the repo directory:
 
 ```bash
-podman-compose exec postgres psql -U secretsauce -d secretsauce \
-  -c "UPDATE users SET is_superuser = true WHERE email = 'you@example.com';"
+podman-compose exec postgres psql -U secretsauce -d secretsauce -c "UPDATE users SET is_superuser = true WHERE email = 'you@example.com';"
 ```
 
 ### TLS Certificate Renewal
@@ -601,7 +600,7 @@ podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade he
 curl http://localhost:8000/api/v1/health
 ```
 
-Production is untouched because it lives in `/opt/secretsauce/prod` and runs a separate podman-compose project.
+Production is untouched because it lives in `/home/deploy/secretsauce/prod` and runs a separate podman-compose project.
 
 ### CI/CD: separate deploy jobs per environment
 
