@@ -27,7 +27,11 @@ client.interceptors.request.use((config) => {
 })
 
 // On 401: attempt one silent token refresh, retry the original request.
-// If the refresh also fails, clear tokens and redirect to /login.
+// If the refresh also fails, clear tokens and reject. Redirecting to /login is
+// the router guard's responsibility (it awaits userStore.authReady, which clears
+// auth state on failure, then soft-navigates). The interceptor must NOT do a hard
+// window.location redirect — that full-page navigation races the SPA's first
+// render and leaves a blank screen on boot with a stale token.
 let isRefreshing = false
 let refreshQueue: Array<(token: string) => void> = []
 
@@ -60,7 +64,7 @@ client.interceptors.response.use(
 
       if (!refreshToken) {
         isRefreshing = false
-        window.location.href = '/login'
+        localStorage.removeItem('access_token')
         return Promise.reject(error)
       }
 
@@ -79,7 +83,6 @@ client.interceptors.response.use(
         refreshQueue = []
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
-        window.location.href = '/login'
         return Promise.reject(error)
       } finally {
         isRefreshing = false
