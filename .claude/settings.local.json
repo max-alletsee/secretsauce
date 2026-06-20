@@ -67,7 +67,8 @@
       "Skill(superpowers:executing-plans)",
       "Bash(podman machine *)",
       "Skill(superpowers:finishing-a-development-branch)",
-      "Bash(gh --version)"
+      "Bash(gh --version)",
+      "PowerShell(npm run *)"
     ]
   }
 }
