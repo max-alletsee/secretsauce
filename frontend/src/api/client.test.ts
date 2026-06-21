@@ -79,6 +79,22 @@ describe('client interceptor — 401 handling', () => {
 
     expect(localStorage.getItem('access_token')).toBeNull()
     expect(localStorage.getItem('refresh_token')).toBeNull()
-    expect(window.location.href).toBe('/login')
+    // The interceptor must NOT hard-redirect via window.location — that full-page
+    // navigation races the Vue Router auth guard and blanks the SPA on boot.
+    // Redirecting to /login is the router guard's job; the interceptor only
+    // clears tokens and rejects so the guard can do a clean soft navigation.
+    expect(window.location.href).toBe('')
   }, 2000) // short timeout: if it hangs, fail fast instead of waiting the default 5s
+
+  it('does not hard-redirect when there is no refresh token', async () => {
+    localStorage.setItem('access_token', 'stale_at')
+    // no refresh_token
+
+    installAdapter([{ match: '/users/me', outcome: { reject: { status: 401 } } }])
+
+    await expect(client.get('/users/me')).rejects.toBeDefined()
+
+    // Interceptor must not navigate; the router guard handles the redirect.
+    expect(window.location.href).toBe('')
+  }, 2000)
 })
