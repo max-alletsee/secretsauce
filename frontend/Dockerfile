@@ -1,7 +1,8 @@
-FROM docker.io/library/node:20-slim AS build
+FROM docker.io/library/node:22-slim AS build
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (pinned — pnpm@latest moved to 11.x which drops Node 20 support
+# and is unnecessary churn; 9.x matches the lockfileVersion 9.0)
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 WORKDIR /app
 

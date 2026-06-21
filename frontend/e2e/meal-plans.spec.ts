@@ -143,3 +143,38 @@ test('stacking: a slot can hold multiple entries', async ({ page, request }) => 
 
   await expect(slot.locator('.slot-entry')).toHaveCount(2)
 })
+
+// Regression guard for the served UI. Drag-and-drop assignment was removed in
+// commit 48e2fc5 and replaced with explicit selection. Because this runs against
+// `BASE_URL`, it can be pointed at a deployed environment (e.g.
+//   BASE_URL=https://secretsauce.food:8443 npx playwright test -g "no drag-and-drop"
+// ) to catch a stale build serving the old drag-and-drop bundle — the exact
+// failure mode where source is fixed but the deployed artifact is outdated.
+test('meal plan UI exposes no drag-and-drop affordances, only selection', async ({ page, request }) => {
+  const ctx = await registerAndLogin(page, request)
+
+  // Seed one entry so a populated slot (which previously carried drag handles) is rendered.
+  await page.goto('/recipes')
+  await page.locator('.recipe-card').filter({ hasText: 'E2E Pasta' }).first()
+    .locator('[data-testid="add-to-plan-btn"]').click()
+  await page.locator('[data-testid="day-meal-picker"]').waitFor()
+  await page.locator('[data-testid="picker-confirm"]').click()
+
+  await page.goto('/meal-plan')
+  await expect(page.locator('.grid-section')).toContainText('E2E Pasta')
+
+  // No element anywhere on the plan opts into native HTML5 drag.
+  await expect(page.locator('[draggable="true"]')).toHaveCount(0)
+
+  // No vuedraggable/SortableJS-rendered handles (it stamps .sortable-* classes).
+  await expect(page.locator('[class*="sortable-"]')).toHaveCount(0)
+
+  // The explicit-selection affordance IS present (proves it's the new UI, not a
+  // blank/old page that trivially has zero draggable elements).
+  const addBtn = page.locator('.day-row:not(.day-row--past) [data-testid^="slot-add-"]').first()
+  await addBtn.click()
+  await page.locator('[data-testid="recipe-picker"]').waitFor()
+  await page.locator(`[data-testid="recipe-picker-recipe-${ctx.recipeB}"]`).first().click()
+  await expect(page.locator('[data-testid="recipe-picker"]')).toHaveCount(0)
+  await expect(page.locator('.grid-section')).toContainText('E2E Salad')
+})
