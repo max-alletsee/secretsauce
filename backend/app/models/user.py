@@ -21,13 +21,13 @@ class User(SQLModel, table=True):
 
     # Profile fields
     display_name: str | None = Field(default=None, max_length=255)
-    dietary_restrictions: dict[str, Any] = Field(
-        default_factory=dict,
-        sa_column=Column(JSONB, nullable=False, server_default=text("'{}'::jsonb")),
+    dietary_restrictions: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
-    allergies: dict[str, Any] = Field(
-        default_factory=dict,
-        sa_column=Column(JSONB, nullable=False, server_default=text("'{}'::jsonb")),
+    allergies: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),
     )
     preferred_units: Literal["metric", "imperial"] = Field(
         default="metric",

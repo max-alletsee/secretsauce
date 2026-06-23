@@ -18,7 +18,7 @@ def test_user_defaults():
     user = User(email="test@example.com", hashed_password="x")
     assert user.preferred_units == "metric"
     assert user.default_servings == 2
-    assert user.dietary_restrictions == {}
+    assert user.dietary_restrictions == []
     assert user.favorite_cuisines == []
     assert user.is_active is True
     assert user.is_superuser is False

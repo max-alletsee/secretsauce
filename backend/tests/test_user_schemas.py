@@ -24,10 +24,10 @@ def test_user_update_all_fields_optional():
 
 def test_user_update_with_preferences():
     update = UserUpdate(
-        dietary_restrictions={"vegan": True},
+        dietary_restrictions=["vegan"],
         preferred_units="imperial",
         favorite_cuisines=["italian", "japanese"],
     )
-    assert update.dietary_restrictions == {"vegan": True}
+    assert update.dietary_restrictions == ["vegan"]
     assert update.preferred_units == "imperial"
     assert update.favorite_cuisines == ["italian", "japanese"]

@@ -405,8 +405,8 @@ For new ideas not in the collection, set matched_recipe_id to null."""
 def _build_suggestions_prompt(
     meal_types: list[str],
     days_ahead: int,
-    dietary_restrictions: dict,
-    allergies: dict,
+    dietary_restrictions: list[str],
+    allergies: list[str],
     favorite_cuisines: list[str],
     disliked_ingredients: list[str],
     meal_plan_system_prompt: str | None,
@@ -421,9 +421,9 @@ def _build_suggestions_prompt(
     if meal_plan_system_prompt:
         parts.append(f"User instructions: {meal_plan_system_prompt}")
     if dietary_restrictions:
-        parts.append(f"Dietary restrictions: {dietary_restrictions}")
+        parts.append(f"Dietary restrictions: {', '.join(dietary_restrictions)}")
     if allergies:
-        parts.append(f"Allergies: {allergies}")
+        parts.append(f"Allergies: {', '.join(allergies)}")
     if favorite_cuisines:
         parts.append(f"Favorite cuisines: {', '.join(favorite_cuisines)}")
     if disliked_ingredients:
@@ -449,8 +449,8 @@ def _build_suggestions_prompt(
 async def generate_meal_suggestions(
     meal_types: list[str],
     days_ahead: int,
-    dietary_restrictions: dict,
-    allergies: dict,
+    dietary_restrictions: list[str],
+    allergies: list[str],
     favorite_cuisines: list[str],
     disliked_ingredients: list[str],
     meal_plan_system_prompt: str | None,

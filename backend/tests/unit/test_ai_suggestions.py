@@ -24,8 +24,8 @@ async def test_unrecognised_recipe_id_is_nulled_out():
         result = await generate_meal_suggestions(
             meal_types=["dinner"],
             days_ahead=3,
-            dietary_restrictions={},
-            allergies={},
+            dietary_restrictions=[],
+            allergies=[],
             favorite_cuisines=[],
             disliked_ingredients=[],
             meal_plan_system_prompt=None,

@@ -8,8 +8,8 @@ def _base_kwargs(**overrides) -> dict:
     defaults = dict(
         meal_types=["dinner"],
         days_ahead=3,
-        dietary_restrictions={},
-        allergies={},
+        dietary_restrictions=[],
+        allergies=[],
         favorite_cuisines=[],
         disliked_ingredients=[],
         meal_plan_system_prompt=None,
@@ -37,9 +37,18 @@ def test_prompt_includes_multiple_meal_types():
 
 def test_prompt_includes_dietary_restrictions():
     prompt = _build_suggestions_prompt(
-        **_base_kwargs(dietary_restrictions={"vegan": True})
+        **_base_kwargs(dietary_restrictions=["vegan", "low-sodium"])
     )
     assert "vegan" in prompt.lower()
+    assert "low-sodium" in prompt.lower()
+
+
+def test_prompt_includes_allergies():
+    prompt = _build_suggestions_prompt(
+        **_base_kwargs(allergies=["peanuts", "shellfish"])
+    )
+    assert "peanuts" in prompt
+    assert "shellfish" in prompt
 
 
 def test_prompt_includes_carryover_titles():
