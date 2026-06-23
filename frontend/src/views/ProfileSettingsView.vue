@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
 
 const userStore = useUserStore()
@@ -18,10 +18,22 @@ function toInput(list: string[] | undefined): string {
   return (list ?? []).join(', ')
 }
 
-const dietaryRestrictions = ref(toInput(userStore.user?.dietary_restrictions))
-const allergies = ref(toInput(userStore.user?.allergies))
-const favoriteCuisines = ref(toInput(userStore.user?.favorite_cuisines))
-const dislikedIngredients = ref(toInput(userStore.user?.disliked_ingredients))
+const dietaryRestrictions = ref('')
+const allergies = ref('')
+const favoriteCuisines = ref('')
+const dislikedIngredients = ref('')
+
+watch(
+  () => userStore.user,
+  (u) => {
+    if (!u) return
+    dietaryRestrictions.value = toInput(u.dietary_restrictions)
+    allergies.value = toInput(u.allergies)
+    favoriteCuisines.value = toInput(u.favorite_cuisines)
+    dislikedIngredients.value = toInput(u.disliked_ingredients)
+  },
+  { immediate: true },
+)
 
 const saving = ref(false)
 const saved = ref(false)
@@ -46,10 +58,6 @@ onMounted(() => {
   mealPlanSystemPrompt.value = u.meal_plan_system_prompt ?? ''
   mealPlanMealTypes.value = u.meal_plan_meal_types ?? ['dinner']
   mealPlanDaysAhead.value = u.meal_plan_days_ahead ?? 7
-  dietaryRestrictions.value = toInput(u.dietary_restrictions)
-  allergies.value = toInput(u.allergies)
-  favoriteCuisines.value = toInput(u.favorite_cuisines)
-  dislikedIngredients.value = toInput(u.disliked_ingredients)
 })
 
 async function save() {
