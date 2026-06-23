@@ -11,6 +11,18 @@ const mealPlanSystemPrompt = ref('')
 const mealPlanMealTypes = ref<string[]>(['dinner'])
 const mealPlanDaysAhead = ref(7)
 
+function toList(s: string): string[] {
+  return s.split(',').map((x) => x.trim()).filter((x) => x.length > 0)
+}
+function toInput(list: string[] | undefined): string {
+  return (list ?? []).join(', ')
+}
+
+const dietaryRestrictions = ref(toInput(userStore.user?.dietary_restrictions))
+const allergies = ref(toInput(userStore.user?.allergies))
+const favoriteCuisines = ref(toInput(userStore.user?.favorite_cuisines))
+const dislikedIngredients = ref(toInput(userStore.user?.disliked_ingredients))
+
 const saving = ref(false)
 const saved = ref(false)
 const error = ref('')
@@ -34,6 +46,10 @@ onMounted(() => {
   mealPlanSystemPrompt.value = u.meal_plan_system_prompt ?? ''
   mealPlanMealTypes.value = u.meal_plan_meal_types ?? ['dinner']
   mealPlanDaysAhead.value = u.meal_plan_days_ahead ?? 7
+  dietaryRestrictions.value = toInput(u.dietary_restrictions)
+  allergies.value = toInput(u.allergies)
+  favoriteCuisines.value = toInput(u.favorite_cuisines)
+  dislikedIngredients.value = toInput(u.disliked_ingredients)
 })
 
 async function save() {
@@ -48,6 +64,10 @@ async function save() {
       meal_plan_system_prompt: mealPlanSystemPrompt.value || null,
       meal_plan_meal_types: mealPlanMealTypes.value,
       meal_plan_days_ahead: mealPlanDaysAhead.value,
+      dietary_restrictions: toList(dietaryRestrictions.value),
+      allergies: toList(allergies.value),
+      favorite_cuisines: toList(favoriteCuisines.value),
+      disliked_ingredients: toList(dislikedIngredients.value),
     })
     saved.value = true
   } catch {
@@ -125,10 +145,56 @@ async function save() {
       </label>
     </section>
 
+    <section class="settings-section">
+      <h2>Food preferences</h2>
+      <p class="section-hint">Comma-separated. These guide AI meal suggestions.</p>
+
+      <label class="field-label">
+        Dietary restrictions
+        <input
+          v-model="dietaryRestrictions"
+          type="text"
+          class="field-input"
+          data-testid="pref-dietary_restrictions"
+          placeholder="e.g. vegetarian, low-sodium"
+        />
+      </label>
+      <label class="field-label">
+        Allergies
+        <input
+          v-model="allergies"
+          type="text"
+          class="field-input"
+          data-testid="pref-allergies"
+          placeholder="e.g. peanuts, shellfish"
+        />
+      </label>
+      <label class="field-label">
+        Favorite cuisines
+        <input
+          v-model="favoriteCuisines"
+          type="text"
+          class="field-input"
+          data-testid="pref-favorite_cuisines"
+          placeholder="e.g. italian, thai"
+        />
+      </label>
+      <label class="field-label">
+        Disliked ingredients
+        <input
+          v-model="dislikedIngredients"
+          type="text"
+          class="field-input"
+          data-testid="pref-disliked_ingredients"
+          placeholder="e.g. cilantro, olives"
+        />
+      </label>
+    </section>
+
     <div class="actions">
       <p v-if="error" class="error-msg">{{ error }}</p>
       <p v-if="saved" class="success-msg">Saved!</p>
-      <button :disabled="saving" class="save-btn" @click="save">
+      <button :disabled="saving" class="save-btn" data-testid="save-btn" @click="save">
         {{ saving ? 'Saving…' : 'Save settings' }}
       </button>
     </div>
@@ -192,4 +258,5 @@ h2 { font-size: 1rem; font-weight: 600; margin: 0 0 1rem; border-bottom: 1px sol
 .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .error-msg { color: #dc2626; font-size: 0.875rem; }
 .success-msg { color: #16a34a; font-size: 0.875rem; }
+.section-hint { font-size: 0.8125rem; color: #6b7280; margin: -0.5rem 0 1rem; }
 </style>
