@@ -7,8 +7,8 @@ export interface User {
   is_active: boolean
   is_superuser: boolean
   is_verified: boolean
-  dietary_restrictions: Record<string, unknown>
-  allergies: Record<string, unknown>
+  dietary_restrictions: string[]
+  allergies: string[]
   preferred_units: 'metric' | 'imperial'
   favorite_cuisines: string[]
   disliked_ingredients: string[]
@@ -39,8 +39,8 @@ export interface TokenResponse {
 
 export interface UserUpdatePayload {
   display_name?: string | null
-  dietary_restrictions?: Record<string, unknown>
-  allergies?: Record<string, unknown>
+  dietary_restrictions?: string[]
+  allergies?: string[]
   preferred_units?: 'metric' | 'imperial'
   favorite_cuisines?: string[]
   disliked_ingredients?: string[]
