@@ -41,6 +41,7 @@ def test_prompt_includes_dietary_restrictions():
     )
     assert "vegan" in prompt.lower()
     assert "low-sodium" in prompt.lower()
+    assert "Dietary restrictions: vegan, low-sodium" in prompt
 
 
 def test_prompt_includes_allergies():
@@ -49,6 +50,7 @@ def test_prompt_includes_allergies():
     )
     assert "peanuts" in prompt
     assert "shellfish" in prompt
+    assert "Allergies: peanuts, shellfish" in prompt
 
 
 def test_prompt_includes_carryover_titles():

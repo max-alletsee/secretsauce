@@ -27,7 +27,9 @@ def test_user_update_with_preferences():
         dietary_restrictions=["vegan"],
         preferred_units="imperial",
         favorite_cuisines=["italian", "japanese"],
+        allergies=["peanuts"],
     )
     assert update.dietary_restrictions == ["vegan"]
     assert update.preferred_units == "imperial"
     assert update.favorite_cuisines == ["italian", "japanese"]
+    assert update.allergies == ["peanuts"]

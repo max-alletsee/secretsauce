@@ -2,13 +2,14 @@
 
 Revision ID: b1a2c3d4e5f6
 Revises: 88e6abc70626
-Create Date: 2026-06-23 00:00:00.000000
+Create Date: 2026-06-24 09:00:00.000000
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision: str = "b1a2c3d4e5f6"
 down_revision: Union[str, Sequence[str], None] = "88e6abc70626"
@@ -40,10 +41,14 @@ def upgrade() -> None:
     )
     op.alter_column(
         "users", "dietary_restrictions",
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        existing_nullable=False,
         server_default=sa.text("'[]'::jsonb"),
     )
     op.alter_column(
         "users", "allergies",
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        existing_nullable=False,
         server_default=sa.text("'[]'::jsonb"),
     )
 
@@ -72,9 +77,13 @@ def downgrade() -> None:
     )
     op.alter_column(
         "users", "dietary_restrictions",
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        existing_nullable=False,
         server_default=sa.text("'{}'::jsonb"),
     )
     op.alter_column(
         "users", "allergies",
+        existing_type=postgresql.JSONB(astext_type=sa.Text()),
+        existing_nullable=False,
         server_default=sa.text("'{}'::jsonb"),
     )
