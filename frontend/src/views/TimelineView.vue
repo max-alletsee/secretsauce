@@ -324,7 +324,6 @@ async function handleConvertToRecipe(title: string) {
     <div class="grid-section">
       <div class="grid-header">
         <span class="grid-title">Meal Plan</span>
-        <router-link to="/settings" class="settings-link">⚙ Settings</router-link>
       </div>
 
       <button class="show-earlier-btn" @click="loadEarlier">
@@ -405,12 +404,6 @@ async function handleConvertToRecipe(title: string) {
   margin-bottom: 0.75rem;
 }
 .grid-title { font-weight: 600; }
-.settings-link {
-  font-size: 0.8rem;
-  color: #6b7280;
-  text-decoration: none;
-}
-.settings-link:hover { color: #374151; }
 .show-earlier-btn {
   display: block;
   width: 100%;

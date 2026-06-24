@@ -71,7 +71,7 @@ function dayLabel(dateStr: string): string {
         :date="day"
         :meal-type="mealType"
         :recipe-titles="recipeTitles"
-        :disabled="isPast(day)"
+        :disabled="false"
         @open-recipe="(id) => emit('open-recipe', id)"
         @move-to-slot="(e) => emit('move-to-slot', e)"
         @move-to-shortlist="(e) => emit('move-to-shortlist', e)"
@@ -112,9 +112,12 @@ function dayLabel(dateStr: string): string {
   align-items: stretch;
   gap: 0.4rem;
 }
-.day-row--past {
-  opacity: 0.4;
-  pointer-events: none;
+.day-row--past .day-label,
+.day-row--past .meal-slot {
+  filter: grayscale(1);
+}
+.day-row--past .meal-slot {
+  background: #eceef1;
 }
 .day-row--today .day-label {
   font-weight: 700;

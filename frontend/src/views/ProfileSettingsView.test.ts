@@ -48,7 +48,7 @@ describe('ProfileSettingsView food preferences', () => {
     await wrapper.get('[data-testid="save-btn"]').trigger('click')
     await flushPromises()
     expect(updateProfile).toHaveBeenCalledTimes(1)
-    const payload = updateProfile.mock.calls[0][0]
+    const payload = updateProfile.mock.calls[0]![0]
     expect(payload.allergies).toEqual(['peanuts', 'shellfish'])
     expect(payload.favorite_cuisines).toEqual(['italian', 'thai'])
     expect(payload.dietary_restrictions).toEqual(['vegan'])
