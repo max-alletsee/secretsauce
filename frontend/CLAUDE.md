@@ -203,10 +203,11 @@ Use Vue Router with auth guards. Key routes:
 - `/recipes/:id` — RecipeDetailView (auth required)
 - `/recipes/new` — RecipeCreateView (auth required)
 - `/recipes/:id/edit` — RecipeEditView (auth required)
-- `/meal-plans` — MealPlanListView (auth required)
-- `/meal-plans/:id` — MealPlanDetailView (auth required)
-- `/meal-plans/new` — MealPlanCreateView (auth required)
-- `/shopping-lists/:mealPlanId` — ShoppingListView (auth required)
+- `/meal-plan` — TimelineView (auth required)
+- `/shopping-lists` — ShoppingListsView (auth required)
+- `/shopping-lists/new` — ShoppingListNewView (auth required)
+- `/shopping-lists/:id` — ShoppingListView (auth required)
+- `/settings` — ProfileSettingsView (auth required)
 - `/admin` — AdminView (superuser required)
 
 Auth guard pattern:
