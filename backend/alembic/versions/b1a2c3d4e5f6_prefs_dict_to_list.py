@@ -4,6 +4,12 @@ Revision ID: b1a2c3d4e5f6
 Revises: 88e6abc70626
 Create Date: 2026-06-24 09:00:00.000000
 
+Note: the upgrade keeps only the object's keys (the values are flags that
+the application never read), so it is lossy with respect to dict values.
+The downgrade reconstructs ``{key: true}`` for each list element and is
+therefore NOT a true value-preserving inverse — a round-trip collapses any
+original ``false`` values to ``true``.
+
 """
 from typing import Sequence, Union
 
