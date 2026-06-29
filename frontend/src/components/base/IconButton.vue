@@ -55,7 +55,8 @@ withDefaults(
 }
 
 .icon-btn--primary:hover:not(:disabled) {
-  background: var(--color-danger);
+  /* Darken in-hue; red is reserved strictly for delete, so never borrow --color-danger here. */
+  filter: brightness(0.92);
 }
 
 .icon-btn--danger {

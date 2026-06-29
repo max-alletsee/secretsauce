@@ -41,4 +41,11 @@ describe('IconButton', () => {
     const wrapper = mount(IconButton, { props: { icon: Plus, label: 'Add item' } })
     expect(wrapper.find('button').attributes('type')).toBe('button')
   })
+
+  it('propagates the size prop to the rendered svg', () => {
+    const wrapper = mount(IconButton, { props: { icon: Plus, label: 'Add item', size: 24 } })
+    const svg = wrapper.find('svg')
+    expect(svg.attributes('width')).toBe('24')
+    expect(svg.attributes('height')).toBe('24')
+  })
 })

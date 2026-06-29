@@ -103,7 +103,9 @@ withDefaults(
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 2px solid var(--color-primary-ink);
+  /* Inherit the button's text color so the spinner is visible on every variant
+     (primary-ink on filled variants, text color on secondary/ghost). */
+  border: 2px solid currentColor;
   border-top-color: transparent;
   animation: btn-spin 0.6s linear infinite;
   position: absolute;
