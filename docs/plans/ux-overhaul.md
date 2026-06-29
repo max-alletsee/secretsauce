@@ -10,6 +10,53 @@
 
 ---
 
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-06-29)*
+
+> Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
+
+### Where the work lives
+- **Worktree:** `C:\github\secretsauce\.claude\worktrees\ux-overhaul` — branch **`worktree-ux-overhaul`**, branched from the `ui-shell-rework` HEAD (so it carries all prior unmerged work + this plan). Run all commands from here. Do NOT use the parent checkout.
+- **Frontend:** `frontend/` (Vue 3 + TS). Verify with (from `frontend/`): `npm run type-check`, `npm run build`, `npx vitest run`. If `cd frontend` fails after a worktree switch, use the absolute path `C:\github\secretsauce\.claude\worktrees\ux-overhaul\frontend`.
+- **Deps already installed:** `@fontsource/inter`, `@fontsource/sn-pro`, `@lucide/vue`. (The deprecated `lucide-vue-next` was removed.)
+
+### How this is being executed
+- Skill: **superpowers:subagent-driven-development** — fresh implementer subagent per task → task review (spec + quality) → fix loop if needed → mark complete → commit. One implementer in flight at a time; the next task that touches the same files must wait for the prior to land.
+- **Progress ledger:** `.superpowers/sdd/progress.md` (git-ignored scratch) — the recovery map. Per-task briefs/reports/diffs also live under `.superpowers/sdd/`. On resume: `cat .superpowers/sdd/progress.md` and trust it + `git log` over memory.
+- Helper scripts (in the SDD skill dir): `task-brief PLAN N`, `review-package BASE HEAD`. Reviewer/implementer prompt templates are in that skill dir too.
+- **Checkpoint discipline:** pause for user sign-off at each phase boundary. **Phase 0 has not been signed off yet.**
+
+### Decisions made with the user (binding)
+1. **Cook stats:** ONE sanctioned backend change approved (Task 3.0) to expose `times_cooked`/`last_cooked_at` from `RecipeCookLog` on the recipe read schema. Everything else stays presentation-only.
+2. **Fonts:** sourced via `@fontsource/inter` + `@fontsource/sn-pro` (npm) instead of hand-vendoring woff2 from GitHub (raw fetch was sandbox-blocked). Same fonts, registered families `'Inter'` / `'SN Pro'` match the tokens.
+3. **Icons:** use `@lucide/vue` (not the deprecated `lucide-vue-next`). Same icon names/API: `import { Camera } from '@lucide/vue'`.
+
+### Baseline note
+Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing tsconfig test-glob bug + a real RecipeForm `undefined`→`null` bug + 5 leaked test rejections). Fixed in commit `ddc6991` (`fix: green the frontend type-check/build baseline`). Baseline is now green: type-check ✓, build ✓, tests ✓.
+
+### Commit history so far (oldest→newest)
+- `91d5b4d` docs: add UX/UI overhaul implementation plan
+- `ddc6991` fix: green the frontend type-check/build baseline
+- `a292fac` feat(ui): add Honey & Poppy design tokens  *(Task 0.1)*
+- `8e35b25` feat(ui): wire Inter and SN Pro fonts via @fontsource  *(Task 0.2+0.3)*
+- `a960f14` feat(ui): add lucide-vue-next and BaseIcon wrapper  *(Task 0.4)*
+- `909c42d` refactor(ui): migrate to @lucide/vue  *(Task 0.4 follow-up, review-driven)*
+
+### Status snapshot
+- ✅ **Task 0.1** — design tokens (reviewed, clean)
+- ✅ **Task 0.2+0.3** — Inter + SN Pro fonts (reviewed, clean)
+- ✅ **Task 0.4** — `BaseIcon` + `@lucide/vue` (reviewed, clean; 9 tests). Test suite at **175 tests passing**.
+- 🔄 **Task 0.5** — `BaseButton` + `IconButton`: **IN PROGRESS** at handoff time. The 4 files (`BaseButton.vue/.test.ts`, `IconButton.vue/.test.ts`) may exist UNTRACKED/uncommitted. **On resume:** check `git status` and `.superpowers/sdd/task-0.5-report.md`. If a commit + clean report exist → run the task review. If files exist but no commit → the implementer was interrupted; re-verify (`npx vitest run` on those test files, type-check, build) and either finish/commit or re-dispatch Task 0.5. Note: `BaseButton`'s loading state uses a **temporary inline placeholder dot** with a `TODO` to swap in `PourLoader` once Task 0.9 builds it.
+- ⏳ **Tasks 0.6 → 0.17** — not started (inputs, chips, card/skeleton, PourLoader, wordmark+favicon, progress/stepper, segmented/empty, confirm, draglist, bottomsheet+toast tokenize, tabbar/usermenu/avatar, emoji sweep).
+- ⏳ **Phases 1–11** — not started.
+
+### Cross-task reminders for later phases
+- `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
+- Build our own `BaseCard`/`ConfirmDialog` (avoid PrimeVue's `Card`/`ConfirmDialog` name clash).
+- `RecipeForm.vue` will be reworked in Phase 5; its two `?? null` baseline fixes are already in.
+- Test convention: colocated `*.test.ts` next to the component; `tsconfig.app.json` excludes `*.test.ts`, `tsconfig.vitest.json` includes them (fixed in baseline commit).
+
+---
+
 ## Global Constraints
 
 (Every task's requirements implicitly include this section. Values copied verbatim from the spec.)
