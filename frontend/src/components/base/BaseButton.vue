@@ -60,7 +60,9 @@ withDefaults(
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--color-danger); /* slightly darker primary on hover */
+  /* Darken the primary in-hue without a dedicated hover token and without
+     borrowing --color-danger (red is reserved strictly for delete). */
+  filter: brightness(0.92);
 }
 
 .btn--danger {
