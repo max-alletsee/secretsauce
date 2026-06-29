@@ -16,6 +16,8 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/sn-pro": "^5.2.6",
     "@primevue/themes": "^4.5.4",
     "axios": "^1.13.6",
     "pinia": "^3.0.4",
