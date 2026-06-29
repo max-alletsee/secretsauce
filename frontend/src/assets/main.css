@@ -13,10 +13,10 @@ html {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
-  color: #1a1a1a;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-bg);
   min-width: 375px;
 }
 
@@ -24,4 +24,55 @@ body {
 :root {
   --bp-tablet: 768px;
   --bp-desktop: 1024px;
+
+  /* brand (locked) */
+  --color-bg:            #FFF9F0;
+  --color-surface:       #FFFFFF;
+  --color-text:          #3A2E20;
+  --color-primary:       #D2452B;
+  --color-accent:        #F2A23C;
+  --color-success:       #4E8A48;
+  --color-warning:       #E59A2B;
+  --color-danger:        #9B3320;
+
+  /* derived neutrals & tints */
+  --color-surface-2:     #FFF1DC;
+  --color-border:        #EFE1C9;
+  --color-text-muted:    #8B7A60;
+  --color-primary-ink:   #FFFFFF;   /* text on primary */
+  --color-primary-soft:  #FBE5DE;   /* primary tint: hovers, ghost bg */
+  --color-accent-soft:   #FFEDD2;   /* accent tint: chips, badges */
+  --color-danger-soft:   #F7E2DC;
+
+  /* meal-type tints (Timeline) */
+  --meal-breakfast:      #FFF0D6;
+  --meal-lunch:          #FFE3D6;
+  --meal-dinner:         #FBE0E0;
+
+  /* spacing (4px base) */
+  --space-1:.25rem; --space-2:.5rem; --space-3:.75rem; --space-4:1rem;
+  --space-5:1.5rem; --space-6:2rem; --space-8:3rem;
+
+  /* radius / shadow */
+  --radius-sm:10px; --radius:16px; --radius-pill:999px;
+  --shadow-sm:0 2px 8px rgba(40,30,20,.06);
+  --shadow:0 6px 20px rgba(40,30,20,.09);
+
+  /* type scale */
+  --font-sans:'Inter', system-ui, -apple-system, sans-serif;
+  --font-display:'SN Pro', 'Inter', system-ui, sans-serif;
+  --text-xs:.75rem; --text-sm:.875rem; --text-base:1rem;
+  --text-lg:1.125rem; --text-xl:1.375rem; --text-2xl:1.75rem; --text-3xl:2.25rem;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
