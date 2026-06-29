@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-06-29)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-06-29 — through Task 0.5)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -40,14 +40,21 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `8e35b25` feat(ui): wire Inter and SN Pro fonts via @fontsource  *(Task 0.2+0.3)*
 - `a960f14` feat(ui): add lucide-vue-next and BaseIcon wrapper  *(Task 0.4)*
 - `909c42d` refactor(ui): migrate to @lucide/vue  *(Task 0.4 follow-up, review-driven)*
+- `125b434` docs: add session-handoff/resume section
+- `9159121` feat(ui): add BaseButton and IconButton primitives  *(Task 0.5)*
+- `44bf46c` fix(ui): primary button hover no longer borrows danger red  *(0.5 fix)*
+- `bc90983` fix(ui): address Task 0.5 review findings  *(0.5 fix)*
+
+**Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. Continue work on `worktree-ux-overhaul` in the worktree; fast-forward `ui-shell-rework` again at later checkpoints. Nothing pushed to origin yet.
 
 ### Status snapshot
 - ✅ **Task 0.1** — design tokens (reviewed, clean)
 - ✅ **Task 0.2+0.3** — Inter + SN Pro fonts (reviewed, clean)
-- ✅ **Task 0.4** — `BaseIcon` + `@lucide/vue` (reviewed, clean; 9 tests). Test suite at **175 tests passing**.
-- 🔄 **Task 0.5** — `BaseButton` + `IconButton`: **IN PROGRESS** at handoff time. The 4 files (`BaseButton.vue/.test.ts`, `IconButton.vue/.test.ts`) may exist UNTRACKED/uncommitted. **On resume:** check `git status` and `.superpowers/sdd/task-0.5-report.md`. If a commit + clean report exist → run the task review. If files exist but no commit → the implementer was interrupted; re-verify (`npx vitest run` on those test files, type-check, build) and either finish/commit or re-dispatch Task 0.5. Note: `BaseButton`'s loading state uses a **temporary inline placeholder dot** with a `TODO` to swap in `PourLoader` once Task 0.9 builds it.
-- ⏳ **Tasks 0.6 → 0.17** — not started (inputs, chips, card/skeleton, PourLoader, wordmark+favicon, progress/stepper, segmented/empty, confirm, draglist, bottomsheet+toast tokenize, tabbar/usermenu/avatar, emoji sweep).
-- ⏳ **Phases 1–11** — not started.
+- ✅ **Task 0.4** — `BaseIcon` + `@lucide/vue` (reviewed, clean; 9 tests)
+- ✅ **Task 0.5** — `BaseButton` + `IconButton` (reviewed clean after fix loop; 18 tests). Test suite at **193 tests passing**.
+- ⏭️ **NEXT: Task 0.6** — `BaseInput` + `BaseTextarea`. Extract brief: `task-brief docs/plans/ux-overhaul.md 0.6`; dispatch a fresh implementer (TDD); review; commit. New BASE for 0.6 = `bc90983`.
+- ⏳ **Tasks 0.7 → 0.17** — not started (chips, card/skeleton, PourLoader, wordmark+favicon, progress/stepper, segmented/empty, confirm, draglist, bottomsheet+toast tokenize, tabbar/usermenu/avatar, emoji sweep). **Reminder:** when Task 0.9 builds `PourLoader`, swap BaseButton's temporary inline spinner for it.
+- ⏳ **Phases 1–11** — not started. Phase 0 checkpoint (user sign-off) still pending after 0.17.
 
 ### Cross-task reminders for later phases
 - `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
@@ -293,12 +300,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: renders given icon, applies size, sets `aria-hidden` when no label and `aria-label` when label given (9 tests).
 - [x] **VERIFY** + commit `feat(ui): add lucide-vue-next and BaseIcon wrapper` (a960f14) + migration `refactor(ui): migrate to @lucide/vue`.
 
-#### Task 0.5: BaseButton + IconButton
+#### Task 0.5: BaseButton + IconButton ✅
 **Files:** Create `base/BaseButton.vue`, `base/IconButton.vue`, `BaseButton.test.ts`, `IconButton.test.ts`
-- [ ] `BaseButton` props `{ variant?: 'primary'|'secondary'|'ghost'|'danger'; type?; disabled?; loading? }`; primary uses `--color-primary`/`--color-primary-ink`; danger uses `--color-danger`; ghost uses `--color-primary-soft` hover; loading shows inline `PourLoader` dot (or spinner placeholder until 0.16). `:focus-visible` ring.
-- [ ] `IconButton` props `{ icon; label: string; variant?; size? }` — `label` REQUIRED → `aria-label`.
-- [ ] Tests: variant class applied; disabled/loading disables click; IconButton sets `aria-label` from `label`.
-- [ ] **VERIFY** + commit `feat(ui): add BaseButton and IconButton primitives`.
+- [x] `BaseButton` props `{ variant?: 'primary'|'secondary'|'ghost'|'danger'; type?; disabled?; loading? }`; primary `--color-primary`/`--color-primary-ink`; danger `--color-danger`; ghost `--color-primary-soft` hover; primary/icon hover darkens in-hue via `brightness(0.92)` (NOT red). Loading shows a temporary inline spinner (TODO: swap for `PourLoader` in Task 0.9). `:focus-visible` ring (global).
+- [x] `IconButton` props `{ icon; label: string; variant?; size? }` — `label` REQUIRED → `aria-label`; inner `BaseIcon` decorative (aria-hidden).
+- [x] Tests (18): variant class, disabled/loading disables, IconButton aria-label, decorative svg, size propagation.
+- [x] **VERIFY** + commit `feat(ui): add BaseButton and IconButton primitives` (9159121) + review fixes (44bf46c, bc90983).
 
 #### Task 0.6: BaseInput + BaseTextarea
 **Files:** Create `base/BaseInput.vue`, `base/BaseTextarea.vue`, tests
