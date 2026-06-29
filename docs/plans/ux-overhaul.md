@@ -6,7 +6,7 @@
 
 **Architecture:** Introduce a token-driven CSS design system in `src/assets/main.css`, vendored fonts (Inter + SN Pro), Lucide icons, and a library of reusable primitive components under `src/components/base/`. Then rework each view to consume those primitives. Reuse all existing stores/API/composables — this is a presentation-layer overhaul.
 
-**Tech Stack:** Vue 3 (Composition API, `<script setup>`), TypeScript, Vite, Pinia, Vue Router, axios, Vitest (unit), Playwright (e2e), `lucide-vue-next` (new), vendored web fonts. **PrimeVue is present but unstyled** — do not build new UI on PrimeVue; build the primitives ourselves.
+**Tech Stack:** Vue 3 (Composition API, `<script setup>`), TypeScript, Vite, Pinia, Vue Router, axios, Vitest (unit), Playwright (e2e), `@lucide/vue` (new — the maintained successor to the deprecated `lucide-vue-next`; same icon names/API), web fonts via `@fontsource`. **PrimeVue is present but unstyled** — do not build new UI on PrimeVue; build the primitives ourselves.
 
 ---
 
@@ -110,7 +110,7 @@ Defined as CSS custom properties on `:root` in `src/assets/main.css`. Brand valu
 
 ## A.3 Icons
 
-- Install `lucide-vue-next`. Replace **every** emoji-as-icon in the codebase with a Lucide icon at standardized sizes (16 / 20 / 24).
+- Install `@lucide/vue` (maintained successor to the deprecated `lucide-vue-next`; identical icon names + API; import as `import { Camera } from '@lucide/vue'`). Replace **every** emoji-as-icon in the codebase with a Lucide icon at standardized sizes (16 / 20 / 24).
 - Build a tiny `BaseIcon` wrapper (`src/components/base/BaseIcon.vue`) that takes an icon component + size to standardize sizing and stroke.
 - **Mapping** (adjust to context): camera→`Camera`, settings→`Settings`, edit→`Pencil`, delete→`Trash2`, favorite→`Heart`, book→`BookOpen`, overflow→`EllipsisVertical`, close→`X`, up/down→`ChevronUp`/`ChevronDown`, add→`Plus`, search→`Search`, check→`Check`, link→`Link`, image→`Image`, regenerate→`RefreshCw`/`RotateCw` (NOT a sparkle/AI glyph), shopping→`ShoppingCart`, plan/calendar→`CalendarDays`, recipes→`UtensilsCrossed`/`CookingPot`, user→`User`/`CircleUser`.
 
@@ -223,31 +223,28 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 0 — Design system & primitives
 
-#### Task 0.1: Color tokens + base CSS reset to tokens
+#### Task 0.1: Color tokens + base CSS reset to tokens ✅
 **Files:** Modify `frontend/src/assets/main.css`
-- [ ] Add the full `:root` token block from A.1 (keep existing `--bp-*` vars).
-- [ ] Update `body`: `font-family: var(--font-sans)`, `color: var(--color-text)`, `background: var(--color-bg)`.
-- [ ] Add global `:focus-visible` outline using `--color-primary`; add a global `@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }` baseline (primitives may override with explicit fallbacks).
-- [ ] **VERIFY** + commit `feat(ui): add Honey & Poppy design tokens`.
+- [x] Add the full `:root` token block from A.1 (keep existing `--bp-*` vars).
+- [x] Update `body`: `font-family: var(--font-sans)`, `color: var(--color-text)`, `background: var(--color-bg)`.
+- [x] Add global `:focus-visible` outline using `--color-primary`; add a global `@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }` baseline (primitives may override with explicit fallbacks).
+- [x] **VERIFY** + commit `feat(ui): add Honey & Poppy design tokens` (a292fac).
 
-#### Task 0.2: Vendor + wire Inter
-**Files:** Create `frontend/src/assets/fonts/inter/` (woff2), Modify `main.css`
-- [ ] Vendor Inter woff2 from rsms/inter; add `@font-face` (weights 400/500/600/700; `font-display: swap`).
-- [ ] Confirm `--font-sans` resolves to Inter (DevTools / a quick snapshot test of computed body font is optional).
-- [ ] **VERIFY** + commit `feat(ui): vendor and wire Inter body font`.
+#### Task 0.2 + 0.3: Wire Inter + SN Pro fonts (combined — user-approved @fontsource sourcing)
+**Files:** Modify `package.json`, `frontend/src/main.ts` (or `main.css`)
+> **Decision (user-approved):** Direct GitHub raw fetch of the woff2 was blocked by the sandbox; both fonts are available on npm as `@fontsource/inter` (Inter, OFL) and `@fontsource/sn-pro` (SN Pro, OFL) with woff2 + `@font-face` + license bundled. Use these packages — same fonts, properly licensed/packaged. This satisfies the spec's intent (vendor woff2, declare `@font-face`, map to tokens, respect license) without scraping GitHub. Supersedes the literal "vendor into `src/assets/fonts/`" wording.
+- [x] `cd frontend && npm i @fontsource/inter @fontsource/sn-pro`.
+- [x] Import the needed weight CSS in `main.ts` (before `./assets/main.css`): Inter 400/500/600/700, SN Pro 400/600/700. `@fontsource` sets `font-display: swap` by default.
+- [x] Family names confirmed: `@fontsource` registers `'Inter'` and `'SN Pro'` — match the tokens exactly.
+- [x] `h1,h2,h3{font-family:var(--font-display)}` added to main.css global block.
+- [x] **VERIFY** + commit `feat(ui): wire Inter and SN Pro fonts via @fontsource` (8e35b25).
 
-#### Task 0.3: Vendor + wire SN Pro (display)
-**Files:** Create `frontend/src/assets/fonts/sn-pro/` (woff2), Modify `main.css`
-- [ ] Fetch SN Pro woff2 from supernotes/sn-pro (respect license — include license file in the folder); add `@font-face` (`font-display: swap`).
-- [ ] Add global rule: `h1,h2,h3{font-family:var(--font-display)}`.
-- [ ] **VERIFY** + commit `feat(ui): vendor and wire SN Pro display font`.
-
-#### Task 0.4: Install lucide-vue-next + BaseIcon
+#### Task 0.4: Install @lucide/vue + BaseIcon ✅
 **Files:** Modify `package.json`; Create `frontend/src/components/base/BaseIcon.vue`, `BaseIcon.test.ts`
-- [ ] `cd frontend && npm i lucide-vue-next`.
-- [ ] `BaseIcon` props: `{ icon: Component; size?: 16|20|24; label?: string }`. If `label` set, render `aria-label` + `role="img"`; else `aria-hidden="true"`. Default size 20, stroke standardized.
-- [ ] Test: renders given icon, applies size, sets `aria-hidden` when no label and `aria-label` when label given.
-- [ ] **VERIFY** + commit `feat(ui): add lucide-vue-next and BaseIcon wrapper`.
+- [x] `cd frontend && npm i @lucide/vue` (migrated from the deprecated `lucide-vue-next` after review flagged the deprecation; user-approved).
+- [x] `BaseIcon` props: `{ icon: Component; size?: 16|20|24; label?: string }`. `label` → `aria-label` + `role="img"`; else `aria-hidden="true"`. Default size 20; stroke = lucide default (2).
+- [x] Test: renders given icon, applies size, sets `aria-hidden` when no label and `aria-label` when label given (9 tests).
+- [x] **VERIFY** + commit `feat(ui): add lucide-vue-next and BaseIcon wrapper` (a960f14) + migration `refactor(ui): migrate to @lucide/vue`.
 
 #### Task 0.5: BaseButton + IconButton
 **Files:** Create `base/BaseButton.vue`, `base/IconButton.vue`, `BaseButton.test.ts`, `IconButton.test.ts`

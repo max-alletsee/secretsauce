@@ -1,7 +1,7 @@
 // frontend/src/components/base/BaseIcon.test.ts
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
-import { Camera } from 'lucide-vue-next'
+import { Camera } from '@lucide/vue'
 import BaseIcon from './BaseIcon.vue'
 
 describe('BaseIcon', () => {
