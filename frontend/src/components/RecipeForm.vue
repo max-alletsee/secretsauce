@@ -54,7 +54,9 @@ const isValid = computed(
 const showIngredientDrawer = ref(false)
 const editingIngredientIndex = ref<number | null>(null)
 const editingIngredient = computed(() =>
-  editingIngredientIndex.value !== null ? ingredients.value[editingIngredientIndex.value] : null,
+  editingIngredientIndex.value !== null
+    ? (ingredients.value[editingIngredientIndex.value] ?? null)
+    : null,
 )
 
 function openIngredientDrawer(index: number | null) {
@@ -82,7 +84,7 @@ function deleteIngredient() {
 const showStepDrawer = ref(false)
 const editingStepIndex = ref<number | null>(null)
 const editingStep = computed(() =>
-  editingStepIndex.value !== null ? steps.value[editingStepIndex.value] : null,
+  editingStepIndex.value !== null ? (steps.value[editingStepIndex.value] ?? null) : null,
 )
 const editingStepNumber = computed(() =>
   editingStepIndex.value !== null ? editingStepIndex.value + 1 : steps.value.length + 1,

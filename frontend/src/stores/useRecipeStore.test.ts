@@ -53,6 +53,12 @@ describe('useRecipeStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.clearAllMocks()
+    // Default resolution so watcher-triggered fetchRecipes() calls (fired when a
+    // test mutates searchQuery/selectedTags/sortBy) resolve instead of rejecting.
+    // Tests that assert on specific data override this with mockResolvedValueOnce.
+    vi.mocked(recipesApi.getRecipes).mockResolvedValue(
+      axiosOk<PaginatedResponse<Recipe>>({ items: [], next_cursor: null, has_more: false }),
+    )
   })
 
   it('starts with empty state', () => {
@@ -174,7 +180,7 @@ describe('useRecipeStore', () => {
     await store.deleteRecipe('r1')
 
     expect(store.recipes).toHaveLength(1)
-    expect(store.recipes[0].id).toBe('r2')
+    expect(store.recipes[0]!.id).toBe('r2')
     expect(recipesApi.deleteRecipe).toHaveBeenCalledWith('r1')
   })
 
@@ -261,7 +267,7 @@ describe('useRecipeStore', () => {
     store.searchQuery = ''
     await store.fetchRecipes()
 
-    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0][0]
+    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0]![0]
     expect(callArgs?.q).toBeUndefined()
   })
 
@@ -274,7 +280,7 @@ describe('useRecipeStore', () => {
     store.selectedTags = []
     await store.fetchRecipes()
 
-    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0][0]
+    const callArgs = vi.mocked(recipesApi.getRecipes).mock.calls[0]![0]
     expect(callArgs?.tags).toBeUndefined()
   })
 
