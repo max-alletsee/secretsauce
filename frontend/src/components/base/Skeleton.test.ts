@@ -4,14 +4,17 @@ import { describe, expect, it } from 'vitest'
 import Skeleton from './Skeleton.vue'
 
 describe('Skeleton', () => {
-  it('renders a single root element', () => {
+  it('renders a div root element', () => {
     const wrapper = mount(Skeleton)
-    expect(wrapper.element.tagName).toBeDefined()
+    expect(wrapper.element.tagName).toBe('DIV')
   })
 
   it('applies default width of 100% when no width prop is given', () => {
     const wrapper = mount(Skeleton)
-    expect(wrapper.attributes('style')).toContain('width: 100%')
+    const style = wrapper.attributes('style') ?? ''
+    expect(style).toContain('width: 100%')
+    expect(style).toContain('height: 1rem')
+    expect(style).toContain('border-radius: var(--radius-sm)')
   })
 
   it('applies custom width from prop', () => {

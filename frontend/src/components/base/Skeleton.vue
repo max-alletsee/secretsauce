@@ -52,7 +52,6 @@ const style = computed(() => ({
    fallback here to be explicit and ensure correct appearance in all environments. */
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
-    background-image: none;
     background: var(--color-surface-2);
     animation: none;
   }
