@@ -368,11 +368,11 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test the component emits reordered array when up/down pressed.
 - [x] **VERIFY** + commit `feat(ui): add DragList with reorder + reindex helper` (543bf4c) + test-harden (c485a0f).
 
-#### Task 0.15: Upgrade BottomSheet + ToastHost to tokens
+#### Task 0.15: Upgrade BottomSheet + ToastHost to tokens ✅
 **Files:** Modify `frontend/src/components/BottomSheet.vue`, `frontend/src/components/ToastHost.vue`
-- [ ] Replace hardcoded hex in `BottomSheet.vue` with tokens; swap `×` close glyph for `IconButton` w/ `X` icon (keep `data-testid="sheet-close"` + `aria-label="Close"`); animation gets reduced-motion fallback. Keep all existing props/emits/testids.
-- [ ] Restyle `ToastHost.vue` to tokens (surface, text, primary for undo). Keep behavior.
-- [ ] **VERIFY** (existing `BottomSheet.test.ts` must still pass) + commit `refactor(ui): tokenize BottomSheet and ToastHost`.
+- [x] Replace hardcoded hex in `BottomSheet.vue` with tokens; swap `×` close glyph for `IconButton` w/ `X` icon (keep `data-testid="sheet-close"` + `aria-label="Close"`); animation gets reduced-motion fallback. Keep all existing props/emits/testids.
+- [x] Restyle `ToastHost.vue` to tokens (surface, text, primary for undo). Keep behavior.
+- [x] **VERIFY** (existing `BottomSheet.test.ts` still passes) + commit `refactor(ui): tokenize BottomSheet and ToastHost` (f8819a8).
 
 #### Task 0.16: TabBar + UserMenu + BaseAvatar (primitives for Phase 1)
 **Files:** Create `base/TabBar.vue`, `base/UserMenu.vue`, `base/BaseAvatar.vue`, tests
