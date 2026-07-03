@@ -7,6 +7,11 @@ const props = defineProps<{
   label?: string
 }>()
 
+const clampedValue = computed(() => {
+  if (props.max <= 0) return 0
+  return Math.min(Math.max(props.value, 0), props.max)
+})
+
 const fillPercent = computed(() => {
   if (props.max <= 0) return 0
   const pct = (props.value / props.max) * 100
@@ -20,7 +25,7 @@ const fillPercent = computed(() => {
     <div
       class="progress-bar__track"
       role="progressbar"
-      :aria-valuenow="value"
+      :aria-valuenow="clampedValue"
       aria-valuemin="0"
       :aria-valuemax="max"
     >

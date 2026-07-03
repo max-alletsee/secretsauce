@@ -9,10 +9,22 @@ describe('ProgressBar', () => {
     expect(wrapper.find('[role="progressbar"]').exists()).toBe(true)
   })
 
-  it('sets aria-valuenow to the value prop', () => {
+  it('sets aria-valuenow to the clamped value (normal case: value=30, max=100)', () => {
     const wrapper = mount(ProgressBar, { props: { value: 30, max: 100 } })
     const bar = wrapper.find('[role="progressbar"]')
     expect(bar.attributes('aria-valuenow')).toBe('30')
+  })
+
+  it('clamps aria-valuenow to max when value exceeds max (value=150, max=100)', () => {
+    const wrapper = mount(ProgressBar, { props: { value: 150, max: 100 } })
+    const bar = wrapper.find('[role="progressbar"]')
+    expect(bar.attributes('aria-valuenow')).toBe('100')
+  })
+
+  it('clamps aria-valuenow to 0 when value is negative (value=-10, max=100)', () => {
+    const wrapper = mount(ProgressBar, { props: { value: -10, max: 100 } })
+    const bar = wrapper.find('[role="progressbar"]')
+    expect(bar.attributes('aria-valuenow')).toBe('0')
   })
 
   it('sets aria-valuemin to 0', () => {

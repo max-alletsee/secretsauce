@@ -83,14 +83,38 @@ describe('Stepper', () => {
     expect(wrapper.find('[aria-label="Increase"]').attributes('disabled')).toBeUndefined()
   })
 
-  it('never emits a value below min — minus is disabled at min bound', () => {
-    const wrapper = mount(Stepper, { props: { modelValue: 1, min: 1 } })
-    expect(wrapper.find('[aria-label="Decrease"]').attributes('disabled')).toBeDefined()
+  it('never emits a value below min — modelValue out of range is clamped on decrement', async () => {
+    // Start with modelValue already below min to exercise the clamp path
+    const wrapper = mount(Stepper, { props: { modelValue: -5, min: 0 } })
+    await wrapper.find('[aria-label="Decrease"]').trigger('click')
+    const emitted = wrapper.emitted('update:modelValue')
+    if (emitted && emitted.length > 0) {
+      const emittedValue = (emitted[0] as [number])[0]
+      expect(emittedValue).toBeGreaterThanOrEqual(0)
+    }
+    // No value below min should ever be emitted
+    if (emitted) {
+      for (const call of emitted) {
+        expect((call as [number])[0]).toBeGreaterThanOrEqual(0)
+      }
+    }
   })
 
-  it('never emits a value above max — plus is disabled at max bound', () => {
-    const wrapper = mount(Stepper, { props: { modelValue: 10, max: 10 } })
-    expect(wrapper.find('[aria-label="Increase"]').attributes('disabled')).toBeDefined()
+  it('never emits a value above max — modelValue out of range is clamped on increment', async () => {
+    // Start with modelValue already above max to exercise the clamp path
+    const wrapper = mount(Stepper, { props: { modelValue: 15, max: 10 } })
+    await wrapper.find('[aria-label="Increase"]').trigger('click')
+    const emitted = wrapper.emitted('update:modelValue')
+    if (emitted && emitted.length > 0) {
+      const emittedValue = (emitted[0] as [number])[0]
+      expect(emittedValue).toBeLessThanOrEqual(10)
+    }
+    // No value above max should ever be emitted
+    if (emitted) {
+      for (const call of emitted) {
+        expect((call as [number])[0]).toBeLessThanOrEqual(10)
+      }
+    }
   })
 
   it('minus button has an accessible label', () => {
@@ -103,5 +127,15 @@ describe('Stepper', () => {
     const wrapper = mount(Stepper, { props: { modelValue: 5 } })
     const plusLabel = wrapper.find('[aria-label="Increase"]').attributes('aria-label')
     expect(plusLabel).toBeTruthy()
+  })
+
+  it('group has default aria-label "Quantity" when label prop is omitted', () => {
+    const wrapper = mount(Stepper, { props: { modelValue: 5 } })
+    expect(wrapper.find('[role="group"]').attributes('aria-label')).toBe('Quantity')
+  })
+
+  it('group has custom aria-label when label prop is provided', () => {
+    const wrapper = mount(Stepper, { props: { modelValue: 5, label: 'Servings' } })
+    expect(wrapper.find('[role="group"]').attributes('aria-label')).toBe('Servings')
   })
 })

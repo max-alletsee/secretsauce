@@ -9,9 +9,11 @@ const props = withDefaults(
     min?: number
     max?: number
     step?: number
+    label?: string
   }>(),
   {
     step: 1,
+    label: 'Quantity',
   },
 )
 
@@ -44,7 +46,7 @@ function increment() {
 </script>
 
 <template>
-  <div class="stepper" role="group">
+  <div class="stepper" role="group" :aria-label="label">
     <IconButton
       :icon="Minus"
       label="Decrease"
