@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
   modelValue: string
@@ -9,6 +9,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+const tablistRef = ref<HTMLElement | null>(null)
 
 const activeIndex = computed(() => props.tabs.findIndex((t) => t.value === props.modelValue))
 
@@ -35,23 +37,21 @@ function handleKeydown(event: KeyboardEvent) {
     const nextTab = props.tabs[nextIndex]
     if (!nextTab) return
     emit('update:modelValue', nextTab.value)
-    // Move focus to the newly selected tab button
-    const tabEls = (event.currentTarget as HTMLElement)
-      ?.closest('[role="tablist"]')
-      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    // Move focus to the newly selected tab button via template ref
+    const tabEls = tablistRef.value?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
     tabEls?.[nextIndex]?.focus()
   }
 }
 </script>
 
 <template>
-  <div class="segmented-tabs" role="tablist">
+  <div ref="tablistRef" class="segmented-tabs" role="tablist">
     <button
       v-for="tab in tabs"
       :key="tab.value"
       role="tab"
       type="button"
-      :aria-selected="tab.value === modelValue"
+      :aria-selected="tab.value === modelValue ? 'true' : 'false'"
       :tabindex="tab.value === modelValue ? 0 : -1"
       :class="['segmented-tabs__tab', { 'segmented-tabs__tab--active': tab.value === modelValue }]"
       @click="selectTab(tab.value)"

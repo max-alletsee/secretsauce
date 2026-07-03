@@ -61,4 +61,19 @@ describe('EmptyState', () => {
     })
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
+
+  it('renders only one body element when both body prop and default slot are provided', () => {
+    const wrapper = mount(EmptyState, {
+      props: { title: 'Nothing here', body: 'Prop body text' },
+      slots: {
+        default: 'Slot body text',
+      },
+    })
+    // Slot takes priority; only one .empty-state__body should appear
+    const bodyEls = wrapper.findAll('.empty-state__body')
+    expect(bodyEls).toHaveLength(1)
+    // The slot content wins
+    expect(wrapper.find('.empty-state__body').text()).toContain('Slot body text')
+    expect(wrapper.find('.empty-state__body').text()).not.toContain('Prop body text')
+  })
 })

@@ -106,4 +106,30 @@ describe('SegmentedTabs', () => {
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
     expect(wrapper.emitted('update:modelValue')![0]).toEqual(['url'])
   })
+
+  it('ArrowRight moves DOM focus to the next tab button', async () => {
+    const wrapper = mount(SegmentedTabs, {
+      props: { modelValue: 'url', tabs },
+      attachTo: document.body,
+    })
+    const [tab0] = wrapper.findAll('[role="tab"]')
+    await tab0!.trigger('keydown', { key: 'ArrowRight' })
+    // After pressing ArrowRight from the first tab, focus should land on the second button
+    const allTabEls = wrapper.findAll('[role="tab"]')
+    expect(document.activeElement).toBe(allTabEls[1]!.element)
+    wrapper.unmount()
+  })
+
+  it('ArrowRight from the last tab wraps focus to the first tab button', async () => {
+    const wrapper = mount(SegmentedTabs, {
+      props: { modelValue: 'manual', tabs },
+      attachTo: document.body,
+    })
+    const [, , tab2] = wrapper.findAll('[role="tab"]')
+    await tab2!.trigger('keydown', { key: 'ArrowRight' })
+    // Wrap-around: focus should land on the first button
+    const allTabEls = wrapper.findAll('[role="tab"]')
+    expect(document.activeElement).toBe(allTabEls[0]!.element)
+    wrapper.unmount()
+  })
 })

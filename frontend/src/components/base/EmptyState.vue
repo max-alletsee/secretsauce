@@ -11,10 +11,10 @@ defineProps<{
       <slot name="illustration" />
     </div>
     <h2 class="empty-state__title">{{ title }}</h2>
-    <p v-if="body" class="empty-state__body">{{ body }}</p>
     <div v-if="$slots.default" class="empty-state__body">
       <slot />
     </div>
+    <p v-else-if="body" class="empty-state__body">{{ body }}</p>
     <div v-if="$slots.action" class="empty-state__action">
       <slot name="action" />
     </div>
