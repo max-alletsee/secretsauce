@@ -319,12 +319,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: ToggleChip toggles modelValue on click + sets `aria-pressed`.
 - [x] **VERIFY** + commit `feat(ui): add Chip and ToggleChip primitives` (1a0d926) + review fixes (b628ed3).
 
-#### Task 0.8: BaseCard + Skeleton
+#### Task 0.8: BaseCard + Skeleton ✅
 **Files:** Create `base/BaseCard.vue`, `base/Skeleton.vue`, `Skeleton.test.ts`
-- [ ] `BaseCard`: surface + `--radius` + `--shadow-sm`, padding via `--space-4`, default slot.
-- [ ] `Skeleton`: props `{ width?; height?; radius? }`; shimmer animation; `prefers-reduced-motion` → static `--color-surface-2` block.
-- [ ] Test: Skeleton renders with given dimensions.
-- [ ] **VERIFY** + commit `feat(ui): add BaseCard and Skeleton primitives`.
+- [x] `BaseCard`: surface + `--radius` + `--shadow-sm`, padding via `--space-4`, default slot.
+- [x] `Skeleton`: props `{ width?; height?; radius? }`; shimmer animation; `prefers-reduced-motion` → static `--color-surface-2` block.
+- [x] Test: Skeleton renders with given dimensions.
+- [x] **VERIFY** + commit `feat(ui): add BaseCard and Skeleton primitives` (a21abe4) + review fixes (cbc7272).
 
 #### Task 0.9: PourLoader (with reduced-motion fallback)
 **Files:** Create `base/PourLoader.vue`, `PourLoader.test.ts`
