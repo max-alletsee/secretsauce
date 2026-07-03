@@ -360,13 +360,13 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: emits `confirm` on confirm button, `cancel` on cancel + Escape (+ Tab-trap tests).
 - [x] **VERIFY** + commit `feat(ui): add ConfirmDialog primitive` (147d24b) + review fixes (ab589e7).
 
-#### Task 0.14: Stepper-free — DragList (with reindex test)
-**Files:** Create `base/DragList.vue`, `base/DragList.test.ts`
-- [ ] `DragList<T>` props `{ items: T[]; keyField: keyof T }`; default slot per item; emits `update:items` (or `reorder`) with the reordered array. Provide non-pointer reorder fallback: up/down `IconButton`s (`ChevronUp`/`ChevronDown`) per row so it's keyboard/assistive accessible (satisfies the swipe-fallback guardrail spirit + reindex logic is testable without simulating drag).
-- [ ] **Logic to test (TDD):** a pure `moveItem(items, from, to)` helper that returns a new reordered array. Test: moving index 0→2 reorders correctly and preserves all elements; moving up/down reindexes.
-- [ ] Write failing test for `moveItem` → run (fail) → implement → run (pass).
-- [ ] Test the component emits reordered array when up/down pressed.
-- [ ] **VERIFY** + commit `feat(ui): add DragList with reorder + reindex helper`.
+#### Task 0.14: Stepper-free — DragList (with reindex test) ✅
+**Files:** Create `base/DragList.vue`, `base/DragList.test.ts`, `base/moveItem.ts`, `base/moveItem.test.ts`
+- [x] `DragList<T>` props `{ items: T[]; keyField: keyof T }`; default slot per item; emits `update:items` with the reordered array. Up/down `IconButton`s (`ChevronUp`/`ChevronDown`) per row, disabled at ends.
+- [x] **Logic to test (TDD):** pure `moveItem(items, from, to)` helper (at `base/moveItem.ts`) returns a new reordered array; preserves elements; from===to/out-of-bounds → shallow copy.
+- [x] Write failing test for `moveItem` → run (fail) → implement → run (pass).
+- [x] Test the component emits reordered array when up/down pressed.
+- [x] **VERIFY** + commit `feat(ui): add DragList with reorder + reindex helper` (543bf4c) + test-harden (c485a0f).
 
 #### Task 0.15: Upgrade BottomSheet + ToastHost to tokens
 **Files:** Modify `frontend/src/components/BottomSheet.vue`, `frontend/src/components/ToastHost.vue`
