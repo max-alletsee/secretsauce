@@ -1,11 +1,8 @@
 <script setup lang="ts">
-const props = withDefaults(
-  defineProps<{
-    modelValue: boolean
-    label?: string
-  }>(),
-  {},
-)
+const props = defineProps<{
+  modelValue: boolean
+  label?: string
+}>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -19,7 +16,7 @@ function toggle() {
 <template>
   <button
     type="button"
-    :class="['chip', 'toggle-chip', { 'chip--active': modelValue }]"
+    :class="['toggle-chip', { 'chip--active': modelValue }]"
     :aria-pressed="modelValue"
     @click="toggle"
   >
@@ -47,7 +44,7 @@ function toggle() {
 
 .toggle-chip:hover:not(:disabled) {
   background: var(--color-accent-soft);
-  border-color: var(--color-accent-soft);
+  border-color: transparent;
 }
 
 .toggle-chip.chip--active {
@@ -57,6 +54,7 @@ function toggle() {
 }
 
 .toggle-chip.chip--active:hover {
+  /* darken active chip on hover (no darker-primary token exists) */
   filter: brightness(0.92);
 }
 
