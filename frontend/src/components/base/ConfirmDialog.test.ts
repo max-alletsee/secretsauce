@@ -1,5 +1,6 @@
 // frontend/src/components/base/ConfirmDialog.test.ts
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import { describe, expect, it } from 'vitest'
 import ConfirmDialog from './ConfirmDialog.vue'
 
@@ -81,6 +82,67 @@ describe('ConfirmDialog', () => {
     })
     await wrapper.trigger('keydown', { key: 'Escape' })
     expect(wrapper.emitted('cancel')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('Tab on last focusable wraps focus to first focusable', async () => {
+    const wrapper = mount(ConfirmDialog, {
+      props: defaultProps,
+      global: { stubs: { teleport: true } },
+      attachTo: document.body,
+    })
+    await nextTick()
+
+    // Locate focusable elements using the same selector as the component
+    const FOCUSABLES =
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const dialogEl = wrapper.find('[role="dialog"]').element
+    const focusables = Array.from(dialogEl.querySelectorAll<HTMLElement>(FOCUSABLES))
+    expect(focusables.length).toBeGreaterThanOrEqual(2)
+
+    const first = focusables[0]!
+    const last = focusables[focusables.length - 1]!
+
+    // Put focus on the last button
+    last.focus()
+    expect(document.activeElement).toBe(last)
+
+    // Dispatch Tab on document (where the trap listener lives)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))
+    await nextTick()
+
+    expect(document.activeElement).toBe(first)
+
+    wrapper.unmount()
+  })
+
+  it('Shift+Tab on first focusable wraps focus to last focusable', async () => {
+    const wrapper = mount(ConfirmDialog, {
+      props: defaultProps,
+      global: { stubs: { teleport: true } },
+      attachTo: document.body,
+    })
+    await nextTick()
+
+    const FOCUSABLES =
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    const dialogEl = wrapper.find('[role="dialog"]').element
+    const focusables = Array.from(dialogEl.querySelectorAll<HTMLElement>(FOCUSABLES))
+    expect(focusables.length).toBeGreaterThanOrEqual(2)
+
+    const first = focusables[0]!
+    const last = focusables[focusables.length - 1]!
+
+    // Put focus on the first button
+    first.focus()
+    expect(document.activeElement).toBe(first)
+
+    // Dispatch Shift+Tab on document (where the trap listener lives)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true }))
+    await nextTick()
+
+    expect(document.activeElement).toBe(last)
+
     wrapper.unmount()
   })
 

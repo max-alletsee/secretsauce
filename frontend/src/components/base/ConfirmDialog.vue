@@ -18,6 +18,10 @@ const props = withDefaults(
   },
 )
 
+// Stable unique id generated once at setup — does NOT embed title text to avoid
+// whitespace/special-char issues with HTML id attributes.
+const dialogTitleId = `dialog-title-${Math.random().toString(36).slice(2, 9)}`
+
 const emit = defineEmits<{
   (e: 'confirm'): void
   (e: 'cancel'): void
@@ -111,10 +115,10 @@ onUnmounted(() => {
         class="dialog"
         role="dialog"
         aria-modal="true"
-        :aria-labelledby="`dialog-title-${title}`"
+        :aria-labelledby="dialogTitleId"
       >
         <header class="dialog-header">
-          <h3 :id="`dialog-title-${title}`" class="dialog-title">{{ title }}</h3>
+          <h3 :id="dialogTitleId" class="dialog-title">{{ title }}</h3>
         </header>
 
         <div v-if="message" class="dialog-body">
