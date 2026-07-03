@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-06-29 — through Task 0.5)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 0 COMPLETE through Task 0.17; awaiting user sign-off before Phase 1)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -48,13 +48,11 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. Continue work on `worktree-ux-overhaul` in the worktree; fast-forward `ui-shell-rework` again at later checkpoints. Nothing pushed to origin yet.
 
 ### Status snapshot
-- ✅ **Task 0.1** — design tokens (reviewed, clean)
-- ✅ **Task 0.2+0.3** — Inter + SN Pro fonts (reviewed, clean)
-- ✅ **Task 0.4** — `BaseIcon` + `@lucide/vue` (reviewed, clean; 9 tests)
-- ✅ **Task 0.5** — `BaseButton` + `IconButton` (reviewed clean after fix loop; 18 tests). Test suite at **193 tests passing**.
-- ⏭️ **NEXT: Task 0.6** — `BaseInput` + `BaseTextarea`. Extract brief: `task-brief docs/plans/ux-overhaul.md 0.6`; dispatch a fresh implementer (TDD); review; commit. New BASE for 0.6 = `bc90983`.
-- ⏳ **Tasks 0.7 → 0.17** — not started (chips, card/skeleton, PourLoader, wordmark+favicon, progress/stepper, segmented/empty, confirm, draglist, bottomsheet+toast tokenize, tabbar/usermenu/avatar, emoji sweep). **Reminder:** when Task 0.9 builds `PourLoader`, swap BaseButton's temporary inline spinner for it.
-- ⏳ **Phases 1–11** — not started. Phase 0 checkpoint (user sign-off) still pending after 0.17.
+- ✅ **PHASE 0 COMPLETE — all Tasks 0.1 → 0.17 done, reviewed, and fixed.** Full verification GREEN at commit `7321873`: type-check ✓, build ✓, **372 tests / 50 files** ✓. No emoji-as-icon remain in `frontend/src`. All primitives built + tested under `src/components/base/`: BaseIcon, BaseButton, IconButton, BaseInput, BaseTextarea, Chip, ToggleChip, BaseCard, Skeleton, PourLoader, Wordmark, ProgressBar, Stepper, SegmentedTabs, EmptyState, ConfirmDialog, DragList (+moveItem), TabBar, UserMenu, BaseAvatar; BottomSheet + ToastHost tokenized; dot favicon added.
+- ⏸️ **Phase 0 checkpoint = user sign-off PENDING before Phase 1** (per executing-plans checkpoints).
+- ⏭️ **NEXT after sign-off: Task 1.1** — `App.vue` desktop top bar with `Wordmark` + `UserMenu`. Extract brief: `task-brief docs/plans/ux-overhaul.md 1.1`; dispatch fresh implementer; review; commit. New BASE for 1.1 = the commit after the "docs: mark Task 0.17 / Phase 0 complete" commit.
+- ⏳ **Phases 1–11** — not started.
+- **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch).
 
 ### Cross-task reminders for later phases
 - `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
@@ -382,13 +380,13 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Tests: TabBar renders all items; UserMenu opens/closes, item onClick, Escape/focus-return, click-outside.
 - [x] **VERIFY** + commit `feat(ui): add TabBar, UserMenu, BaseAvatar primitives` (58e68b2) + a11y fixes (b890d34).
 
-#### Task 0.17: Emoji sweep + global loader replacement
+#### Task 0.17: Emoji sweep + global loader replacement ✅
 **Files:** repo-wide under `frontend/src/`
-- [ ] Grep `frontend/src/` for emoji-as-icon glyphs; list every hit. Replace each with `BaseIcon` + a Lucide icon per A.3 (touch only the icon, not behavior; deeper view reworks happen in their phases — here just swap obvious nav/decoration emoji and any inline `Loading…` text/spinners for `PourLoader`).
-- [ ] Confirm no emoji icons remain (re-grep).
-- [ ] **VERIFY** + commit `refactor(ui): replace emoji icons and text loaders`.
+- [x] Grep `frontend/src/` for emoji-as-icon glyphs; list every hit. Replace each with `BaseIcon` + a Lucide icon per A.3 (touch only the icon, not behavior; deeper view reworks happen in their phases — here just swap obvious nav/decoration emoji and any inline `Loading…` text/spinners for `PourLoader`).
+- [x] Confirm no emoji icons remain (re-grep — none).
+- [x] **VERIFY** + commit `refactor(ui): replace emoji icons and text loaders` (2a7c3b4) + a11y/nesting fixes (7321873).
 
-**Phase 0 checkpoint:** typecheck+build+tests green; primitives exist + tested; no emoji icons; loaders use PourLoader. **Pause for user sign-off before Phase 1** (per executing-plans checkpoints).
+**Phase 0 checkpoint:** ✅ typecheck+build+tests green (372 tests / 50 files); primitives exist + tested; no emoji icons; loaders use PourLoader. **⏸️ PAUSED for user sign-off before Phase 1** (per executing-plans checkpoints).
 
 ---
 
