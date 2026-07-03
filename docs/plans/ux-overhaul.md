@@ -313,11 +313,11 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Tests: v-model round-trip; error renders + `aria-invalid="true"`.
 - [x] **VERIFY** + commit `feat(ui): add BaseInput and BaseTextarea primitives` (ffa018f) + focus-visible fix (04b19ef).
 
-#### Task 0.7: Chip + ToggleChip
+#### Task 0.7: Chip + ToggleChip ✅
 **Files:** Create `base/Chip.vue`, `base/ToggleChip.vue`, `ToggleChip.test.ts`
-- [ ] `Chip` props `{ tone?: 'accent'|'neutral' }`, slot label. `ToggleChip` props `{ modelValue: boolean; label?: string }`, emits `update:modelValue`, `aria-pressed`, `:focus-visible`.
-- [ ] Test: ToggleChip toggles modelValue on click + sets `aria-pressed`.
-- [ ] **VERIFY** + commit `feat(ui): add Chip and ToggleChip primitives`.
+- [x] `Chip` props `{ tone?: 'accent'|'neutral' }`, slot label. `ToggleChip` props `{ modelValue: boolean; label?: string }`, emits `update:modelValue`, `aria-pressed`, `:focus-visible`.
+- [x] Test: ToggleChip toggles modelValue on click + sets `aria-pressed`.
+- [x] **VERIFY** + commit `feat(ui): add Chip and ToggleChip primitives` (1a0d926) + review fixes (b628ed3).
 
 #### Task 0.8: BaseCard + Skeleton
 **Files:** Create `base/BaseCard.vue`, `base/Skeleton.vue`, `Skeleton.test.ts`
