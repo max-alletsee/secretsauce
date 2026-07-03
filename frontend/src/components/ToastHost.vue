@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { X } from '@lucide/vue'
+import IconButton from './base/IconButton.vue'
 import { useToast } from '@/composables/useToast'
 
 const { toasts, dismiss, runUndo } = useToast()
@@ -23,13 +25,14 @@ const { toasts, dismiss, runUndo } = useToast()
         >
           {{ toast.undoLabel }}
         </button>
-        <button
-          class="toast-close"
-          aria-label="Dismiss"
+        <IconButton
+          :icon="X"
+          label="Dismiss"
+          variant="ghost"
+          :size="16"
+          class="toast-close-btn"
           @click="dismiss(toast.id)"
-        >
-          ×
-        </button>
+        />
       </div>
     </div>
   </Teleport>
@@ -38,26 +41,27 @@ const { toasts, dismiss, runUndo } = useToast()
 <style scoped>
 .toast-host {
   position: fixed;
-  bottom: 1rem;
+  bottom: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
   z-index: 400;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
   pointer-events: none;
 }
 .toast {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: #1f2937;
-  color: #fff;
-  padding: 0.6rem 0.9rem;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  gap: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow);
   min-width: 260px;
   max-width: 90vw;
 }
@@ -65,21 +69,17 @@ const { toasts, dismiss, runUndo } = useToast()
 .toast-undo {
   background: none;
   border: none;
-  color: #93c5fd;
+  color: var(--color-primary);
   font-weight: 600;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   padding: 0;
 }
-.toast-undo:hover { color: #bfdbfe; }
-.toast-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 0;
+.toast-undo:hover {
+  filter: brightness(0.85);
 }
-.toast-close:hover { color: #fff; }
+.toast-close-btn {
+  /* Tighten the ghost button in the toast context */
+  color: var(--color-text-muted);
+}
 </style>

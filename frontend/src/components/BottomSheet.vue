@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, nextTick } from 'vue'
+import { X } from '@lucide/vue'
+import IconButton from './base/IconButton.vue'
 
 const props = defineProps<{
   title?: string
@@ -62,24 +64,25 @@ onUnmounted(() => {
     >
       <header v-if="props.title" class="sheet-header">
         <h3 class="sheet-title">{{ props.title }}</h3>
-        <button
-          class="sheet-close"
-          aria-label="Close"
+        <IconButton
+          :icon="X"
+          label="Close"
+          variant="ghost"
+          :size="20"
           data-testid="sheet-close"
           @click="emit('close')"
-        >
-          ×
-        </button>
+        />
       </header>
-      <button
+      <IconButton
         v-else
-        class="sheet-close sheet-close--floating"
-        aria-label="Close"
+        :icon="X"
+        label="Close"
+        variant="ghost"
+        :size="20"
+        class="sheet-close--floating"
         data-testid="sheet-close"
         @click="emit('close')"
-      >
-        ×
-      </button>
+      />
       <div class="sheet-body">
         <slot />
       </div>
@@ -102,10 +105,10 @@ onUnmounted(() => {
   width: 100%;
   max-width: 480px;
   max-height: 85dvh;
-  background: #fff;
+  background: var(--color-surface);
   z-index: 300;
-  border-radius: 16px 16px 0 0;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   animation: slide-up 0.18s ease;
@@ -118,31 +121,22 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1.125rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 .sheet-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
+  color: var(--color-text);
 }
-.sheet-close {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6b7280;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0.25rem 0.5rem;
-}
-.sheet-close:hover { color: #111; }
 .sheet-close--floating {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: var(--space-2);
+  right: var(--space-2);
 }
 .sheet-body {
-  padding: 1rem 1.125rem 1.25rem;
+  padding: var(--space-4) var(--space-4) var(--space-5);
   overflow-y: auto;
 }
 @media (min-width: 768px) {
@@ -150,12 +144,17 @@ onUnmounted(() => {
     bottom: auto;
     top: 50%;
     transform: translate(-50%, -50%);
-    border-radius: 12px;
+    border-radius: var(--radius);
     animation: fade-in 0.15s ease;
   }
   @keyframes fade-in {
     from { transform: translate(-50%, -45%); opacity: 0; }
     to { transform: translate(-50%, -50%); opacity: 1; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bottom-sheet {
+    animation: none !important;
   }
 }
 </style>
