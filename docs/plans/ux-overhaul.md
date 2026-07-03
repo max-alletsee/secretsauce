@@ -347,12 +347,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Tests: ProgressBar sets aria values + fill width % = value/max; Stepper increments/decrements/clamps.
 - [x] **VERIFY** + commit `feat(ui): add ProgressBar and Stepper primitives` (f86f8ef) + review fixes (b6e38d0).
 
-#### Task 0.12: SegmentedTabs + EmptyState
+#### Task 0.12: SegmentedTabs + EmptyState ✅
 **Files:** Create `base/SegmentedTabs.vue`, `base/EmptyState.vue`, `SegmentedTabs.test.ts`
-- [ ] `SegmentedTabs` props `{ modelValue: string; tabs: {value:string;label:string}[] }`; emits `update:modelValue`; `role="tablist"`/`tab`, keyboard arrow support; active tab styled with `--color-primary`.
-- [ ] `EmptyState` slots: `illustration`, default(body) + props `{ title; body? }` + `action` slot.
-- [ ] Test: SegmentedTabs switches modelValue on tab click + arrow keys.
-- [ ] **VERIFY** + commit `feat(ui): add SegmentedTabs and EmptyState primitives`.
+- [x] `SegmentedTabs` props `{ modelValue: string; tabs: {value:string;label:string}[] }`; emits `update:modelValue`; `role="tablist"`/`tab`, keyboard arrow support (wrap + focus move); active tab styled with `--color-primary`.
+- [x] `EmptyState` slots: `illustration`, default(body) + props `{ title; body? }` + `action` slot.
+- [x] Test: SegmentedTabs switches modelValue on tab click + arrow keys.
+- [x] **VERIFY** + commit `feat(ui): add SegmentedTabs and EmptyState primitives` (7f24e4e) + review fixes (e472b32).
 
 #### Task 0.13: ConfirmDialog
 **Files:** Create `base/ConfirmDialog.vue`, `ConfirmDialog.test.ts`
