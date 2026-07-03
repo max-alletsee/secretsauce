@@ -307,11 +307,11 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Tests (18): variant class, disabled/loading disables, IconButton aria-label, decorative svg, size propagation.
 - [x] **VERIFY** + commit `feat(ui): add BaseButton and IconButton primitives` (9159121) + review fixes (44bf46c, bc90983).
 
-#### Task 0.6: BaseInput + BaseTextarea
+#### Task 0.6: BaseInput + BaseTextarea ✅
 **Files:** Create `base/BaseInput.vue`, `base/BaseTextarea.vue`, tests
-- [ ] `v-model` (modelValue/update:modelValue); props `{ label?; error?; id?; type?; placeholder?; required? }`; error text in `--color-danger`, `aria-invalid` + `aria-describedby` wired to error id.
-- [ ] Tests: v-model round-trip; error renders + `aria-invalid="true"`.
-- [ ] **VERIFY** + commit `feat(ui): add BaseInput and BaseTextarea primitives`.
+- [x] `v-model` (modelValue/update:modelValue); props `{ label?; error?; id?; type?; placeholder?; required? }`; error text in `--color-danger`, `aria-invalid` + `aria-describedby` wired to error id.
+- [x] Tests: v-model round-trip; error renders + `aria-invalid="true"`.
+- [x] **VERIFY** + commit `feat(ui): add BaseInput and BaseTextarea primitives` (ffa018f) + focus-visible fix (04b19ef).
 
 #### Task 0.7: Chip + ToggleChip
 **Files:** Create `base/Chip.vue`, `base/ToggleChip.vue`, `ToggleChip.test.ts`
