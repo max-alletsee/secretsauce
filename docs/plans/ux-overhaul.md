@@ -374,13 +374,13 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Restyle `ToastHost.vue` to tokens (surface, text, primary for undo). Keep behavior.
 - [x] **VERIFY** (existing `BottomSheet.test.ts` still passes) + commit `refactor(ui): tokenize BottomSheet and ToastHost` (f8819a8).
 
-#### Task 0.16: TabBar + UserMenu + BaseAvatar (primitives for Phase 1)
+#### Task 0.16: TabBar + UserMenu + BaseAvatar (primitives for Phase 1) ✅
 **Files:** Create `base/TabBar.vue`, `base/UserMenu.vue`, `base/BaseAvatar.vue`, tests
-- [ ] `TabBar` props `{ items: {to;label;icon}[] }` renders RouterLinks w/ active state (icons via `BaseIcon`).
-- [ ] `BaseAvatar` props `{ name?: string }` → initials or `CircleUser` icon fallback.
-- [ ] `UserMenu` props `{ items: {label;onClick?;to?}[] }`; account `IconButton` (`label="Account"`) toggles a menu/`BottomSheet`; keyboard + Escape close; `aria-expanded`.
-- [ ] Tests: TabBar renders all items; UserMenu opens/closes and emits item selection.
-- [ ] **VERIFY** + commit `feat(ui): add TabBar, UserMenu, BaseAvatar primitives`.
+- [x] `TabBar` props `{ items: {to;label;icon}[] }` renders RouterLinks w/ active state (icons via `BaseIcon`).
+- [x] `BaseAvatar` props `{ name?: string }` → initials or `CircleUser` icon fallback.
+- [x] `UserMenu` props `{ items: {label;onClick?;to?}[] }`; account `IconButton` (`label="Account"`) toggles a menu; role=menuitem on interactive elements; keyboard + Escape close (document-level) + click-outside; `aria-expanded`/`aria-haspopup`.
+- [x] Tests: TabBar renders all items; UserMenu opens/closes, item onClick, Escape/focus-return, click-outside.
+- [x] **VERIFY** + commit `feat(ui): add TabBar, UserMenu, BaseAvatar primitives` (58e68b2) + a11y fixes (b890d34).
 
 #### Task 0.17: Emoji sweep + global loader replacement
 **Files:** repo-wide under `frontend/src/`
