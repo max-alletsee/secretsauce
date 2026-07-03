@@ -333,12 +333,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Swapped BaseButton's temporary inline spinner for PourLoader (cross-task reminder done).
 - [x] **VERIFY** + commit `feat(ui): add PourLoader animated loading indicator` (f1472aa).
 
-#### Task 0.10: Wordmark + dot favicon
+#### Task 0.10: Wordmark + dot favicon ✅
 **Files:** Create `base/Wordmark.vue`, `Wordmark.test.ts`; Modify `frontend/index.html`; Create favicon asset
-- [ ] `Wordmark` props `{ dotOnly?: boolean }` — red dot (`--color-primary`) + "secretsauce" in `--font-display`; `dotOnly` renders just the dot.
-- [ ] Generate a dot-only SVG favicon (red dot on transparent/cream), reference it in `index.html`.
-- [ ] Test: renders wordmark text by default, hides text when `dotOnly`.
-- [ ] **VERIFY** + commit `feat(ui): add Wordmark and dot favicon`.
+- [x] `Wordmark` props `{ dotOnly?: boolean }` — red dot (`--color-primary`) + "secretsauce" in `--font-display`; `dotOnly` renders just the dot.
+- [x] Generate a dot-only SVG favicon (red dot on transparent/cream), reference it in `index.html`.
+- [x] Test: renders wordmark text by default, hides text when `dotOnly`.
+- [x] **VERIFY** + commit `feat(ui): add Wordmark and dot favicon` (fa54af3).
 
 #### Task 0.11: ProgressBar + Stepper
 **Files:** Create `base/ProgressBar.vue`, `base/Stepper.vue`, `ProgressBar.test.ts`, `Stepper.test.ts`
