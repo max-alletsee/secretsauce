@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as shoppingApi from '@/api/shoppingLists'
 import type { ShoppingListSummary } from '@/types/shoppingList'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const router = useRouter()
 
@@ -49,7 +50,7 @@ function listDateRange(list: ShoppingListSummary): string {
       <router-link to="/shopping-lists/new" class="btn-new">+ New list</router-link>
     </header>
 
-    <div v-if="loading" class="loading">Loading…</div>
+    <div v-if="loading" class="loading"><PourLoader /></div>
 
     <p v-else-if="error" class="error-msg">{{ error }}</p>
 

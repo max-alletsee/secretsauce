@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AddToPlanButton from './AddToPlanButton.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { X } from '@lucide/vue'
 import type { ShortlistEntry } from '@/types/mealPlan'
 
 defineProps<{ entries: ShortlistEntry[] }>()
@@ -29,10 +31,11 @@ const emit = defineEmits<{
         />
         <button
           class="remove-btn"
+          :aria-label="`Remove ${entry.note ?? 'item'} from shortlist`"
           :data-testid="`remove-shortlist-${entry.id}`"
           @click="emit('remove', entry.id)"
         >
-          ×
+          <BaseIcon :icon="X" />
         </button>
       </div>
 

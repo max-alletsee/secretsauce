@@ -3,15 +3,17 @@
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import ToastHost from '@/components/ToastHost.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { UtensilsCrossed, CalendarDays, ShoppingCart, Settings } from '@lucide/vue'
 
 const userStore = useUserStore()
 const router = useRouter()
 
 const primaryLinks = [
-  { to: '/recipes', label: 'Recipes', icon: '🍳' },
-  { to: '/meal-plan', label: 'Meal Plan', icon: '📅' },
-  { to: '/shopping-lists', label: 'Shopping Lists', icon: '🛒' },
-  { to: '/settings', label: 'Settings', icon: '⚙️' },
+  { to: '/recipes', label: 'Recipes', icon: UtensilsCrossed },
+  { to: '/meal-plan', label: 'Meal Plan', icon: CalendarDays },
+  { to: '/shopping-lists', label: 'Shopping Lists', icon: ShoppingCart },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 async function handleLogout() {
@@ -49,7 +51,7 @@ async function handleLogout() {
         :to="link.to"
         class="bottom-nav__item"
       >
-        <span class="bottom-nav__icon">{{ link.icon }}</span>
+        <span class="bottom-nav__icon"><BaseIcon :icon="link.icon" /></span>
         <span class="bottom-nav__label">{{ link.label }}</span>
       </RouterLink>
     </nav>

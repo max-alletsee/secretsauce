@@ -3,6 +3,7 @@
 import { onMounted, ref } from 'vue'
 import AdminUserRow from '@/components/admin/AdminUserRow.vue'
 import { useAdminUsersStore } from '@/stores/useAdminUsersStore'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const store = useAdminUsersStore()
 const search = ref('')
@@ -45,7 +46,7 @@ async function fetchUsers() {
       <span></span>
     </div>
 
-    <div v-if="store.loading && !store.users.length" class="loading">Loading…</div>
+    <div v-if="store.loading && !store.users.length" class="loading"><PourLoader /></div>
 
     <AdminUserRow
       v-for="user in store.users"

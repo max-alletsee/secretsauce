@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue'
 import AdminUserPicker from '@/components/admin/AdminUserPicker.vue'
 import LogFilterBar from '@/components/admin/LogFilterBar.vue'
 import { useAdminLogsStore } from '@/stores/useAdminLogsStore'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const store = useAdminLogsStore()
 const callTypeFilter = ref('')
@@ -43,7 +44,7 @@ async function fetchLogs() {
       <span>In tok</span><span>Out tok</span><span>Latency</span>
     </div>
 
-    <div v-if="store.loading" class="loading">Loading…</div>
+    <div v-if="store.loading" class="loading"><PourLoader /></div>
     <div v-else-if="!store.aiLogs.length" class="empty">No AI log entries found.</div>
 
     <div v-for="entry in store.aiLogs" :key="entry.id" class="log-row">

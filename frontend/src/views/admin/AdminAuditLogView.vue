@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue'
 import LogFilterBar from '@/components/admin/LogFilterBar.vue'
 import { useAdminLogsStore } from '@/stores/useAdminLogsStore'
 import type { AuditAction } from '@/types/admin'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const store = useAdminLogsStore()
 const actionFilter = ref<AuditAction | ''>('')
@@ -44,7 +45,7 @@ const badgeClass: Record<AuditAction, string> = {
       <span>Time</span><span>Action</span><span>Description</span><span>By</span>
     </div>
 
-    <div v-if="store.loading" class="loading">Loading…</div>
+    <div v-if="store.loading" class="loading"><PourLoader /></div>
     <div v-else-if="!store.auditLogs.length" class="empty">No audit log entries found.</div>
 
     <div v-for="entry in store.auditLogs" :key="entry.id" class="log-row">

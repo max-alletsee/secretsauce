@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import BottomSheet from './BottomSheet.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { CalendarPlus } from '@lucide/vue'
 import DayMealPicker from './DayMealPicker.vue'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useShortlistStore } from '@/stores/useShortlistStore'
@@ -209,7 +211,7 @@ async function handleAddToShortlist() {
     data-testid="add-to-plan-btn"
     @click.stop.prevent="openSheet"
   >
-    <span class="add-icon" aria-hidden="true">📅+</span>
+    <span class="add-icon" aria-hidden="true"><BaseIcon :icon="CalendarPlus" /></span>
   </button>
 
   <BottomSheet

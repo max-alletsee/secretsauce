@@ -7,6 +7,7 @@ import { useUserStore } from '@/stores/useUserStore'
 import RecipeForm from '@/components/RecipeForm.vue'
 import type { RecipeCreatePayload, RecipeUpdatePayload } from '@/types/recipe'
 import type { RecipeData } from '@/types/importTask'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -68,7 +69,7 @@ async function handleSubmit(data: RecipeCreatePayload) {
 
 <template>
   <main class="recipe-edit-page">
-    <div v-if="!ready" class="recipe-edit-page__loading">Loading…</div>
+    <div v-if="!ready" class="recipe-edit-page__loading"><PourLoader /></div>
 
     <template v-else-if="ready && initialData">
       <h1>Edit recipe</h1>

@@ -2,6 +2,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { AdminUser, AdminUserUpdate, UserStats } from '@/types/admin'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import PourLoader from '@/components/base/PourLoader.vue'
+import { ChevronUp, ChevronDown } from '@lucide/vue'
 
 const props = defineProps<{
   user: AdminUser
@@ -73,13 +76,13 @@ const joinedDate = computed(() =>
       <div class="col-joined">{{ joinedDate }}</div>
       <div class="col-expand">
         <button class="expand-btn" @click="emit('toggle')">
-          {{ isExpanded ? '▲' : '▼' }}
+          <BaseIcon :icon="isExpanded ? ChevronUp : ChevronDown" />
         </button>
       </div>
     </div>
 
     <div v-if="isExpanded" class="expanded-panel">
-      <div v-if="statsLoading" class="stats-loading">Loading…</div>
+      <div v-if="statsLoading" class="stats-loading"><PourLoader size="sm" /></div>
       <div v-else-if="stats" class="stats">
         <span>Recipes: {{ stats.recipe_count }}</span>
         <span>Meal plans: {{ stats.meal_plan_count }}</span>

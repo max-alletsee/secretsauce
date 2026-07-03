@@ -3,6 +3,7 @@
 import { onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const CATEGORY_ORDER = [
   'Fresh Fruits and Vegetables',
@@ -60,7 +61,7 @@ async function handleRegenerate() {
 
 <template>
   <div class="shopping-view">
-    <div v-if="store.loading" class="loading">Loading…</div>
+    <div v-if="store.loading" class="loading"><PourLoader /></div>
 
     <template v-else-if="store.list">
       <header class="shopping-header">

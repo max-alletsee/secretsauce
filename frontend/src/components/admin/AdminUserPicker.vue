@@ -3,6 +3,8 @@
 import { ref, watch } from 'vue'
 import * as adminApi from '@/api/admin'
 import type { AdminUser } from '@/types/admin'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { X } from '@lucide/vue'
 
 const model = defineModel<string | null>({ default: null })
 
@@ -37,7 +39,7 @@ function clear() {
   <div class="user-picker">
     <div v-if="selectedEmail" class="selected-chip">
       {{ selectedEmail }}
-      <button class="clear-btn" @click="clear">✕</button>
+      <button class="clear-btn" aria-label="Clear" @click="clear"><BaseIcon :icon="X" /></button>
     </div>
     <div v-else class="search-wrapper">
       <input

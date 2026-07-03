@@ -9,6 +9,9 @@ import SearchBar from '@/components/SearchBar.vue'
 import SortControl from '@/components/SortControl.vue'
 import TagFilter from '@/components/TagFilter.vue'
 import { useImportPolling } from '@/composables/useImportPolling'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import PourLoader from '@/components/base/PourLoader.vue'
+import { Camera } from '@lucide/vue'
 import type { RecipeData } from '@/types/importTask'
 
 const recipeStore = useRecipeStore()
@@ -113,7 +116,7 @@ onMounted(() => {
           class="import-section__image-btn"
           @click="imageInputRef?.click()"
         >
-          📷 Import from photo
+          <BaseIcon :icon="Camera" /> Import from photo
         </button>
       </div>
 
@@ -143,7 +146,7 @@ onMounted(() => {
     />
 
     <p v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
-      Loading recipes…
+      <PourLoader />
     </p>
 
     <p v-else-if="!recipeStore.recipes.length" class="recipe-list-page__empty">

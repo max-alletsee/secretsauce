@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import MealSuggestionChip from './MealSuggestionChip.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import PourLoader from '@/components/base/PourLoader.vue'
+import { Pencil } from '@lucide/vue'
 import type { MealSuggestion } from '@/types/mealPlan'
 
 defineProps<{ suggestions: MealSuggestion[]; loading: boolean; convertingTitle?: string | null }>()
@@ -38,7 +41,7 @@ function handleConvertToRecipe(title: string) {
           data-testid="steer-toggle"
           @click="toggleSteer"
         >
-          ✏ Steer…
+          <BaseIcon :icon="Pencil" /> Steer…
         </button>
         <button
           class="btn-regen"
@@ -61,7 +64,7 @@ function handleConvertToRecipe(title: string) {
     </div>
 
     <div v-if="loading" data-testid="suggestions-loading" class="loading-chips">
-      Generating suggestions…
+      <PourLoader label="Generating suggestions" />
     </div>
 
     <div v-else class="chips-grid">

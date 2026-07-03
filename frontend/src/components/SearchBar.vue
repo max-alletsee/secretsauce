@@ -1,5 +1,8 @@
 <!-- frontend/src/components/SearchBar.vue -->
 <script setup lang="ts">
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { X } from '@lucide/vue'
+
 const model = defineModel<string>({ default: '' })
 </script>
 
@@ -20,7 +23,7 @@ const model = defineModel<string>({ default: '' })
       aria-label="Clear search"
       @click="model = ''"
     >
-      ×
+      <BaseIcon :icon="X" />
     </button>
   </div>
 </template>

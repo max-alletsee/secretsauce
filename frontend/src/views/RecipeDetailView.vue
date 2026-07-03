@@ -7,6 +7,7 @@ import { useUserStore } from '@/stores/useUserStore'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel.vue'
 import AddToPlanButton from '@/components/AddToPlanButton.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -85,7 +86,7 @@ async function handleRestore(versionId: string) {
     </div>
 
     <div v-else-if="recipeStore.loading && !recipe" class="recipe-detail__loading">
-      Loading…
+      <PourLoader />
     </div>
 
     <template v-else-if="recipe">

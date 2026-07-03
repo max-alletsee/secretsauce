@@ -7,6 +7,9 @@ import * as recipesApi from '@/api/recipes'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 import type { Recipe, RecipeCreatePayload, RecipeVersion } from '@/types/recipe'
 import type { DraftRecipeData } from '@/types/importTask'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import PourLoader from '@/components/base/PourLoader.vue'
+import { X } from '@lucide/vue'
 
 type VersionLike = DraftRecipeData | RecipeVersion
 
@@ -112,11 +115,11 @@ async function saveToMyRecipes() {
   <Teleport to="body">
     <div class="drawer-backdrop" @click="emit('close')" />
     <div class="recipe-drawer" role="dialog" aria-modal="true">
-      <button class="drawer-close" aria-label="Close" @click="emit('close')">×</button>
+      <button class="drawer-close" aria-label="Close" @click="emit('close')"><BaseIcon :icon="X" /></button>
 
       <div v-if="draftRecipe" class="draft-banner">Draft — not yet saved</div>
 
-      <div v-if="loading" class="drawer-loading">Loading…</div>
+      <div v-if="loading" class="drawer-loading"><PourLoader /></div>
       <div v-else-if="error" class="drawer-error">{{ error }}</div>
 
       <template v-else-if="version">

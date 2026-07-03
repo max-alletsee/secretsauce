@@ -4,6 +4,7 @@ import { onMounted, ref } from 'vue'
 import AdminUserPicker from '@/components/admin/AdminUserPicker.vue'
 import LogFilterBar from '@/components/admin/LogFilterBar.vue'
 import { useAdminLogsStore } from '@/stores/useAdminLogsStore'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const store = useAdminLogsStore()
 const levelFilter = ref('')
@@ -46,7 +47,7 @@ function levelClass(level: string) {
       <span>Time</span><span>Level</span><span>Path</span><span>Status</span><span>Latency</span>
     </div>
 
-    <div v-if="store.loading" class="loading">Loading…</div>
+    <div v-if="store.loading" class="loading"><PourLoader /></div>
     <div v-else-if="!store.appLogs.length" class="empty">No log entries found.</div>
 
     <div v-for="entry in store.appLogs" :key="entry.timestamp + entry.path" class="log-row">

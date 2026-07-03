@@ -6,6 +6,7 @@ import { useUserStore } from '@/stores/useUserStore'
 import { useImportPolling } from '@/composables/useImportPolling'
 import * as shoppingApi from '@/api/shoppingLists'
 import type { TimelineEntry } from '@/types/timeline'
+import PourLoader from '@/components/base/PourLoader.vue'
 
 const router = useRouter()
 const timelineStore = useTimelineStore()
@@ -188,7 +189,7 @@ watchEffect(() => {
 
     <!-- Checkboard table -->
     <div class="checkboard-wrap">
-      <div v-if="timelineStore.loading" class="loading-cells">Loading meals…</div>
+      <div v-if="timelineStore.loading" class="loading-cells"><PourLoader /></div>
       <table v-else class="checkboard">
         <thead>
           <tr>
