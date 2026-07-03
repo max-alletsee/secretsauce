@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PourLoader from './PourLoader.vue'
+
 withDefaults(
   defineProps<{
     variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -21,8 +23,9 @@ withDefaults(
     :disabled="disabled || loading"
     :class="['btn', `btn--${variant}`, { 'btn--loading': loading }]"
   >
-    <!-- TODO: replace with PourLoader once available (Task 0.9) -->
-    <span v-if="loading" class="btn__spinner" aria-hidden="true" />
+    <span v-if="loading" class="btn__spinner" aria-hidden="true">
+      <PourLoader size="sm" label="Loading" />
+    </span>
     <span :class="{ 'btn__content--hidden': loading }">
       <slot />
     </span>
@@ -99,21 +102,11 @@ withDefaults(
   opacity: 0;
 }
 
+/* Wrapper that positions PourLoader centred over the button content */
 .btn__spinner {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  /* Inherit the button's text color so the spinner is visible on every variant
-     (primary-ink on filled variants, text color on secondary/ghost). */
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  animation: btn-spin 0.6s linear infinite;
   position: absolute;
-}
-
-@keyframes btn-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
