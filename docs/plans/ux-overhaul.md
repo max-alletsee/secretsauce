@@ -354,11 +354,11 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: SegmentedTabs switches modelValue on tab click + arrow keys.
 - [x] **VERIFY** + commit `feat(ui): add SegmentedTabs and EmptyState primitives` (7f24e4e) + review fixes (e472b32).
 
-#### Task 0.13: ConfirmDialog
+#### Task 0.13: ConfirmDialog ✅
 **Files:** Create `base/ConfirmDialog.vue`, `ConfirmDialog.test.ts`
-- [ ] Props `{ open:boolean; title; message?; confirmLabel?; cancelLabel?; danger?: boolean }`; emits `confirm`/`cancel`; teleported, `role="dialog"` `aria-modal`, focus trap + Escape→cancel (mirror existing `BottomSheet` focus handling). Danger confirm uses `--color-danger`.
-- [ ] Test: emits `confirm` on confirm button, `cancel` on cancel + Escape.
-- [ ] **VERIFY** + commit `feat(ui): add ConfirmDialog primitive`.
+- [x] Props `{ open:boolean; title; message?; confirmLabel?; cancelLabel?; danger?: boolean }`; emits `confirm`/`cancel`; teleported, `role="dialog"` `aria-modal`, focus trap + Escape→cancel (mirror existing `BottomSheet` focus handling). Danger confirm uses `--color-danger`.
+- [x] Test: emits `confirm` on confirm button, `cancel` on cancel + Escape (+ Tab-trap tests).
+- [x] **VERIFY** + commit `feat(ui): add ConfirmDialog primitive` (147d24b) + review fixes (ab589e7).
 
 #### Task 0.14: Stepper-free — DragList (with reindex test)
 **Files:** Create `base/DragList.vue`, `base/DragList.test.ts`
