@@ -79,7 +79,7 @@ const errorId = computed(() => `${textareaId.value}-error`)
   color: var(--color-text-muted);
 }
 
-.textarea:focus {
+.textarea:focus-visible {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-soft);
 }

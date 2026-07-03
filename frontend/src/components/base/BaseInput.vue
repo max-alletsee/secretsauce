@@ -78,7 +78,7 @@ const errorId = computed(() => `${inputId.value}-error`)
   color: var(--color-text-muted);
 }
 
-.input:focus {
+.input:focus-visible {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-soft);
 }
