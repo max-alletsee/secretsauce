@@ -145,9 +145,9 @@ onMounted(() => {
       class="recipe-list-page__filters"
     />
 
-    <p v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
+    <div v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
       <PourLoader />
-    </p>
+    </div>
 
     <p v-else-if="!recipeStore.recipes.length" class="recipe-list-page__empty">
       No recipes yet. Create your first one!

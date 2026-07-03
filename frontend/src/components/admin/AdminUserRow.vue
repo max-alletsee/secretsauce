@@ -75,7 +75,7 @@ const joinedDate = computed(() =>
       </div>
       <div class="col-joined">{{ joinedDate }}</div>
       <div class="col-expand">
-        <button class="expand-btn" @click="emit('toggle')">
+        <button class="expand-btn" :aria-label="isExpanded ? 'Collapse user details' : 'Expand user details'" @click="emit('toggle')">
           <BaseIcon :icon="isExpanded ? ChevronUp : ChevronDown" />
         </button>
       </div>
