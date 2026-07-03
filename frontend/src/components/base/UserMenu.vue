@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { CircleUser } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 import IconButton from './IconButton.vue'
@@ -9,7 +9,14 @@ defineProps<{
 }>()
 
 const open = ref(false)
-const triggerRef = ref<HTMLButtonElement | null>(null)
+// ref to the IconButton component — its root element is the <button>
+const triggerRef = ref<InstanceType<typeof IconButton> | null>(null)
+// ref to the menu root <div> for click-outside detection
+const menuRootRef = ref<HTMLElement | null>(null)
+
+function focusTrigger() {
+  ;(triggerRef.value?.$el as HTMLElement | undefined)?.focus()
+}
 
 function toggle() {
   open.value = !open.value
@@ -24,42 +31,82 @@ function handleItemClick(item: { label: string; onClick?: () => void; to?: strin
   close()
 }
 
-function handleKeydown(e: KeyboardEvent) {
+// document-level handlers — defined at module scope so we can removeEventListener with the same reference
+function onDocumentKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && open.value) {
     close()
-    triggerRef.value?.focus()
+    focusTrigger()
   }
 }
+
+function onDocumentPointerdown(e: PointerEvent) {
+  if (!open.value) return
+  const root = menuRootRef.value
+  if (root && !root.contains(e.target as Node)) {
+    close()
+  }
+}
+
+// Add/remove document listeners whenever the menu opens/closes
+watch(open, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('keydown', onDocumentKeydown)
+    document.addEventListener('pointerdown', onDocumentPointerdown)
+  } else {
+    document.removeEventListener('keydown', onDocumentKeydown)
+    document.removeEventListener('pointerdown', onDocumentPointerdown)
+  }
+})
+
+// Always clean up on unmount to prevent leaks
+onUnmounted(() => {
+  document.removeEventListener('keydown', onDocumentKeydown)
+  document.removeEventListener('pointerdown', onDocumentPointerdown)
+})
 </script>
 
 <template>
-  <div class="user-menu" @keydown="handleKeydown">
-    <!-- Trigger -->
-    <button
+  <div ref="menuRootRef" class="user-menu">
+    <!-- Trigger — use IconButton primitive; its root element is <button> -->
+    <IconButton
       ref="triggerRef"
-      type="button"
-      class="user-menu__trigger icon-btn icon-btn--ghost"
-      aria-label="Account"
+      :icon="CircleUser"
+      label="Account"
+      variant="ghost"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
       @click="toggle"
-    >
-      <component :is="CircleUser" :size="20" aria-hidden="true" />
-    </button>
+    />
 
     <!-- Dropdown menu -->
     <ul v-if="open" role="menu" class="user-menu__list">
       <li
         v-for="item in items"
         :key="item.label"
-        role="menuitem"
+        role="none"
         class="user-menu__item"
-        @click="handleItemClick(item)"
       >
-        <RouterLink v-if="item.to" :to="item.to" class="user-menu__link" tabindex="-1">
+        <!-- Navigation item: RouterLink is the interactive element -->
+        <RouterLink
+          v-if="item.to"
+          :to="item.to"
+          role="menuitem"
+          class="user-menu__link"
+          @click="handleItemClick(item)"
+        >
           {{ item.label }}
         </RouterLink>
-        <span v-else class="user-menu__action">{{ item.label }}</span>
+
+        <!-- Action item: keyboard-accessible <button> is the interactive element -->
+        <button
+          v-else
+          type="button"
+          role="menuitem"
+          class="user-menu__action"
+          @click="handleItemClick(item)"
+        >
+          {{ item.label }}
+        </button>
       </li>
     </ul>
   </div>
@@ -69,30 +116,6 @@ function handleKeydown(e: KeyboardEvent) {
 .user-menu {
   position: relative;
   display: inline-flex;
-}
-
-/* Reuse icon-btn token styles (inline so we don't depend on global class leakage) */
-.user-menu__trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.user-menu__trigger:hover {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.user-menu__trigger:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
 }
 
 .user-menu__list {
@@ -121,17 +144,16 @@ function handleKeydown(e: KeyboardEvent) {
 .user-menu__link,
 .user-menu__action {
   display: block;
+  width: 100%;
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   color: var(--color-text);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.user-menu__action {
-  cursor: pointer;
-  width: 100%;
   text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 </style>

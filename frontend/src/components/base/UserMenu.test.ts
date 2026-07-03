@@ -85,6 +85,30 @@ describe('UserMenu', () => {
     expect(link.exists()).toBe(true)
   })
 
+  it('action items render as <button> with role="menuitem"', async () => {
+    const wrapper = mount(UserMenu, {
+      props: { items },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
+    // "Log out" is an action item — should render as a <button role="menuitem">
+    const actionBtn = wrapper.find('button.user-menu__action[role="menuitem"]')
+    expect(actionBtn.exists()).toBe(true)
+    expect(actionBtn.text()).toBe('Log out')
+  })
+
+  it('li elements have role="none" (not "menuitem")', async () => {
+    const wrapper = mount(UserMenu, {
+      props: { items },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
+    const listItems = wrapper.findAll('li')
+    for (const li of listItems) {
+      expect(li.attributes('role')).toBe('none')
+    }
+  })
+
   it('calls onClick and closes the menu when a menu item is clicked', async () => {
     const onClick = vi.fn()
     const wrapper = mount(UserMenu, {
@@ -93,7 +117,7 @@ describe('UserMenu', () => {
     })
     await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
 
-    // Find menuitem by role
+    // Find action button by role
     const menuItem = wrapper.find('[role="menuitem"]')
     await menuItem.trigger('click')
 
@@ -103,7 +127,28 @@ describe('UserMenu', () => {
     expect(wrapper.find('button[aria-haspopup="menu"]').attributes('aria-expanded')).toBe('false')
   })
 
-  it('closes the menu when Escape is pressed', async () => {
+  it('closes the menu and returns focus to trigger when Escape is pressed', async () => {
+    const wrapper = mount(UserMenu, {
+      props: { items },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+      attachTo: document.body,
+    })
+    const trigger = wrapper.find('button[aria-haspopup="menu"]')
+    await trigger.trigger('click')
+    expect(trigger.attributes('aria-expanded')).toBe('true')
+
+    // Escape is now listened on document, not on the component wrapper
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    await nextTick()
+    expect(trigger.attributes('aria-expanded')).toBe('false')
+
+    // Focus should have returned to the trigger button
+    expect(document.activeElement).toBe(trigger.element)
+
+    wrapper.unmount()
+  })
+
+  it('closes the menu when clicking outside the menu root', async () => {
     const wrapper = mount(UserMenu, {
       props: { items },
       global: { stubs: { RouterLink: RouterLinkStub } },
@@ -112,7 +157,8 @@ describe('UserMenu', () => {
     await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
     expect(wrapper.find('button[aria-haspopup="menu"]').attributes('aria-expanded')).toBe('true')
 
-    await wrapper.trigger('keydown', { key: 'Escape' })
+    // Simulate a pointerdown outside the component
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
     await nextTick()
     expect(wrapper.find('button[aria-haspopup="menu"]').attributes('aria-expanded')).toBe('false')
 

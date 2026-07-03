@@ -6,7 +6,7 @@ import BaseAvatar from './BaseAvatar.vue'
 describe('BaseAvatar', () => {
   it('shows initials when a single-word name is provided', () => {
     const wrapper = mount(BaseAvatar, { props: { name: 'Alice' } })
-    expect(wrapper.text()).toContain('A')
+    expect(wrapper.find('.avatar__initials').text()).toBe('A')
   })
 
   it('shows two initials for a two-word name', () => {
