@@ -40,24 +40,28 @@ describe('moveItem', () => {
     const input = ['a', 'b', 'c']
     const result = moveItem(input, -1, 1)
     expect(result).toEqual(['a', 'b', 'c'])
+    expect(result).not.toBe(input)
   })
 
   it('returns a shallow copy unchanged when from is out of bounds (>= length)', () => {
     const input = ['a', 'b', 'c']
     const result = moveItem(input, 3, 1)
     expect(result).toEqual(['a', 'b', 'c'])
+    expect(result).not.toBe(input)
   })
 
   it('returns a shallow copy unchanged when to is out of bounds (negative)', () => {
     const input = ['a', 'b', 'c']
     const result = moveItem(input, 0, -1)
     expect(result).toEqual(['a', 'b', 'c'])
+    expect(result).not.toBe(input)
   })
 
   it('returns a shallow copy unchanged when to is out of bounds (>= length)', () => {
     const input = ['a', 'b', 'c']
     const result = moveItem(input, 0, 3)
     expect(result).toEqual(['a', 'b', 'c'])
+    expect(result).not.toBe(input)
   })
 
   it('works with objects (preserves same references)', () => {

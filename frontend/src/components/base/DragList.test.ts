@@ -69,12 +69,8 @@ describe('DragList', () => {
     const rows = wrapper.findAll('[data-drag-row]')
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const firstRowMoveUp = rows[0]!.find('[aria-label="Move up"]')
-    if (firstRowMoveUp.exists()) {
-      expect(firstRowMoveUp.attributes('disabled')).toBeDefined()
-    } else {
-      // Button not rendered — also acceptable
-      expect(true).toBe(true)
-    }
+    expect(firstRowMoveUp.exists()).toBe(true)
+    expect(firstRowMoveUp.attributes('disabled')).toBeDefined()
   })
 
   it('disables "Move down" button on last row', () => {
@@ -87,12 +83,8 @@ describe('DragList', () => {
     expect(lastRow).toBeDefined()
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const lastRowMoveDown = lastRow!.find('[aria-label="Move down"]')
-    if (lastRowMoveDown.exists()) {
-      expect(lastRowMoveDown.attributes('disabled')).toBeDefined()
-    } else {
-      // Button not rendered — also acceptable
-      expect(true).toBe(true)
-    }
+    expect(lastRowMoveDown.exists()).toBe(true)
+    expect(lastRowMoveDown.attributes('disabled')).toBeDefined()
   })
 
   it('exposes item and index via slot props', () => {
