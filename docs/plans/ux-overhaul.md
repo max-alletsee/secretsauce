@@ -326,11 +326,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: Skeleton renders with given dimensions.
 - [x] **VERIFY** + commit `feat(ui): add BaseCard and Skeleton primitives` (a21abe4) + review fixes (cbc7272).
 
-#### Task 0.9: PourLoader (with reduced-motion fallback)
+#### Task 0.9: PourLoader (with reduced-motion fallback) ✅
 **Files:** Create `base/PourLoader.vue`, `PourLoader.test.ts`
-- [ ] Red dot (`--color-primary`) falling top→bottom on a loop (CSS keyframes). Props `{ size?; label? }` (default label "Loading"). `role="status"` + visually-hidden label. `prefers-reduced-motion` → static centered dot (no animation).
-- [ ] Test: renders `role="status"` with accessible label.
-- [ ] **VERIFY** + commit `feat(ui): add PourLoader animated loading indicator`.
+- [x] Red dot (`--color-primary`) falling top→bottom on a loop (CSS keyframes). Props `{ size?; label? }` (default label "Loading"). `role="status"` + visually-hidden label. `prefers-reduced-motion` → static centered dot (no animation).
+- [x] Test: renders `role="status"` with accessible label.
+- [x] Swapped BaseButton's temporary inline spinner for PourLoader (cross-task reminder done).
+- [x] **VERIFY** + commit `feat(ui): add PourLoader animated loading indicator` (f1472aa).
 
 #### Task 0.10: Wordmark + dot favicon
 **Files:** Create `base/Wordmark.vue`, `Wordmark.test.ts`; Modify `frontend/index.html`; Create favicon asset
