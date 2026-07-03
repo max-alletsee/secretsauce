@@ -340,12 +340,12 @@ npm run type-check && npm run build && npm run test:unit
 - [x] Test: renders wordmark text by default, hides text when `dotOnly`.
 - [x] **VERIFY** + commit `feat(ui): add Wordmark and dot favicon` (fa54af3).
 
-#### Task 0.11: ProgressBar + Stepper
+#### Task 0.11: ProgressBar + Stepper ✅
 **Files:** Create `base/ProgressBar.vue`, `base/Stepper.vue`, `ProgressBar.test.ts`, `Stepper.test.ts`
-- [ ] `ProgressBar` props `{ value: number; max: number; label?: string }`; `role="progressbar"` + `aria-valuenow/min/max`; thin bar, `--color-success` fill (configurable tone optional).
-- [ ] `Stepper` props `{ modelValue:number; min?:number; max?:number; step?:number }`; +/− `IconButton`s (`Plus`/`Minus`), emits `update:modelValue`, clamps to min/max, disables at bounds.
-- [ ] Tests: ProgressBar sets aria values + fill width % = value/max; Stepper increments/decrements/clamps.
-- [ ] **VERIFY** + commit `feat(ui): add ProgressBar and Stepper primitives`.
+- [x] `ProgressBar` props `{ value: number; max: number; label?: string }`; `role="progressbar"` + `aria-valuenow/min/max` (aria-valuenow clamped to [0,max]); thin bar, `--color-success` fill.
+- [x] `Stepper` props `{ modelValue:number; min?:number; max?:number; step?:number; label? }`; +/− `IconButton`s (`Plus`/`Minus`), emits clamped `update:modelValue`, disables at bounds, group `aria-label`.
+- [x] Tests: ProgressBar sets aria values + fill width % = value/max; Stepper increments/decrements/clamps.
+- [x] **VERIFY** + commit `feat(ui): add ProgressBar and Stepper primitives` (f86f8ef) + review fixes (b6e38d0).
 
 #### Task 0.12: SegmentedTabs + EmptyState
 **Files:** Create `base/SegmentedTabs.vue`, `base/EmptyState.vue`, `SegmentedTabs.test.ts`
