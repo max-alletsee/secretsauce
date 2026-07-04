@@ -14,11 +14,13 @@ const userStore = useUserStore()
 
 const email = ref('')
 const password = ref('')
-const error = ref('')
+const rateLimitError = ref('')
+const credentialsError = ref('')
 const loading = ref(false)
 
 async function submit() {
-  error.value = ''
+  rateLimitError.value = ''
+  credentialsError.value = ''
   loading.value = true
   try {
     await userStore.login({ email: email.value, password: password.value })
@@ -26,9 +28,9 @@ async function submit() {
     router.push(redirect)
   } catch (err: any) {
     if (err?.response?.status === 429) {
-      error.value = 'Too many login attempts. Please wait a minute and try again.'
+      rateLimitError.value = 'Too many login attempts. Please wait a minute and try again.'
     } else {
-      error.value = 'Invalid email or password.'
+      credentialsError.value = 'Invalid email or password.'
     }
   } finally {
     loading.value = false
@@ -52,6 +54,7 @@ async function submit() {
           autocomplete="email"
           required
           :disabled="loading"
+          :error="credentialsError"
         />
         <BaseInput
           id="password"
@@ -61,8 +64,9 @@ async function submit() {
           autocomplete="current-password"
           required
           :disabled="loading"
+          :error="credentialsError"
         />
-        <p v-if="error" class="auth-error" role="alert">{{ error }}</p>
+        <p v-if="rateLimitError" class="auth-error" role="alert">{{ rateLimitError }}</p>
         <BaseButton type="submit" variant="primary" :loading="loading" :disabled="loading">
           {{ loading ? 'Signing in…' : 'Sign in' }}
         </BaseButton>
@@ -100,7 +104,7 @@ async function submit() {
 
 h1 {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
   text-align: center;
   color: var(--color-text);
