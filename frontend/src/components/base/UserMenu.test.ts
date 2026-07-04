@@ -173,4 +173,24 @@ describe('UserMenu', () => {
     await wrapper.find('button[aria-haspopup="menu"]').trigger('click')
     expect(wrapper.find('[role="menu"]').exists()).toBe(true)
   })
+
+  it('defaults the trigger icon to size 20 when no size prop is passed', () => {
+    const wrapper = mount(UserMenu, {
+      props: { items },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    const icon = wrapper.find('button[aria-haspopup="menu"] svg')
+    expect(icon.attributes('width')).toBe('20')
+    expect(icon.attributes('height')).toBe('20')
+  })
+
+  it('forwards a custom size prop to the trigger icon', () => {
+    const wrapper = mount(UserMenu, {
+      props: { items, size: 24 },
+      global: { stubs: { RouterLink: RouterLinkStub } },
+    })
+    const icon = wrapper.find('button[aria-haspopup="menu"] svg')
+    expect(icon.attributes('width')).toBe('24')
+    expect(icon.attributes('height')).toBe('24')
+  })
 })

@@ -60,7 +60,7 @@ const userMenuItems = computed(() => {
     <nav class="bottom-nav" data-testid="bottom-nav">
       <TabBar :items="primaryLinks" class="bottom-nav__tabs" />
       <div class="bottom-nav__account">
-        <UserMenu :items="userMenuItems" />
+        <UserMenu :items="userMenuItems" :size="24" />
         <span class="bottom-nav__account-label">Account</span>
       </div>
     </nav>

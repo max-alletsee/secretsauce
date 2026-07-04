@@ -4,9 +4,15 @@ import { CircleUser } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 import IconButton from './IconButton.vue'
 
-defineProps<{
-  items: { label: string; onClick?: () => void; to?: string; testid?: string }[]
-}>()
+withDefaults(
+  defineProps<{
+    items: { label: string; onClick?: () => void; to?: string; testid?: string }[]
+    size?: 16 | 20 | 24
+  }>(),
+  {
+    size: 20,
+  },
+)
 
 const open = ref(false)
 // ref to the IconButton component — its root element is the <button>
@@ -73,6 +79,7 @@ onUnmounted(() => {
       :icon="CircleUser"
       label="Account"
       variant="ghost"
+      :size="size"
       aria-haspopup="menu"
       :aria-expanded="open ? 'true' : 'false'"
       @click="toggle"
