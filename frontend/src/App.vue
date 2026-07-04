@@ -1,9 +1,12 @@
 <!-- frontend/src/App.vue -->
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import ToastHost from '@/components/ToastHost.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
+import Wordmark from '@/components/base/Wordmark.vue'
+import UserMenu from '@/components/base/UserMenu.vue'
 import { UtensilsCrossed, CalendarDays, ShoppingCart, Settings } from '@lucide/vue'
 
 const userStore = useUserStore()
@@ -20,22 +23,33 @@ async function handleLogout() {
   await userStore.logout()
   router.push('/login')
 }
+
+const userMenuItems = computed(() => {
+  const items: { label: string; onClick?: () => void; to?: string; testid?: string }[] = [
+    { label: 'Settings', to: '/settings' },
+  ]
+  if (userStore.isSuperuser) {
+    items.push({ label: 'Admin', to: '/admin' })
+  }
+  items.push({ label: 'Log out', onClick: handleLogout, testid: 'logout' })
+  return items
+})
 </script>
 
 <template>
   <template v-if="userStore.isAuthenticated">
-    <!-- Top bar (primary links on desktop; secondary actions always) -->
+    <!-- Top bar (desktop only via CSS) -->
     <nav class="app-nav">
+      <RouterLink to="/recipes" class="app-nav__brand">
+        <Wordmark />
+      </RouterLink>
       <div class="app-nav__links">
-        <RouterLink v-for="link in primaryLinks" :key="link.to" :to="link.to">
+        <RouterLink v-for="link in primaryLinks.slice(0, 3)" :key="link.to" :to="link.to">
           {{ link.label }}
         </RouterLink>
       </div>
       <div class="app-nav__secondary">
-        <RouterLink v-if="userStore.isSuperuser" to="/admin">Admin</RouterLink>
-        <button data-testid="logout" class="app-nav__logout" @click="handleLogout">
-          Log out
-        </button>
+        <UserMenu :items="userMenuItems" />
       </div>
     </nav>
 
@@ -67,42 +81,37 @@ async function handleLogout() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: #1e293b;
-  color: white;
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.app-nav__brand {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-lg);
+  text-decoration: none;
 }
 .app-nav__links {
   display: flex;
-  gap: 1.5rem;
+  align-items: center;
+  gap: var(--space-5);
+  margin-right: auto;
 }
 .app-nav__secondary {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-4);
 }
-.app-nav__links a,
-.app-nav__secondary a {
-  color: #cbd5e1;
+.app-nav__links a {
+  color: var(--color-text-muted);
   text-decoration: none;
-  font-size: 0.9375rem;
+  font-size: var(--text-sm);
 }
-.app-nav__links a.router-link-active,
-.app-nav__secondary a.router-link-active {
-  color: white;
+.app-nav__links a.router-link-active {
+  color: var(--color-primary);
   font-weight: 600;
-}
-.app-nav__logout {
-  background: none;
-  border: 1px solid #475569;
-  color: #cbd5e1;
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.app-nav__logout:hover {
-  border-color: #94a3b8;
-  color: white;
 }
 .app-main {
   min-height: 0;

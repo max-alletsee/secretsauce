@@ -5,7 +5,7 @@ import { RouterLink } from 'vue-router'
 import IconButton from './IconButton.vue'
 
 defineProps<{
-  items: { label: string; onClick?: () => void; to?: string }[]
+  items: { label: string; onClick?: () => void; to?: string; testid?: string }[]
 }>()
 
 const open = ref(false)
@@ -26,7 +26,7 @@ function close() {
   open.value = false
 }
 
-function handleItemClick(item: { label: string; onClick?: () => void; to?: string }) {
+function handleItemClick(item: { label: string; onClick?: () => void; to?: string; testid?: string }) {
   item.onClick?.()
   close()
 }
@@ -92,6 +92,7 @@ onUnmounted(() => {
           :to="item.to"
           role="menuitem"
           class="user-menu__link"
+          :data-testid="item.testid"
           @click="handleItemClick(item)"
         >
           {{ item.label }}
@@ -103,6 +104,7 @@ onUnmounted(() => {
           type="button"
           role="menuitem"
           class="user-menu__action"
+          :data-testid="item.testid"
           @click="handleItemClick(item)"
         >
           {{ item.label }}
