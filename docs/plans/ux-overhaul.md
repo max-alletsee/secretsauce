@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 0 COMPLETE through Task 0.17; awaiting user sign-off before Phase 1)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 1 COMPLETE through Task 1.2; awaiting user sign-off before Phase 2)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -44,14 +44,19 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `9159121` feat(ui): add BaseButton and IconButton primitives  *(Task 0.5)*
 - `44bf46c` fix(ui): primary button hover no longer borrows danger red  *(0.5 fix)*
 - `bc90983` fix(ui): address Task 0.5 review findings  *(0.5 fix)*
+- *(Tasks 0.6–0.17, see full history via `git log` — all reviewed/committed through)* `509e52e` docs: mark Task 0.17 and Phase 0 complete
+- `12b52f6` feat(nav): desktop top bar with wordmark and user menu  *(Task 1.1)*
+- `9453fb3` feat(nav): mobile bottom tab bar with account menu  *(Task 1.2)*
 
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. Continue work on `worktree-ux-overhaul` in the worktree; fast-forward `ui-shell-rework` again at later checkpoints. Nothing pushed to origin yet.
 
 ### Status snapshot
 - ✅ **PHASE 0 COMPLETE — all Tasks 0.1 → 0.17 done, reviewed, and fixed.** Full verification GREEN at commit `7321873`: type-check ✓, build ✓, **372 tests / 50 files** ✓. No emoji-as-icon remain in `frontend/src`. All primitives built + tested under `src/components/base/`: BaseIcon, BaseButton, IconButton, BaseInput, BaseTextarea, Chip, ToggleChip, BaseCard, Skeleton, PourLoader, Wordmark, ProgressBar, Stepper, SegmentedTabs, EmptyState, ConfirmDialog, DragList (+moveItem), TabBar, UserMenu, BaseAvatar; BottomSheet + ToastHost tokenized; dot favicon added.
-- ⏸️ **Phase 0 checkpoint = user sign-off PENDING before Phase 1** (per executing-plans checkpoints).
-- ⏭️ **NEXT after sign-off: Task 1.1** — `App.vue` desktop top bar with `Wordmark` + `UserMenu`. Extract brief: `task-brief docs/plans/ux-overhaul.md 1.1`; dispatch fresh implementer; review; commit. New BASE for 1.1 = the commit after the "docs: mark Task 0.17 / Phase 0 complete" commit.
-- ⏳ **Phases 1–11** — not started.
+- ✅ **PHASE 1 COMPLETE — Tasks 1.1 + 1.2 done, reviewed clean (1.1: Approved no fixes; 1.2: Approved, Minor-only non-blocking findings).** Full verification GREEN at commit `9453fb3`: type-check ✓, build ✓, **378 tests / 50 files** ✓ (one pre-existing unrelated `router.test.ts` timing flake — confirmed failing identically pre-Phase-1, not a regression). Desktop top bar (`Wordmark` + horizontal links + `UserMenu`: Settings/Admin-if-superuser/Logout) and mobile bottom bar (`TabBar` 3 items + reused `UserMenu` as 4th flex sibling) both done, both driven from one shared `userMenuItems` computed — no duplication. All `.bottom-nav` hardcoded hex retired to tokens.
+- 📝 **Non-blocking polish item carried forward:** icon-size mismatch — `TabBar` renders Lucide icons at 24px, the reused `UserMenu`/`IconButton` trigger renders at 20px (no `size` prop passed through). Cosmetic only; fix whenever convenient, e.g. pass `size="24"` through if `IconButton`/`BaseIcon` support it, or during a later polish pass.
+- ⏸️ **Phase 1 checkpoint = user sign-off PENDING before Phase 2** (per executing-plans checkpoints).
+- ⏭️ **NEXT after sign-off: Task 2.1** — `LoginView.vue` centered card. Extract brief: `task-brief docs/plans/ux-overhaul.md 2.1`; dispatch fresh implementer; review; commit. New BASE for 2.1 = `9453fb3`.
+- ⏳ **Phases 2–11** — not started.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch).
 
 ### Cross-task reminders for later phases
@@ -392,18 +397,18 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 1 — App shell & nav (`App.vue`)
 
-#### Task 1.1: Desktop top bar with Wordmark + UserMenu
+#### Task 1.1: Desktop top bar with Wordmark + UserMenu ✅
 **Files:** Modify `frontend/src/App.vue`
-- [ ] Replace dark `app-nav` with token-styled top bar: `Wordmark` left; horizontal links Recipes (`/recipes`) / Plan (`/meal-plan`) / Shopping (`/shopping-lists`) center/left; `UserMenu` right with items **Settings** (`/settings`), **Admin** (if `userStore.isSuperuser`), **Log out** (calls existing `handleLogout`). Keep `data-testid="logout"` on the logout control.
-- [ ] **VERIFY** + commit `feat(nav): desktop top bar with wordmark and user menu`.
+- [x] Replace dark `app-nav` with token-styled top bar: `Wordmark` left; horizontal links Recipes (`/recipes`) / Plan (`/meal-plan`) / Shopping (`/shopping-lists`) center/left; `UserMenu` right with items **Settings** (`/settings`), **Admin** (if `userStore.isSuperuser`), **Log out** (calls existing `handleLogout`). Keep `data-testid="logout"` on the logout control.
+- [x] **VERIFY** + commit `feat(nav): desktop top bar with wordmark and user menu` (12b52f6).
 
-#### Task 1.2: Mobile bottom TabBar + account
+#### Task 1.2: Mobile bottom TabBar + account ✅
 **Files:** Modify `frontend/src/App.vue`
-- [ ] Use `TabBar` for mobile: Recipes / Plan / Shopping (Lucide icon + label) + account item at the end opening the same `UserMenu` (sheet on mobile). Keep `data-testid="bottom-nav"`. Remove the old Settings top-level tab (now in the menu). Ensure `app-main` bottom padding for the fixed bar.
-- [ ] Confirm router still has all routes (it does — `/recipes`,`/meal-plan`,`/shopping-lists`,`/settings`,`/admin`).
-- [ ] **VERIFY** (existing `App.test.ts` + `router.test.ts` pass; update assertions only if they referenced the removed Settings tab) + commit `feat(nav): mobile bottom tab bar with account menu`.
+- [x] Use `TabBar` for mobile: Recipes / Plan / Shopping (Lucide icon + label) + account item at the end opening the same `UserMenu` (sheet on mobile). Keep `data-testid="bottom-nav"`. Remove the old Settings top-level tab (now in the menu). Ensure `app-main` bottom padding for the fixed bar.
+- [x] Confirm router still has all routes (it does — `/recipes`,`/meal-plan`,`/shopping-lists`,`/settings`,`/admin`).
+- [x] **VERIFY** (existing `App.test.ts` + `router.test.ts` pass; update assertions only if they referenced the removed Settings tab) + commit `feat(nav): mobile bottom tab bar with account menu` (9453fb3).
 
-**Phase 1 checkpoint.**
+**Phase 1 checkpoint — COMPLETE.** Both tasks reviewed Approved (no fixes on 1.1; Minor-only, non-blocking on 1.2). Full suite green: type-check ✓, build ✓, 378 tests / 50 files ✓ (one pre-existing unrelated `router.test.ts` timing flake, not a regression). Follow-up polish noted for later: unify icon size (TabBar renders 24px, the reused UserMenu/IconButton trigger renders 20px) — non-blocking cosmetic gap. **Pause for user sign-off before Phase 2** (per executing-plans checkpoints).
 
 ---
 
