@@ -3,6 +3,10 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
+import BaseCard from '@/components/base/BaseCard.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import Wordmark from '@/components/base/Wordmark.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -34,36 +38,39 @@ async function submit() {
 
 <template>
   <main class="auth-page">
-    <div class="auth-card">
+    <BaseCard class="auth-card">
+      <div class="auth-brand">
+        <Wordmark />
+      </div>
       <h1>Sign in</h1>
-      <form @submit.prevent="submit" novalidate>
-        <label for="email">Email</label>
-        <input
+      <form class="auth-form" @submit.prevent="submit" novalidate>
+        <BaseInput
           id="email"
           v-model="email"
+          label="Email"
           type="email"
           autocomplete="email"
           required
           :disabled="loading"
         />
-        <label for="password">Password</label>
-        <input
+        <BaseInput
           id="password"
           v-model="password"
+          label="Password"
           type="password"
           autocomplete="current-password"
           required
           :disabled="loading"
         />
-        <p v-if="error" class="error" role="alert">{{ error }}</p>
-        <button type="submit" :disabled="loading">
+        <p v-if="error" class="auth-error" role="alert">{{ error }}</p>
+        <BaseButton type="submit" variant="primary" :loading="loading" :disabled="loading">
           {{ loading ? 'Signing in…' : 'Sign in' }}
-        </button>
+        </BaseButton>
       </form>
       <p class="switch-link">
         No account? <RouterLink to="/register">Create one</RouterLink>
       </p>
-    </div>
+    </BaseCard>
   </main>
 </template>
 
@@ -73,7 +80,8 @@ async function submit() {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 1rem;
+  padding: var(--space-4);
+  background: var(--color-bg);
 }
 
 .auth-card {
@@ -81,55 +89,37 @@ async function submit() {
   max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
+}
+
+.auth-brand {
+  display: flex;
+  justify-content: center;
+  font-size: var(--text-lg);
 }
 
 h1 {
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 600;
+  text-align: center;
+  color: var(--color-text);
 }
 
-form {
+.auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-3);
 }
 
-label {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-input {
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-}
-
-button {
-  margin-top: 0.5rem;
-  padding: 0.625rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #dc2626;
-  font-size: 0.875rem;
+.auth-error {
+  color: var(--color-danger);
+  font-size: var(--text-sm);
 }
 
 .switch-link {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   text-align: center;
+  color: var(--color-text);
 }
 </style>
