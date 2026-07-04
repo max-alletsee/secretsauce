@@ -4,10 +4,10 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import ToastHost from '@/components/ToastHost.vue'
-import BaseIcon from '@/components/base/BaseIcon.vue'
 import Wordmark from '@/components/base/Wordmark.vue'
 import UserMenu from '@/components/base/UserMenu.vue'
-import { UtensilsCrossed, CalendarDays, ShoppingCart, Settings } from '@lucide/vue'
+import TabBar from '@/components/base/TabBar.vue'
+import { UtensilsCrossed, CalendarDays, ShoppingCart } from '@lucide/vue'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -16,7 +16,6 @@ const primaryLinks = [
   { to: '/recipes', label: 'Recipes', icon: UtensilsCrossed },
   { to: '/meal-plan', label: 'Meal Plan', icon: CalendarDays },
   { to: '/shopping-lists', label: 'Shopping Lists', icon: ShoppingCart },
-  { to: '/settings', label: 'Settings', icon: Settings },
 ]
 
 async function handleLogout() {
@@ -44,7 +43,7 @@ const userMenuItems = computed(() => {
         <Wordmark />
       </RouterLink>
       <div class="app-nav__links">
-        <RouterLink v-for="link in primaryLinks.slice(0, 3)" :key="link.to" :to="link.to">
+        <RouterLink v-for="link in primaryLinks" :key="link.to" :to="link.to">
           {{ link.label }}
         </RouterLink>
       </div>
@@ -59,15 +58,11 @@ const userMenuItems = computed(() => {
 
     <!-- Bottom tab bar (mobile only via CSS) -->
     <nav class="bottom-nav" data-testid="bottom-nav">
-      <RouterLink
-        v-for="link in primaryLinks"
-        :key="link.to"
-        :to="link.to"
-        class="bottom-nav__item"
-      >
-        <span class="bottom-nav__icon"><BaseIcon :icon="link.icon" /></span>
-        <span class="bottom-nav__label">{{ link.label }}</span>
-      </RouterLink>
+      <TabBar :items="primaryLinks" class="bottom-nav__tabs" />
+      <div class="bottom-nav__account">
+        <UserMenu :items="userMenuItems" />
+        <span class="bottom-nav__account-label">Account</span>
+      </div>
     </nav>
   </template>
   <template v-else>
@@ -121,23 +116,33 @@ const userMenuItems = computed(() => {
 .bottom-nav {
   display: none;
 }
-.bottom-nav__item {
+.bottom-nav__tabs {
+  flex: 1;
+  /* TabBar already supplies its own background/border/safe-area padding;
+     strip those so the surrounding .bottom-nav row owns them once and the
+     account item matches flush without doubling the safe-area inset. */
+  border-top: none;
+  padding-bottom: 0;
+}
+.bottom-nav__account {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.4rem 0;
-  color: #64748b;
-  text-decoration: none;
-  font-size: 0.6875rem;
-}
-.bottom-nav__item.router-link-active {
-  color: #2563eb;
-}
-.bottom-nav__icon {
-  font-size: 1.1rem;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
   line-height: 1;
+}
+.bottom-nav__account-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
 }
 
 /* Mobile: hide top primary links, show bottom tab bar */
@@ -150,12 +155,14 @@ const userMenuItems = computed(() => {
   }
   .bottom-nav {
     display: flex;
+    align-items: stretch;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: white;
-    border-top: 1px solid #e5e7eb;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding-bottom: env(safe-area-inset-bottom, 0);
     z-index: 50;
   }
 }

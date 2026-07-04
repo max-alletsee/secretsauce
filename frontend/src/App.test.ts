@@ -41,6 +41,28 @@ describe('App nav', () => {
     expect(wrapper.find('[data-testid="bottom-nav"]').exists()).toBe(true)
   })
 
+  it('shows Recipes/Meal Plan/Shopping Lists but not a top-level Settings tab in the bottom nav', () => {
+    const wrapper = mount(App)
+    const bottomNav = wrapper.find('[data-testid="bottom-nav"]')
+    expect(bottomNav.text()).toContain('Recipes')
+    expect(bottomNav.text()).toContain('Meal Plan')
+    expect(bottomNav.text()).toContain('Shopping Lists')
+    // Settings should not be a top-level tab bar item; it lives inside the account menu.
+    const navLinks = bottomNav.findAll('a')
+    const linkLabels = navLinks.map((l) => l.text())
+    expect(linkLabels).not.toContain('Settings')
+  })
+
+  it('has an Account trigger in the bottom nav that opens the same menu items as desktop', async () => {
+    const wrapper = mount(App)
+    const bottomNav = wrapper.find('[data-testid="bottom-nav"]')
+    const accountTrigger = bottomNav.find('button[aria-label="Account"]')
+    expect(accountTrigger.exists()).toBe(true)
+    await accountTrigger.trigger('click')
+    expect(bottomNav.text()).toContain('Settings')
+    expect(bottomNav.text()).toContain('Log out')
+  })
+
   it('hides nav when unauthenticated', () => {
     authed = false
     const wrapper = mount(App)
@@ -59,29 +81,29 @@ describe('App nav', () => {
 
   it('shows Settings inside the account menu when opened', async () => {
     const wrapper = mount(App)
-    await wrapper.find('button[aria-label="Account"]').trigger('click')
-    expect(wrapper.text()).toContain('Settings')
+    await wrapper.find('.app-nav button[aria-label="Account"]').trigger('click')
+    expect(wrapper.find('.app-nav').text()).toContain('Settings')
   })
 
   it('shows Admin link inside the account menu only for superusers', async () => {
     superuser = true
     const wrapper = mount(App)
-    await wrapper.find('button[aria-label="Account"]').trigger('click')
-    expect(wrapper.text()).toContain('Admin')
+    await wrapper.find('.app-nav button[aria-label="Account"]').trigger('click')
+    expect(wrapper.find('.app-nav').text()).toContain('Admin')
   })
 
   it('does not show Admin link inside the account menu for non-superusers', async () => {
     superuser = false
     const wrapper = mount(App)
-    await wrapper.find('button[aria-label="Account"]').trigger('click')
-    const menuText = wrapper.find('[role="menu"]').text()
+    await wrapper.find('.app-nav button[aria-label="Account"]').trigger('click')
+    const menuText = wrapper.find('.app-nav [role="menu"]').text()
     expect(menuText).not.toContain('Admin')
   })
 
   it('logs out via the account menu', async () => {
     const wrapper = mount(App)
-    await wrapper.find('button[aria-label="Account"]').trigger('click')
-    const logoutBtn = wrapper.find('[data-testid="logout"]')
+    await wrapper.find('.app-nav button[aria-label="Account"]').trigger('click')
+    const logoutBtn = wrapper.find('.app-nav [data-testid="logout"]')
     expect(logoutBtn.exists()).toBe(true)
     await logoutBtn.trigger('click')
     expect(logout).toHaveBeenCalledOnce()
