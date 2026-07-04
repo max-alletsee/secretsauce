@@ -10,10 +10,12 @@ const props = withDefaults(
     type?: string
     placeholder?: string
     required?: boolean
+    hideErrorText?: boolean
   }>(),
   {
     type: 'text',
     required: false,
+    hideErrorText: false,
   },
 )
 
@@ -42,7 +44,14 @@ const errorId = computed(() => `${inputId.value}-error`)
       :aria-describedby="error ? errorId : undefined"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <span v-if="error" :id="errorId" class="input__error" role="alert">{{ error }}</span>
+    <span
+      v-if="error"
+      :id="errorId"
+      class="input__error"
+      :class="{ 'sr-only': hideErrorText }"
+      role="alert"
+      >{{ error }}</span
+    >
   </div>
 </template>
 
@@ -95,5 +104,18 @@ const errorId = computed(() => `${inputId.value}-error`)
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   color: var(--color-danger);
+}
+
+/* Visually-hidden utility — accessible text off-screen (matches PourLoader.vue convention) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

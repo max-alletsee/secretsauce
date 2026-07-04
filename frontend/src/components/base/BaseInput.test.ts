@@ -85,6 +85,22 @@ describe('BaseInput', () => {
     expect(wrapper.find('.input__error').attributes('id')).toBe(describedBy)
   })
 
+  it('visually hides the error text but keeps it in the DOM when hideErrorText is true', () => {
+    const wrapper = mount(BaseInput, {
+      props: { modelValue: '', error: 'Invalid email or password.', hideErrorText: true },
+    })
+    const errorSpan = wrapper.find('.input__error')
+    expect(errorSpan.exists()).toBe(true)
+    expect(errorSpan.text()).toBe('Invalid email or password.')
+    expect(errorSpan.classes()).toContain('sr-only')
+    expect(wrapper.find('input').attributes('aria-describedby')).toBe(errorSpan.attributes('id'))
+  })
+
+  it('does not hide the error text when hideErrorText is false or omitted', () => {
+    const wrapper = mount(BaseInput, { props: { modelValue: '', error: 'Oops' } })
+    expect(wrapper.find('.input__error').classes()).not.toContain('sr-only')
+  })
+
   it('forwards placeholder prop', () => {
     const wrapper = mount(BaseInput, { props: { modelValue: '', placeholder: 'Enter title…' } })
     expect(wrapper.find('input').attributes('placeholder')).toBe('Enter title…')

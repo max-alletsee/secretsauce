@@ -65,6 +65,7 @@ async function submit() {
           required
           :disabled="loading"
           :error="credentialsError"
+          :hide-error-text="true"
         />
         <p v-if="rateLimitError" class="auth-error" role="alert">{{ rateLimitError }}</p>
         <BaseButton type="submit" variant="primary" :loading="loading" :disabled="loading">
