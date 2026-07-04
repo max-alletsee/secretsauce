@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 1 COMPLETE through Task 1.2; awaiting user sign-off before Phase 2)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 2 COMPLETE through Task 2.2; awaiting user sign-off before Phase 3)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -47,16 +47,21 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - *(Tasks 0.6–0.17, see full history via `git log` — all reviewed/committed through)* `509e52e` docs: mark Task 0.17 and Phase 0 complete
 - `12b52f6` feat(nav): desktop top bar with wordmark and user menu  *(Task 1.1)*
 - `9453fb3` feat(nav): mobile bottom tab bar with account menu  *(Task 1.2)*
+- `b4616d9` docs: mark Task 1.1/1.2 and Phase 1 complete
+- `283a3dd` feat(auth): restyle login with card, wordmark, inline validation  *(Task 2.1)*
+- `8435d71` fix(auth): wire field-level error state and token h1 size on login  *(2.1 review fix)*
+- `cedb969` feat(auth): restyle register with card, wordmark, matching login pattern  *(Task 2.2)*
 
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. Continue work on `worktree-ux-overhaul` in the worktree; fast-forward `ui-shell-rework` again at later checkpoints. Nothing pushed to origin yet.
 
 ### Status snapshot
 - ✅ **PHASE 0 COMPLETE — all Tasks 0.1 → 0.17 done, reviewed, and fixed.** Full verification GREEN at commit `7321873`: type-check ✓, build ✓, **372 tests / 50 files** ✓. No emoji-as-icon remain in `frontend/src`. All primitives built + tested under `src/components/base/`: BaseIcon, BaseButton, IconButton, BaseInput, BaseTextarea, Chip, ToggleChip, BaseCard, Skeleton, PourLoader, Wordmark, ProgressBar, Stepper, SegmentedTabs, EmptyState, ConfirmDialog, DragList (+moveItem), TabBar, UserMenu, BaseAvatar; BottomSheet + ToastHost tokenized; dot favicon added.
 - ✅ **PHASE 1 COMPLETE — Tasks 1.1 + 1.2 done, reviewed clean (1.1: Approved no fixes; 1.2: Approved, Minor-only non-blocking findings).** Full verification GREEN at commit `9453fb3`: type-check ✓, build ✓, **378 tests / 50 files** ✓ (one pre-existing unrelated `router.test.ts` timing flake — confirmed failing identically pre-Phase-1, not a regression). Desktop top bar (`Wordmark` + horizontal links + `UserMenu`: Settings/Admin-if-superuser/Logout) and mobile bottom bar (`TabBar` 3 items + reused `UserMenu` as 4th flex sibling) both done, both driven from one shared `userMenuItems` computed — no duplication. All `.bottom-nav` hardcoded hex retired to tokens.
-- 📝 **Non-blocking polish item carried forward:** icon-size mismatch — `TabBar` renders Lucide icons at 24px, the reused `UserMenu`/`IconButton` trigger renders at 20px (no `size` prop passed through). Cosmetic only; fix whenever convenient, e.g. pass `size="24"` through if `IconButton`/`BaseIcon` support it, or during a later polish pass.
-- ⏸️ **Phase 1 checkpoint = user sign-off PENDING before Phase 2** (per executing-plans checkpoints).
-- ⏭️ **NEXT after sign-off: Task 2.1** — `LoginView.vue` centered card. Extract brief: `task-brief docs/plans/ux-overhaul.md 2.1`; dispatch fresh implementer; review; commit. New BASE for 2.1 = `9453fb3`.
-- ⏳ **Phases 2–11** — not started.
+- ✅ **PHASE 2 COMPLETE — Tasks 2.1 + 2.2 done, reviewed clean (2.1: Approved after one fix loop; 2.2: Approved, no fixes).** Full verification GREEN at commit `cedb969`: type-check ✓, build ✓, **378 tests / 50 files** ✓ (no flake this run). `LoginView.vue` and `RegisterView.vue` both restyled onto `BaseCard`/`Wordmark`/`BaseInput`/`BaseButton`, fully tokenized (no hardcoded hex/px literals left). Established convention: bind `BaseInput`'s `error` prop only when an error is genuinely attributable to a specific field (Login's `credentialsError`, bound to both email+password since the backend can't say which is wrong); otherwise use a page-level `role="alert"` banner (Login's `rateLimitError`, Register's generic banner — verified its catch-block has no field-attributable signal before defaulting to this).
+- 📝 **Non-blocking polish items carried forward:** (1) icon-size mismatch — `TabBar` renders Lucide icons at 24px, the reused `UserMenu`/`IconButton` trigger renders at 20px (from Phase 1). (2) Login's `credentialsError` renders its message text twice on screen (once under each of email/password, since both are bound to the same error) — cosmetic/redundant, not broken; could suppress the second visible instance while keeping `aria-invalid`/`aria-describedby` on both. (3) `.auth-brand { font-size: var(--text-lg) }` in both `LoginView.vue`/`RegisterView.vue` is vestigial — `Wordmark` self-sizes, so the rule has no visible effect. Fix whenever convenient, e.g. during a later polish pass.
+- ⏸️ **Phase 2 checkpoint = user sign-off PENDING before Phase 3** (per executing-plans checkpoints).
+- ⏭️ **NEXT after sign-off: Task 3.0** — sanctioned backend change to expose `times_cooked`/`last_cooked_at` on the recipe read schema (TDD). Extract brief: `task-brief docs/plans/ux-overhaul.md 3.0`; dispatch fresh implementer; review; commit. New BASE for 3.0 = `cedb969`. Note: 3.0 touches `backend/`, not `frontend/` — the implementer should run backend verification (`cd backend && pytest tests/integration/test_recipe_routes.py -q`), not the frontend commands.
+- ⏳ **Phases 3–11** — not started.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch).
 
 ### Cross-task reminders for later phases
@@ -414,17 +419,17 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 2 — Auth
 
-#### Task 2.1: LoginView centered card
+#### Task 2.1: LoginView centered card ✅
 **Files:** Modify `frontend/src/views/LoginView.vue`
-- [ ] Centered `BaseCard` on `--color-bg`; `Wordmark` above; `BaseInput` email/password; `BaseButton` primary submit; inline `error` props on inputs for field validation; keep existing submit/store flow + any testids.
-- [ ] **VERIFY** + commit `feat(auth): restyle login with card, wordmark, inline validation`.
+- [x] Centered `BaseCard` on `--color-bg`; `Wordmark` above; `BaseInput` email/password; `BaseButton` primary submit; inline `error` props on inputs for field validation; keep existing submit/store flow + any testids.
+- [x] **VERIFY** + commit `feat(auth): restyle login with card, wordmark, inline validation` (283a3dd) + review fix `fix(auth): wire field-level error state and token h1 size on login` (8435d71).
 
-#### Task 2.2: RegisterView centered card
+#### Task 2.2: RegisterView centered card ✅
 **Files:** Modify `frontend/src/views/RegisterView.vue`
-- [ ] Same treatment; include display name field; inline validation; no OAuth.
-- [ ] **VERIFY** + commit `feat(auth): restyle register to match login`.
+- [x] Same treatment; include display name field; inline validation; no OAuth.
+- [x] **VERIFY** + commit `feat(auth): restyle register with card, wordmark, matching login pattern` (cedb969).
 
-**Phase 2 checkpoint.**
+**Phase 2 checkpoint — COMPLETE.** Full suite green: type-check ✓, build ✓, 378 tests / 50 files ✓. Both auth views restyled to design-system primitives (BaseCard/Wordmark/BaseInput/BaseButton), fully tokenized. Task 2.1 needed one fix loop (brief's "inline error props" requirement was initially unmet — fixed by splitting rate-limit vs. credentials errors, the latter bound to both inputs since the backend doesn't attribute which field is wrong). Task 2.2 reused that lesson correctly: verified Register's error has no field-attributable signal, kept as page-level banner per precedent — Approved with no fixes. Non-blocking polish carried forward: (1) Phase 1's TabBar/UserMenu icon-size mismatch (24px vs 20px); (2) Login's duplicate visible error text under both inputs (cosmetic); (3) vestigial `.auth-brand` font-size rule in both auth views. **Pause for user sign-off before Phase 3** (per executing-plans checkpoints).
 
 ---
 
