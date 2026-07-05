@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
+import ToggleChip from '@/components/base/ToggleChip.vue'
 
 const model = defineModel<string[]>({ default: () => [] })
 
@@ -23,13 +24,7 @@ const TAG_GROUPS: { label: string; tags: string[] }[] = [
   },
 ]
 
-const isExpanded = ref(false)
-
 const activeCount = computed(() => model.value.length)
-
-function togglePanel() {
-  isExpanded.value = !isExpanded.value
-}
 
 function toggleTag(tag: string) {
   const current = model.value
@@ -48,16 +43,10 @@ function clearAll() {
 <template>
   <div class="tag-filter">
     <div class="tag-filter__header">
-      <button
-        type="button"
-        class="tag-filter__toggle"
-        data-testid="tag-filter-toggle"
-        :aria-expanded="isExpanded"
-        @click="togglePanel"
-      >
-        <span v-if="activeCount > 0">Filter ({{ activeCount }})</span>
-        <span v-else>Filter</span>
-      </button>
+      <span class="tag-filter__count">
+        <span v-if="activeCount > 0">Filters ({{ activeCount }})</span>
+        <span v-else>Filters</span>
+      </span>
       <button
         v-if="activeCount > 0"
         type="button"
@@ -69,7 +58,7 @@ function clearAll() {
       </button>
     </div>
 
-    <div class="tag-filter__panel" :class="{ 'tag-filter__panel--expanded': isExpanded }">
+    <div class="tag-filter__groups">
       <fieldset
         v-for="group in TAG_GROUPS"
         :key="group.label"
@@ -77,16 +66,13 @@ function clearAll() {
       >
         <legend class="tag-filter__legend">{{ group.label }}</legend>
         <div class="tag-filter__chips">
-          <button
+          <ToggleChip
             v-for="tag in group.tags"
             :key="tag"
-            type="button"
-            class="tag-filter__chip"
-            :class="{ 'tag-filter__chip--active': model.includes(tag) }"
-            @click="toggleTag(tag)"
-          >
-            {{ tag }}
-          </button>
+            :model-value="model.includes(tag)"
+            :label="tag"
+            @update:model-value="toggleTag(tag)"
+          />
         </div>
       </fieldset>
     </div>
@@ -97,99 +83,67 @@ function clearAll() {
 .tag-filter {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  position: sticky;
+  top: 0;
+  background: var(--color-bg);
+  z-index: 10;
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
 }
 
 .tag-filter__header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 
-.tag-filter__toggle {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  background: white;
-  font-size: 0.875rem;
+.tag-filter__count {
+  font-size: var(--text-sm);
   font-weight: 500;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.tag-filter__toggle:hover {
-  background: #f9fafb;
+  color: var(--color-text);
 }
 
 .tag-filter__clear {
-  padding: 0.375rem 0.75rem;
+  padding: var(--space-1) var(--space-3);
   border: none;
-  border-radius: 0.375rem;
+  border-radius: var(--radius-sm);
   background: none;
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
   text-decoration: underline;
 }
 
 .tag-filter__clear:hover {
-  color: #374151;
+  color: var(--color-text);
 }
 
-/* Mobile: panel hidden by default, shown when expanded */
-.tag-filter__panel {
-  display: none;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.tag-filter__panel--expanded {
+.tag-filter__groups {
   display: flex;
-}
-
-/* Desktop: always show panel, hide toggle */
-@media (min-width: 768px) {
-  .tag-filter__toggle {
-    display: none;
-  }
-
-  .tag-filter__panel {
-    display: flex;
-  }
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .tag-filter__group {
   border: none;
   padding: 0;
   margin: 0;
+  min-width: 0;
 }
 
 .tag-filter__legend {
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.375rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
 }
 
 .tag-filter__chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-
-.tag-filter__chip {
-  padding: 0.25rem 0.625rem;
-  border: 1px solid #d1d5db;
-  border-radius: 1rem;
-  background: white;
-  font-size: 0.8125rem;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.tag-filter__chip--active {
-  background: #2563eb;
-  color: white;
-  border-color: #2563eb;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
 }
 </style>

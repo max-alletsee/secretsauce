@@ -60,18 +60,28 @@ describe('TagFilter', () => {
     expect(emitted![0]![0]).toEqual([])
   })
 
-  it('toggle button is present in DOM', () => {
-    const wrapper = mount(TagFilter, {
-      props: { modelValue: [] },
-    })
-    expect(wrapper.find('[data-testid="tag-filter-toggle"]').exists()).toBe(true)
-  })
-
-  it('toggle button shows active count when tags selected', () => {
+  it('shows active filter count when tags are selected', () => {
     const wrapper = mount(TagFilter, {
       props: { modelValue: ['vegan', 'italian'] },
     })
-    const toggleBtn = wrapper.find('[data-testid="tag-filter-toggle"]')
-    expect(toggleBtn.text()).toContain('2')
+    expect(wrapper.text()).toContain('2')
+  })
+
+  it('does not render an expand/collapse toggle button', () => {
+    const wrapper = mount(TagFilter, {
+      props: { modelValue: [] },
+    })
+    expect(wrapper.find('[data-testid="tag-filter-toggle"]').exists()).toBe(false)
+  })
+
+  it('renders group labels', () => {
+    const wrapper = mount(TagFilter, {
+      props: { modelValue: [] },
+    })
+    expect(wrapper.text()).toContain('Protein')
+    expect(wrapper.text()).toContain('Diet')
+    expect(wrapper.text()).toContain('Season')
+    expect(wrapper.text()).toContain('Meal type')
+    expect(wrapper.text()).toContain('Cuisine')
   })
 })
