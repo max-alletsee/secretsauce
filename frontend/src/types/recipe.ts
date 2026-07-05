@@ -45,6 +45,8 @@ export interface Recipe {
   current_version: RecipeVersion
   created_at: string
   updated_at: string
+  times_cooked: number
+  last_cooked_at: string | null
 }
 
 export interface RecipeCreatePayload {
