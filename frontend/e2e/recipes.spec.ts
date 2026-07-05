@@ -96,10 +96,11 @@ test('can delete a recipe', async ({ page }) => {
   const recipeId = (await createRes.json()).id
 
   await page.goto(`/recipes/${recipeId}`)
-  await page.click('button:has-text("Delete"), [data-testid="delete-recipe"]')
+  await page.getByRole('button', { name: 'More actions' }).click()
+  await page.getByTestId('delete-recipe').click()
 
-  // Confirm deletion dialog if present
-  const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("Yes, delete")')
+  // Confirm deletion dialog
+  const confirmBtn = page.getByTestId('confirm-btn')
   if (await confirmBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
     await confirmBtn.click()
   }
