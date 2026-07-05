@@ -110,24 +110,19 @@ test('can delete a recipe', async ({ page }) => {
 })
 
 test('recipe import from URL submits and shows status', async ({ page }) => {
-  await page.goto('/recipes/import')
+  await page.goto('/recipes')
 
-  // Click the URL import tab if there is one
-  const urlTab = page.locator('button:has-text("URL"), [role="tab"]:has-text("URL")')
-  if (await urlTab.isVisible({ timeout: 1000 }).catch(() => false)) {
-    await urlTab.click()
-  }
+  // Open the add-recipe bottom sheet
+  await page.getByTestId('add-recipe-btn').click()
+  await expect(page.getByTestId('add-recipe-sheet')).toBeVisible()
 
-  await page.fill(
-    'input[type="url"], input[placeholder*="url" i], input[placeholder*="paste" i]',
-    'https://example.com/recipe',
-  )
-  await page.click('button[type="submit"], button:has-text("Import")')
+  // "From URL" is the default active tab, but select it explicitly to be robust
+  // against future default-tab changes.
+  await page.getByRole('tab', { name: 'From URL' }).click()
 
-  // Should show a loading/pending indicator
-  await expect(
-    page.locator('[data-testid="import-status"], .import-status')
-      .or(page.getByText('processing', { exact: false }))
-      .or(page.getByText('Importing', { exact: false })),
-  ).toBeVisible({ timeout: 10_000 })
+  await page.getByTestId('import-url-input').fill('https://example.com/recipe')
+  await page.getByTestId('import-submit-btn').click()
+
+  // Should show the pending/importing spinner
+  await expect(page.getByTestId('import-spinner')).toBeVisible({ timeout: 10_000 })
 })
