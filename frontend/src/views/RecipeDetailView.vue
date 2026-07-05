@@ -10,6 +10,7 @@ import Stepper from '@/components/base/Stepper.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 import { scaleQuantity } from '@/composables/useScaledQuantity'
 import PourLoader from '@/components/base/PourLoader.vue'
+import ProgressBar from '@/components/base/ProgressBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,6 +56,50 @@ const scaledIngredients = computed(() => {
     })) ?? []
   )
 })
+
+// Ingredient/step checkoff — presentational only, local to this component
+// instance. Never persisted (no localStorage/store/API write) and naturally
+// resets on reload. Ingredients are keyed by array index (no stable id field
+// on Ingredient); steps are keyed by their stable `order` field.
+const checkedIngredients = ref<Set<number>>(new Set())
+const checkedSteps = ref<Set<number>>(new Set())
+
+function toggleIngredient(index: number) {
+  const next = new Set(checkedIngredients.value)
+  if (next.has(index)) {
+    next.delete(index)
+  } else {
+    next.add(index)
+  }
+  checkedIngredients.value = next
+}
+
+function toggleStep(order: number) {
+  const next = new Set(checkedSteps.value)
+  if (next.has(order)) {
+    next.delete(order)
+  } else {
+    next.add(order)
+  }
+  checkedSteps.value = next
+}
+
+const doneStepsCount = computed(() => checkedSteps.value.size)
+const totalStepsCount = computed(() => recipe.value?.current_version.steps.length ?? 0)
+const stepsProgressLabel = computed(() => `${doneStepsCount.value} of ${totalStepsCount.value} steps`)
+
+// The `/recipes/:id` route is a single route record, so Vue Router reuses
+// this component instance when navigating between different recipe ids
+// (e.g. via RouterLink from a "related recipes" list) rather than
+// remounting it. Without this, checkoff state from the previous recipe
+// would bleed into the next one.
+watch(
+  () => recipe.value?.id,
+  () => {
+    checkedIngredients.value = new Set()
+    checkedSteps.value = new Set()
+  },
+)
 
 async function loadRecipe() {
   error.value = ''
@@ -181,17 +226,47 @@ async function handleRestore(versionId: string) {
         <section class="recipe-detail__section">
           <h2>Ingredients</h2>
           <ul class="recipe-detail__ingredients">
-            <li v-for="(ing, i) in scaledIngredients" :key="i">
-              {{ formatIngredient(ing) }}
+            <li
+              v-for="(ing, i) in scaledIngredients"
+              :key="i"
+              :class="{ 'is-done': checkedIngredients.has(i) }"
+            >
+              <label class="recipe-detail__checkoff-label">
+                <input
+                  type="checkbox"
+                  :checked="checkedIngredients.has(i)"
+                  @change="toggleIngredient(i)"
+                />
+                <span>{{ formatIngredient(ing) }}</span>
+              </label>
             </li>
           </ul>
         </section>
 
         <section class="recipe-detail__section">
-          <h2>Steps</h2>
+          <div class="recipe-detail__steps-header">
+            <h2>Steps</h2>
+            <ProgressBar
+              :value="doneStepsCount"
+              :max="totalStepsCount"
+              :label="stepsProgressLabel"
+              class="recipe-detail__steps-progress"
+            />
+          </div>
           <ol class="recipe-detail__steps">
-            <li v-for="step in recipe.current_version.steps" :key="step.order">
-              {{ step.instruction }}
+            <li
+              v-for="step in recipe.current_version.steps"
+              :key="step.order"
+              :class="{ 'is-done': checkedSteps.has(step.order) }"
+            >
+              <label class="recipe-detail__checkoff-label">
+                <input
+                  type="checkbox"
+                  :checked="checkedSteps.has(step.order)"
+                  @change="toggleStep(step.order)"
+                />
+                <span>{{ step.instruction }}</span>
+              </label>
             </li>
           </ol>
         </section>
@@ -321,20 +396,58 @@ async function handleRestore(versionId: string) {
   margin: 0 0 var(--space-3);
 }
 .recipe-detail__ingredients {
-  list-style: disc inside;
+  list-style: none;
   padding: 0;
   margin: 0;
 }
 .recipe-detail__ingredients li {
   padding: var(--space-1) 0;
 }
-.recipe-detail__steps {
-  padding-left: var(--space-5);
+.recipe-detail__steps-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.recipe-detail__steps-header h2 {
   margin: 0;
+}
+.recipe-detail__steps-progress {
+  max-width: 240px;
+}
+.recipe-detail__steps {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  counter-reset: recipe-detail-steps;
 }
 .recipe-detail__steps li {
   padding: var(--space-2) 0;
   line-height: 1.5;
+  counter-increment: recipe-detail-steps;
+}
+.recipe-detail__steps li::before {
+  content: counter(recipe-detail-steps) '. ';
+  font-weight: 600;
+}
+.recipe-detail__checkoff-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+.recipe-detail__checkoff-label input[type='checkbox'] {
+  margin-top: 0.2em;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.recipe-detail__ingredients li.is-done,
+.recipe-detail__steps li.is-done {
+  color: var(--color-text-muted);
+}
+.recipe-detail__ingredients li.is-done .recipe-detail__checkoff-label span,
+.recipe-detail__steps li.is-done .recipe-detail__checkoff-label span {
+  text-decoration: line-through;
 }
 .recipe-detail__tags {
   display: flex;

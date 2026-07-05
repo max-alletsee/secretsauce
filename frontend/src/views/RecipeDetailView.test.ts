@@ -1,6 +1,7 @@
 // frontend/src/views/RecipeDetailView.test.ts
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Recipe } from '@/types/recipe'
 
@@ -164,6 +165,175 @@ describe('RecipeDetailView', () => {
     const grid = wrapper.find('.recipe-detail__columns')
     expect(grid.exists()).toBe(true)
     expect(grid.findAll('section')).toHaveLength(2)
+  })
+
+  describe('ingredient checkoff', () => {
+    it('toggles checked state and applies a done class when an ingredient checkbox is checked', async () => {
+      mockRecipeStore({
+        currentRecipe: makeRecipe({
+          current_version: {
+            ...makeRecipe().current_version,
+            ingredients: [
+              { name: 'carrot', quantity: '2', unit: null },
+              { name: 'onion', quantity: '1', unit: null },
+            ],
+          },
+        }),
+      })
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const items = wrapper.findAll('.recipe-detail__ingredients li')
+      expect(items).toHaveLength(2)
+      expect(items[0]!.classes()).not.toContain('is-done')
+
+      const checkbox = items[0]!.find('input[type="checkbox"]')
+      expect(checkbox.exists()).toBe(true)
+      await checkbox.setValue(true)
+
+      expect(items[0]!.classes()).toContain('is-done')
+      // Untouched sibling remains unaffected.
+      expect(items[1]!.classes()).not.toContain('is-done')
+    })
+
+    it('unchecking an ingredient removes the done class', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const item = wrapper.find('.recipe-detail__ingredients li')
+      const checkbox = item.find('input[type="checkbox"]')
+      await checkbox.setValue(true)
+      expect(item.classes()).toContain('is-done')
+
+      await checkbox.setValue(false)
+      expect(item.classes()).not.toContain('is-done')
+    })
+
+    it('never calls a store mutation as a side effect of checking ingredients', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const checkbox = wrapper.find('.recipe-detail__ingredients input[type="checkbox"]')
+      await checkbox.setValue(true)
+
+      expect(updateRecipe).not.toHaveBeenCalled()
+      expect(deleteRecipe).not.toHaveBeenCalled()
+      expect(restoreVersion).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('step done-state + progress', () => {
+    it('renders a ProgressBar reflecting 0 of N steps done initially', async () => {
+      mockRecipeStore({
+        currentRecipe: makeRecipe({
+          current_version: {
+            ...makeRecipe().current_version,
+            steps: [
+              { order: 1, instruction: 'Chop the carrots.' },
+              { order: 2, instruction: 'Boil water.' },
+            ],
+          },
+        }),
+      })
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const progressBar = wrapper.findComponent({ name: 'ProgressBar' })
+      expect(progressBar.exists()).toBe(true)
+      expect(progressBar.props('value')).toBe(0)
+      expect(progressBar.props('max')).toBe(2)
+      expect(progressBar.props('label')).toBe('0 of 2 steps')
+    })
+
+    it('checking a step checkbox increments the ProgressBar value and label', async () => {
+      mockRecipeStore({
+        currentRecipe: makeRecipe({
+          current_version: {
+            ...makeRecipe().current_version,
+            steps: [
+              { order: 1, instruction: 'Chop the carrots.' },
+              { order: 2, instruction: 'Boil water.' },
+            ],
+          },
+        }),
+      })
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const stepItems = wrapper.findAll('.recipe-detail__steps li')
+      const firstCheckbox = stepItems[0]!.find('input[type="checkbox"]')
+      await firstCheckbox.setValue(true)
+
+      const progressBar = wrapper.findComponent({ name: 'ProgressBar' })
+      expect(progressBar.props('value')).toBe(1)
+      expect(progressBar.props('label')).toBe('1 of 2 steps')
+      expect(stepItems[0]!.classes()).toContain('is-done')
+    })
+
+    it('never calls a store mutation as a side effect of checking steps', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const checkbox = wrapper.find('.recipe-detail__steps input[type="checkbox"]')
+      await checkbox.setValue(true)
+
+      expect(updateRecipe).not.toHaveBeenCalled()
+      expect(deleteRecipe).not.toHaveBeenCalled()
+      expect(restoreVersion).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('checkoff reset across recipe navigation', () => {
+    it('clears ingredient and step checkoff state when the recipe id changes', async () => {
+      // Use a reactive store stand-in so mutating `currentRecipe` in place
+      // (simulating the store updating after a route param change, the way
+      // Pinia would) is actually observed by the component's computed,
+      // reproducing Vue Router's instance-reuse behavior for `/recipes/:id`.
+      const recipeA = makeRecipe({ id: 'recipe-1' })
+      const reactiveStore = reactive({
+        currentRecipe: recipeA as Recipe,
+        versions: [],
+        loading: false,
+        fetchRecipe,
+        fetchVersions,
+        updateRecipe,
+        deleteRecipe,
+        restoreVersion,
+      })
+      vi.mocked(useRecipeStore).mockReturnValue(
+        reactiveStore as unknown as ReturnType<typeof useRecipeStore>,
+      )
+
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const ingredientCheckbox = wrapper.find('.recipe-detail__ingredients input[type="checkbox"]')
+      await ingredientCheckbox.setValue(true)
+      const stepCheckbox = wrapper.find('.recipe-detail__steps input[type="checkbox"]')
+      await stepCheckbox.setValue(true)
+
+      expect(wrapper.find('.recipe-detail__ingredients li').classes()).toContain('is-done')
+      const progressBarBefore = wrapper.findComponent({ name: 'ProgressBar' })
+      expect(progressBarBefore.props('value')).toBe(1)
+
+      // Simulate the router reusing this instance for a different recipe id
+      // by having the (reactive) store swap in a different recipe.
+      const recipeB = makeRecipe({
+        id: 'recipe-2',
+        current_version: {
+          ...makeRecipe().current_version,
+          ingredients: [{ name: 'flour', quantity: '3', unit: 'cups' }],
+          steps: [{ order: 1, instruction: 'Mix.' }],
+        },
+      })
+      reactiveStore.currentRecipe = recipeB
+      await wrapper.vm.$nextTick()
+      await flushPromises()
+
+      expect(wrapper.find('.recipe-detail__ingredients li').classes()).not.toContain('is-done')
+      const progressBarAfter = wrapper.findComponent({ name: 'ProgressBar' })
+      expect(progressBarAfter.props('value')).toBe(0)
+    })
   })
 })
 
