@@ -26,7 +26,12 @@ const GLYPH_BY_VALUE: Array<[number, string]> = [
   [2 / 3, '⅔'],
 ]
 
-const FRACTION_MATCH_TOLERANCE = 0.01
+// Sized only to absorb IEEE 754 floating-point arithmetic noise (e.g.
+// `2 * (1/3)` not landing on exactly `2/3`), not to treat genuinely
+// different decimals as a match. Real recipe-scaling factors (e.g. 0.75x)
+// can produce results a few percent away from a common fraction that must
+// NOT be misclassified as that fraction — see regression tests below.
+const FRACTION_MATCH_TOLERANCE = 1e-9
 
 /**
  * Parses a single freeform number token (no ranges) into a numeric value.

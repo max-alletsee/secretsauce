@@ -50,4 +50,18 @@ describe('scaleQuantity', () => {
   it('scales a range where an end lands on a common fraction glyph', () => {
     expect(scaleQuantity('2-3', 0.5)).toBe('1-1½')
   })
+
+  // Regression coverage for the fraction-match tolerance bug: 0.01 was wide
+  // enough to misclassify a genuinely different decimal as a common fraction.
+  it('does not misclassify a real decimal result as a nearby fraction glyph', () => {
+    // 0.9 * 0.75 = 0.675, which is ~1.25% away from ⅔ (0.6667) — a real,
+    // distinct quantity, not floating-point noise. Must fall back to decimal.
+    expect(scaleQuantity('0.9', 0.75)).toBe('0.68')
+  })
+
+  it('still resolves genuine floating-point noise to the correct fraction glyph', () => {
+    // 2 * (1/3) in JS floating point is 0.6666666666666666, not exactly 2/3,
+    // but the difference is pure FP noise and should still match ⅔.
+    expect(scaleQuantity('2', 1 / 3)).toBe('⅔')
+  })
 })
