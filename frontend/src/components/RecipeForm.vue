@@ -6,7 +6,30 @@ import TagSelector from './TagSelector.vue'
 import IngredientDrawer from './IngredientDrawer.vue'
 import StepDrawer from './StepDrawer.vue'
 import BaseButton from './base/BaseButton.vue'
+import DragList from './base/DragList.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
+
+// DragList requires a stable, unique keyField per row to track identity across
+// reorders. Neither Ingredient (no id field) nor Step (order is NOT stable —
+// it gets renumbered on every edit/reorder) can serve as that key. So we wrap
+// each item in a local-only { localId, ... } object, purely for presentation:
+// localId is generated once per row (incrementing counter, scoped to this
+// component instance) and never leaves this file — it's stripped back out to
+// plain Ingredient/Step objects before the submit payload is built.
+let nextLocalId = 0
+function makeLocalId() {
+  nextLocalId += 1
+  return `local-${nextLocalId}`
+}
+
+interface IngredientRow {
+  localId: string
+  ingredient: Ingredient
+}
+interface StepRow {
+  localId: string
+  step: Step
+}
 
 const props = withDefaults(
   defineProps<{
@@ -27,8 +50,10 @@ const servings = ref(2)
 const prepTime = ref<number | undefined>(undefined)
 const waitingTime = ref<number | undefined>(undefined)
 const cookTime = ref<number | undefined>(undefined)
-const ingredients = ref<Ingredient[]>([])
-const steps = ref<Step[]>([])
+// Local wrapper rows (stable localId + plain Ingredient/Step payload).
+// See comment near makeLocalId() above for why these wrappers exist.
+const ingredientRows = ref<IngredientRow[]>([])
+const stepRows = ref<StepRow[]>([])
 const tags = ref<string[]>([])
 const visibility = ref<'private' | 'shared'>('private')
 
@@ -43,15 +68,22 @@ watchEffect(() => {
   cookTime.value = d.cook_time_minutes ?? undefined
   // toRaw() first: props are reactive-proxied by Vue, and structuredClone()
   // cannot clone a Proxy — only the plain array/objects it wraps.
-  ingredients.value = d.ingredients ? structuredClone(toRaw(d.ingredients)) : []
-  steps.value = d.steps ? structuredClone(toRaw(d.steps)) : []
+  const initialIngredients: Ingredient[] = d.ingredients
+    ? structuredClone(toRaw(d.ingredients))
+    : []
+  const initialSteps: Step[] = d.steps ? structuredClone(toRaw(d.steps)) : []
+  ingredientRows.value = initialIngredients.map((ingredient) => ({
+    localId: makeLocalId(),
+    ingredient,
+  }))
+  stepRows.value = initialSteps.map((step) => ({ localId: makeLocalId(), step }))
   tags.value = d.tags ? [...d.tags] : []
   visibility.value = d.visibility ?? 'private'
 })
 
 const isTitleValid = computed(() => title.value.trim().length > 0)
-const isIngredientsValid = computed(() => ingredients.value.length > 0)
-const isStepsValid = computed(() => steps.value.length > 0)
+const isIngredientsValid = computed(() => ingredientRows.value.length > 0)
+const isStepsValid = computed(() => stepRows.value.length > 0)
 
 const isValid = computed(
   () => isTitleValid.value && isIngredientsValid.value && isStepsValid.value,
@@ -70,7 +102,7 @@ const showIngredientDrawer = ref(false)
 const editingIngredientIndex = ref<number | null>(null)
 const editingIngredient = computed(() =>
   editingIngredientIndex.value !== null
-    ? (ingredients.value[editingIngredientIndex.value] ?? null)
+    ? (ingredientRows.value[editingIngredientIndex.value]?.ingredient ?? null)
     : null,
 )
 
@@ -81,28 +113,33 @@ function openIngredientDrawer(index: number | null) {
 
 function saveIngredient(ing: Ingredient) {
   if (editingIngredientIndex.value !== null) {
-    ingredients.value[editingIngredientIndex.value] = ing
+    const row = ingredientRows.value[editingIngredientIndex.value]
+    if (row) row.ingredient = ing
   } else {
-    ingredients.value.push(ing)
+    ingredientRows.value.push({ localId: makeLocalId(), ingredient: ing })
   }
   showIngredientDrawer.value = false
 }
 
 function deleteIngredient() {
   if (editingIngredientIndex.value !== null) {
-    ingredients.value.splice(editingIngredientIndex.value, 1)
+    ingredientRows.value.splice(editingIngredientIndex.value, 1)
   }
   showIngredientDrawer.value = false
+}
+
+function reorderIngredients(rows: IngredientRow[]) {
+  ingredientRows.value = rows
 }
 
 // Step drawer state
 const showStepDrawer = ref(false)
 const editingStepIndex = ref<number | null>(null)
 const editingStep = computed(() =>
-  editingStepIndex.value !== null ? (steps.value[editingStepIndex.value] ?? null) : null,
+  editingStepIndex.value !== null ? (stepRows.value[editingStepIndex.value]?.step ?? null) : null,
 )
 const editingStepNumber = computed(() =>
-  editingStepIndex.value !== null ? editingStepIndex.value + 1 : steps.value.length + 1,
+  editingStepIndex.value !== null ? editingStepIndex.value + 1 : stepRows.value.length + 1,
 )
 
 function openStepDrawer(index: number | null) {
@@ -110,23 +147,35 @@ function openStepDrawer(index: number | null) {
   showStepDrawer.value = true
 }
 
+// Reindex every step's `order` field to match its position in the array
+// (1..n). Reused for save/delete/drag-reorder so there's exactly one place
+// that defines "what order means" for steps.
+function reindexStepOrders() {
+  stepRows.value.forEach((row, i) => (row.step.order = i + 1))
+}
+
 function saveStep(step: Step) {
   if (editingStepIndex.value !== null) {
-    steps.value[editingStepIndex.value] = step
+    const row = stepRows.value[editingStepIndex.value]
+    if (row) row.step = step
   } else {
-    steps.value.push(step)
+    stepRows.value.push({ localId: makeLocalId(), step })
   }
-  // Re-number all steps after save
-  steps.value.forEach((s, i) => (s.order = i + 1))
+  reindexStepOrders()
   showStepDrawer.value = false
 }
 
 function deleteStep() {
   if (editingStepIndex.value !== null) {
-    steps.value.splice(editingStepIndex.value, 1)
-    steps.value.forEach((s, i) => (s.order = i + 1))
+    stepRows.value.splice(editingStepIndex.value, 1)
+    reindexStepOrders()
   }
   showStepDrawer.value = false
+}
+
+function reorderSteps(rows: StepRow[]) {
+  stepRows.value = rows
+  reindexStepOrders()
 }
 
 function submit() {
@@ -139,8 +188,8 @@ function submit() {
     prep_time_minutes: prepTime.value ?? null,
     waiting_time_minutes: waitingTime.value ?? null,
     cook_time_minutes: cookTime.value ?? null,
-    ingredients: ingredients.value,
-    steps: steps.value,
+    ingredients: ingredientRows.value.map((row) => row.ingredient),
+    steps: stepRows.value.map((row) => row.step),
     tags: tags.value,
     visibility: visibility.value,
   })
@@ -192,16 +241,19 @@ function submit() {
     <!-- Ingredients -->
     <fieldset class="recipe-form__section">
       <legend>Ingredients</legend>
-      <ul v-if="ingredients.length" class="recipe-form__list">
-        <li
-          v-for="(ing, i) in ingredients"
-          :key="i"
-          class="recipe-form__list-item"
-          @click="openIngredientDrawer(i)"
-        >
-          {{ formatIngredient(ing) }}
-        </li>
-      </ul>
+      <DragList
+        v-if="ingredientRows.length"
+        class="recipe-form__drag-list"
+        :items="ingredientRows"
+        key-field="localId"
+        @update:items="reorderIngredients"
+      >
+        <template #default="{ item, index }">
+          <div class="recipe-form__list-item" @click="openIngredientDrawer(index)">
+            {{ formatIngredient(item.ingredient) }}
+          </div>
+        </template>
+      </DragList>
       <p v-else class="recipe-form__empty">No ingredients yet.</p>
       <p v-if="showIngredientsHint" class="recipe-form__hint" data-testid="ingredients-hint" role="alert">
         Add at least one ingredient.
@@ -214,16 +266,20 @@ function submit() {
     <!-- Steps -->
     <fieldset class="recipe-form__section">
       <legend>Steps</legend>
-      <ol v-if="steps.length" class="recipe-form__list recipe-form__list--numbered">
-        <li
-          v-for="(step, i) in steps"
-          :key="i"
-          class="recipe-form__list-item"
-          @click="openStepDrawer(i)"
-        >
-          Step {{ i + 1 }}: {{ step.instruction.length > 60 ? step.instruction.slice(0, 60) + '…' : step.instruction }}
-        </li>
-      </ol>
+      <DragList
+        v-if="stepRows.length"
+        class="recipe-form__drag-list"
+        :items="stepRows"
+        key-field="localId"
+        @update:items="reorderSteps"
+      >
+        <template #default="{ item, index }">
+          <div class="recipe-form__list-item" @click="openStepDrawer(index)">
+            Step {{ index + 1 }}:
+            {{ item.step.instruction.length > 60 ? item.step.instruction.slice(0, 60) + '…' : item.step.instruction }}
+          </div>
+        </template>
+      </DragList>
       <p v-else class="recipe-form__empty">No steps yet.</p>
       <p v-if="showStepsHint" class="recipe-form__hint" data-testid="steps-hint" role="alert">
         Add at least one step.
@@ -355,17 +411,11 @@ input[aria-invalid='true'] {
   padding: 0 var(--space-1);
   color: var(--color-text);
 }
-.recipe-form__list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 var(--space-2);
-}
-.recipe-form__list--numbered {
-  list-style: decimal inside;
+.recipe-form__drag-list {
+  margin-bottom: var(--space-2);
 }
 .recipe-form__list-item {
   padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
   font-size: var(--text-base);
 }

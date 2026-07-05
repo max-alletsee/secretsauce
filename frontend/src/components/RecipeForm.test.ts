@@ -2,6 +2,7 @@
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 import RecipeForm from './RecipeForm.vue'
+import IngredientDrawer from './IngredientDrawer.vue'
 
 describe('RecipeForm', () => {
   it('does not show validation hints before a save attempt, even though the form is invalid', () => {
@@ -78,5 +79,131 @@ describe('RecipeForm', () => {
     const cancelBtn = buttons.find((b) => b.text() === 'Cancel')
     await cancelBtn?.trigger('click')
     expect(wrapper.emitted('cancel')).toBeTruthy()
+  })
+
+  describe('drag-reorder', () => {
+    it('reindexes step.order sequentially (1..n) after reordering via Move down', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [{ name: 'flour', quantity: '2', unit: 'cup' }],
+            steps: [
+              { order: 1, instruction: 'First step' },
+              { order: 2, instruction: 'Second step' },
+              { order: 3, instruction: 'Third step' },
+            ],
+          },
+        },
+      })
+
+      // Steps section: find its Move down buttons (second fieldset/DragList).
+      const stepsSection = wrapper.findAll('fieldset')[1]
+      expect(stepsSection).toBeDefined()
+      const moveDownBtns = stepsSection!.findAll('[aria-label="Move down"]')
+      await moveDownBtns[0]!.trigger('click') // move "First step" down past "Second step"
+
+      await wrapper.find('form').trigger('submit')
+      const payload = wrapper.emitted('submit')?.[0]?.[0] as {
+        steps: { order: number; instruction: string }[]
+      }
+      expect(payload.steps.map((s) => s.instruction)).toEqual([
+        'Second step',
+        'First step',
+        'Third step',
+      ])
+      expect(payload.steps.map((s) => s.order)).toEqual([1, 2, 3])
+    })
+
+    it('reorders ingredients preserving data with no loss/duplication', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [
+              { name: 'flour', quantity: '2', unit: 'cup' },
+              { name: 'sugar', quantity: '1', unit: 'cup' },
+              { name: 'egg', quantity: '2', unit: null },
+            ],
+            steps: [{ order: 1, instruction: 'Mix it all together' }],
+          },
+        },
+      })
+
+      const ingredientsSection = wrapper.findAll('fieldset')[0]
+      expect(ingredientsSection).toBeDefined()
+      const moveUpBtns = ingredientsSection!.findAll('[aria-label="Move up"]')
+      // moveUpBtns[0] is row 0 (disabled), moveUpBtns[1] is row 1 ("sugar")
+      await moveUpBtns[1]!.trigger('click')
+
+      await wrapper.find('form').trigger('submit')
+      const payload = wrapper.emitted('submit')?.[0]?.[0] as {
+        ingredients: { name: string; quantity: string; unit: string | null }[]
+      }
+      expect(payload.ingredients).toEqual([
+        { name: 'sugar', quantity: '1', unit: 'cup' },
+        { name: 'flour', quantity: '2', unit: 'cup' },
+        { name: 'egg', quantity: '2', unit: null },
+      ])
+    })
+
+    it('does not leak the local stable-id field into the emitted submit payload', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [
+              { name: 'flour', quantity: '2', unit: 'cup' },
+              { name: 'sugar', quantity: '1', unit: 'cup' },
+            ],
+            steps: [
+              { order: 1, instruction: 'First step' },
+              { order: 2, instruction: 'Second step' },
+            ],
+          },
+        },
+      })
+
+      await wrapper.find('form').trigger('submit')
+      const payload = wrapper.emitted('submit')?.[0]?.[0] as {
+        ingredients: Record<string, unknown>[]
+        steps: Record<string, unknown>[]
+      }
+
+      for (const ing of payload.ingredients) {
+        expect(Object.keys(ing).sort()).toEqual(['name', 'quantity', 'unit'])
+      }
+      for (const step of payload.steps) {
+        expect(Object.keys(step).sort()).toEqual(['instruction', 'order'])
+      }
+    })
+
+    it('still opens the correct ingredient in the drawer after a reorder (click-to-edit identity)', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [
+              { name: 'flour', quantity: '2', unit: 'cup' },
+              { name: 'sugar', quantity: '1', unit: 'cup' },
+            ],
+            steps: [{ order: 1, instruction: 'Mix it all together' }],
+          },
+        },
+      })
+
+      const ingredientsSection = wrapper.findAll('fieldset')[0]
+      expect(ingredientsSection).toBeDefined()
+      const moveDownBtns = ingredientsSection!.findAll('[aria-label="Move down"]')
+      await moveDownBtns[0]!.trigger('click') // "flour" moves to index 1, "sugar" to index 0
+
+      // Click what is now the first row's content (should be "sugar").
+      const rows = ingredientsSection!.findAll('[data-drag-row]')
+      await rows[0]?.find('.recipe-form__list-item').trigger('click')
+
+      const drawer = wrapper.findComponent(IngredientDrawer)
+      expect(drawer.exists()).toBe(true)
+      expect(drawer.props('ingredient')).toEqual({ name: 'sugar', quantity: '1', unit: 'cup' })
+    })
   })
 })
