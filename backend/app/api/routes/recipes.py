@@ -24,7 +24,12 @@ router = APIRouter()
 _VALID_SORT_BY = {"created_at_desc", "created_at_asc", "title_asc", "total_time_asc", "popularity"}
 
 
-def _build_recipe_response(recipe: Recipe, version: RecipeVersion) -> RecipeResponse:
+def _build_recipe_response(
+    recipe: Recipe,
+    version: RecipeVersion,
+    cook_stats: tuple[int, object | None] = (0, None),
+) -> RecipeResponse:
+    times_cooked, last_cooked_at = cook_stats
     return RecipeResponse(
         id=recipe.id,
         owner_id=recipe.owner_id,
@@ -32,6 +37,8 @@ def _build_recipe_response(recipe: Recipe, version: RecipeVersion) -> RecipeResp
         current_version=RecipeVersionResponse.model_validate(version),
         created_at=recipe.created_at,
         updated_at=recipe.updated_at,
+        times_cooked=times_cooked,
+        last_cooked_at=last_cooked_at,
     )
 
 
@@ -62,8 +69,14 @@ async def list_recipes(
         tags=valid_tags,
         sort_by=sort_by,
     )
+    cook_stats_by_recipe = await recipe_service.get_cook_stats(
+        db, [r.id for r, _ in items], user.id
+    )
     return PaginatedRecipeResponse(
-        items=[_build_recipe_response(r, v) for r, v in items],
+        items=[
+            _build_recipe_response(r, v, cook_stats_by_recipe.get(r.id, (0, None)))
+            for r, v in items
+        ],
         next_cursor=next_cursor,
         has_more=has_more,
         popularity_sort_available=popularity_available,
@@ -87,7 +100,8 @@ async def get_recipe(
     user: User = Depends(current_active_user),
 ) -> RecipeResponse:
     recipe, version = await recipe_service.get_recipe(db, recipe_id, user.id)
-    return _build_recipe_response(recipe, version)
+    cook_stats = await recipe_service.get_cook_stats(db, [recipe.id], user.id)
+    return _build_recipe_response(recipe, version, cook_stats.get(recipe.id, (0, None)))
 
 
 @router.patch("/{recipe_id}", response_model=RecipeResponse)
@@ -98,7 +112,8 @@ async def update_recipe(
     user: User = Depends(current_active_user),
 ) -> RecipeResponse:
     recipe, version = await recipe_service.update_recipe(db, recipe_id, user.id, data)
-    return _build_recipe_response(recipe, version)
+    cook_stats = await recipe_service.get_cook_stats(db, [recipe.id], user.id)
+    return _build_recipe_response(recipe, version, cook_stats.get(recipe.id, (0, None)))
 
 
 @router.delete("/{recipe_id}", status_code=204)
@@ -128,4 +143,5 @@ async def restore_version(
     user: User = Depends(current_active_user),
 ) -> RecipeResponse:
     recipe, version = await recipe_service.restore_version(db, recipe_id, version_id, user.id)
-    return _build_recipe_response(recipe, version)
+    cook_stats = await recipe_service.get_cook_stats(db, [recipe.id], user.id)
+    return _build_recipe_response(recipe, version, cook_stats.get(recipe.id, (0, None)))

@@ -154,6 +154,8 @@ class RecipeResponse(BaseModel):
     current_version: RecipeVersionResponse
     created_at: datetime
     updated_at: datetime
+    times_cooked: int = 0
+    last_cooked_at: datetime | None = None
 
 
 class PaginatedRecipeResponse(BaseModel):

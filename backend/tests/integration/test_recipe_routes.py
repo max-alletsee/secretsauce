@@ -1,7 +1,9 @@
 # backend/tests/integration/test_recipe_routes.py
+import datetime
 import uuid
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.conftest import unique_email
 
@@ -581,3 +583,70 @@ async def test_delete_recipe_with_timeline_entry(client):
     assert get_entry.json()["recipe_id"] is None
     assert get_entry.json()["entry_type"] == "freetext"
     assert get_entry.json()["note"] == "Linked Recipe"
+
+
+# ── Cook stats ────────────────────────────────────────────────────────────────
+
+async def _seed_cook_logs(
+    db_engine, user_id: uuid.UUID, recipe_id: uuid.UUID, cooked_dates: list[datetime.date]
+) -> None:
+    """Insert RecipeCookLog rows directly via the ORM for test setup."""
+    from app.models.meal_plan import RecipeCookLog
+
+    session_factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as session:
+        for cooked_at in cooked_dates:
+            session.add(
+                RecipeCookLog(user_id=user_id, recipe_id=recipe_id, cooked_at=cooked_at)
+            )
+        await session.commit()
+
+
+async def test_recipe_with_no_cook_logs_has_zero_times_cooked(client):
+    token = await _auth_token(client)
+    create = await client.post(
+        "/api/v1/recipes", json={"title": "Never Cooked"}, headers=_auth(token)
+    )
+    assert create.status_code == 201
+    data = create.json()
+    assert data["times_cooked"] == 0
+    assert data["last_cooked_at"] is None
+
+    # Also verify on GET detail route
+    recipe_id = data["id"]
+    r = await client.get(f"/api/v1/recipes/{recipe_id}", headers=_auth(token))
+    assert r.status_code == 200
+    assert r.json()["times_cooked"] == 0
+    assert r.json()["last_cooked_at"] is None
+
+
+async def test_recipe_with_two_cook_logs_reports_count_and_latest_date(client, db_engine):
+    token = await _auth_token(client)
+    create = await client.post(
+        "/api/v1/recipes", json={"title": "Cooked Twice"}, headers=_auth(token)
+    )
+    assert create.status_code == 201
+    recipe_id = create.json()["id"]
+
+    # Determine the user id from the /me endpoint isn't available here; decode via login response
+    # instead: fetch the recipe's owner_id from the create response.
+    owner_id = uuid.UUID(create.json()["owner_id"])
+
+    earlier = datetime.date(2026, 1, 1)
+    later = datetime.date(2026, 3, 15)
+    await _seed_cook_logs(db_engine, owner_id, uuid.UUID(recipe_id), [earlier, later])
+
+    expected_last_cooked_at = datetime.datetime.combine(later, datetime.time.min).isoformat()
+
+    r = await client.get(f"/api/v1/recipes/{recipe_id}", headers=_auth(token))
+    assert r.status_code == 200
+    data = r.json()
+    assert data["times_cooked"] == 2
+    assert data["last_cooked_at"] == expected_last_cooked_at
+
+    # Also verify the list route reflects the same stats (grouped-query path)
+    list_r = await client.get("/api/v1/recipes?limit=100", headers=_auth(token))
+    assert list_r.status_code == 200
+    item = next(i for i in list_r.json()["items"] if i["id"] == recipe_id)
+    assert item["times_cooked"] == 2
+    assert item["last_cooked_at"] == expected_last_cooked_at

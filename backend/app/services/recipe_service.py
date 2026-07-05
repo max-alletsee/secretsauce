@@ -164,6 +164,34 @@ async def create_recipe(
     return await _commit_new_version(db, recipe, version)
 
 
+async def get_cook_stats(
+    db: AsyncSession,
+    recipe_ids: list[uuid.UUID],
+    user_id: uuid.UUID,
+) -> dict[uuid.UUID, tuple[int, datetime | None]]:
+    """Return {recipe_id: (times_cooked, last_cooked_at)} for the given recipes and user.
+
+    One grouped query regardless of how many recipe_ids are passed — callers use this
+    for both the single-recipe read path (1-element list) and the list path (all
+    recipe_ids on a page), avoiding N+1 queries.
+    """
+    if not recipe_ids:
+        return {}
+    result = await db.execute(
+        select(
+            RecipeCookLog.recipe_id,
+            func.count().label("times_cooked"),
+            func.max(RecipeCookLog.cooked_at).label("last_cooked_at"),
+        )
+        .where(
+            RecipeCookLog.user_id == user_id,
+            RecipeCookLog.recipe_id.in_(recipe_ids),
+        )
+        .group_by(RecipeCookLog.recipe_id)
+    )
+    return {row.recipe_id: (row.times_cooked, row.last_cooked_at) for row in result.all()}
+
+
 async def get_recipe(
     db: AsyncSession,
     recipe_id: uuid.UUID,
