@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-04 — Phase 2 COMPLETE through Task 2.2; awaiting user sign-off before Phase 3)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-05 — Phase 4 COMPLETE through Task 4.4; paused for consolidated Phase 3+4 user feedback before Phase 5)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -29,6 +29,8 @@
 1. **Cook stats:** ONE sanctioned backend change approved (Task 3.0) to expose `times_cooked`/`last_cooked_at` from `RecipeCookLog` on the recipe read schema. Everything else stays presentation-only.
 2. **Fonts:** sourced via `@fontsource/inter` + `@fontsource/sn-pro` (npm) instead of hand-vendoring woff2 from GitHub (raw fetch was sandbox-blocked). Same fonts, registered families `'Inter'` / `'SN Pro'` match the tokens.
 3. **Icons:** use `@lucide/vue` (not the deprecated `lucide-vue-next`). Same icon names/API: `import { Camera } from '@lucide/vue'`.
+4. **Task 3.4 filter design:** the brief's literal "single flat scrollable row" would've collapsed 37 tags across 5 categories into one unlabeled strip. Approved instead: keep the 5 group labels (Protein/Diet/Season/Meal type/Cuisine), each group is its own independent horizontal-scroll row, whole block sits in one sticky container. Old expand/collapse toggle removed.
+5. **Task 4.4 shopping-list button descoped:** "Add ingredients to shopping list" was dropped from scope after investigation found no backend surface exists for it — shopping lists are only ever generated from meal-plan entries (`POST /shopping-lists/generate`, keyed to a `meal_plan_id`), never from an arbitrary recipe outside a plan. Adding one would need a new backend endpoint beyond the one sanctioned exception (Task 3.0). No placeholder was built. Revisit if/when a real backend surface for this exists — likely worth bundling with Phase 8 (shopping list detail's "+ Add item"), which touches the same area.
 
 ### Baseline note
 Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing tsconfig test-glob bug + a real RecipeForm `undefined`→`null` bug + 5 leaked test rejections). Fixed in commit `ddc6991` (`fix: green the frontend type-check/build baseline`). Baseline is now green: type-check ✓, build ✓, tests ✓.
@@ -51,18 +53,37 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `283a3dd` feat(auth): restyle login with card, wordmark, inline validation  *(Task 2.1)*
 - `8435d71` fix(auth): wire field-level error state and token h1 size on login  *(2.1 review fix)*
 - `cedb969` feat(auth): restyle register with card, wordmark, matching login pattern  *(Task 2.2)*
+- `0f2bc2a` docs: mark Task 2.1/2.2 and Phase 2 complete
+- `5e808e6` fix(nav): match UserMenu trigger icon size to TabBar on mobile  *(polish)*
+- `3649c01` fix(auth): suppress duplicate visible error text across bound Login inputs  *(polish)*
+- `d681acf` docs: record polish fixes and retract false-positive auth-brand finding
+- `e76ddae` feat(recipes): expose cook stats on recipe read schema  *(Task 3.0, backend)*
+- `ada1ea9` chore(types): add cook-stats fields to Recipe  *(Task 3.1)*
+- `5484552` feat(recipes): upgrade RecipeCard to design system  *(Task 3.2)*
+- `2dd0c8d` feat(recipes): add-recipe sheet with URL/photo/manual tabs  *(Task 3.3)*
+- `d88fa4b` feat(recipes): sticky horizontal filter chip row  *(Task 3.4, user-approved grouped design)*
+- `1de8aa4` fix(types): add missing cook-stats fields to useRecipeStore test fixture  *(3.4-adjacent type-check regression fix)*
+- `35671bc` feat(recipes): skeleton loading and empty state  *(Task 3.5)*
+- `5d96e4d` feat(recipes): add ingredient quantity scaling helper  *(Task 4.1)*
+- `85efcf0` fix(recipes): tighten fraction-glyph match tolerance to avoid misclassifying decimals  *(4.1 review fix)*
+- `772144d` feat(recipes): cookbook detail layout with live servings scaling  *(Task 4.2)*
+- `f55d367` feat(recipes): in-memory ingredient/step checkoff  *(Task 4.3)*
+- `5525434` feat(recipes): quiet edit and overflow delete on detail  *(Task 4.4, reduced scope)*
+- `090f2ba` fix(e2e): update recipe-delete test for overflow menu  *(4.4-adjacent e2e fix)*
 
-**Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. Continue work on `worktree-ux-overhaul` in the worktree; fast-forward `ui-shell-rework` again at later checkpoints. Nothing pushed to origin yet.
+**Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. That fast-forward has NOT been repeated since — `ui-shell-rework` is stale as of `bc90983`; re-sync it at the next checkpoint if desired. Nothing pushed to origin yet.
 
 ### Status snapshot
 - ✅ **PHASE 0 COMPLETE — all Tasks 0.1 → 0.17 done, reviewed, and fixed.** Full verification GREEN at commit `7321873`: type-check ✓, build ✓, **372 tests / 50 files** ✓. No emoji-as-icon remain in `frontend/src`. All primitives built + tested under `src/components/base/`: BaseIcon, BaseButton, IconButton, BaseInput, BaseTextarea, Chip, ToggleChip, BaseCard, Skeleton, PourLoader, Wordmark, ProgressBar, Stepper, SegmentedTabs, EmptyState, ConfirmDialog, DragList (+moveItem), TabBar, UserMenu, BaseAvatar; BottomSheet + ToastHost tokenized; dot favicon added.
-- ✅ **PHASE 1 COMPLETE — Tasks 1.1 + 1.2 done, reviewed clean (1.1: Approved no fixes; 1.2: Approved, Minor-only non-blocking findings).** Full verification GREEN at commit `9453fb3`: type-check ✓, build ✓, **378 tests / 50 files** ✓ (one pre-existing unrelated `router.test.ts` timing flake — confirmed failing identically pre-Phase-1, not a regression). Desktop top bar (`Wordmark` + horizontal links + `UserMenu`: Settings/Admin-if-superuser/Logout) and mobile bottom bar (`TabBar` 3 items + reused `UserMenu` as 4th flex sibling) both done, both driven from one shared `userMenuItems` computed — no duplication. All `.bottom-nav` hardcoded hex retired to tokens.
-- ✅ **PHASE 2 COMPLETE — Tasks 2.1 + 2.2 done, reviewed clean (2.1: Approved after one fix loop; 2.2: Approved, no fixes).** Full verification GREEN at commit `cedb969`: type-check ✓, build ✓, **378 tests / 50 files** ✓ (no flake this run). `LoginView.vue` and `RegisterView.vue` both restyled onto `BaseCard`/`Wordmark`/`BaseInput`/`BaseButton`, fully tokenized (no hardcoded hex/px literals left). Established convention: bind `BaseInput`'s `error` prop only when an error is genuinely attributable to a specific field (Login's `credentialsError`, bound to both email+password since the backend can't say which is wrong); otherwise use a page-level `role="alert"` banner (Login's `rateLimitError`, Register's generic banner — verified its catch-block has no field-attributable signal before defaulting to this).
-- ✅ **Polish items addressed (post-Phase-2, pre-Phase-3, at user request):** (1) icon-size mismatch fixed — `UserMenu` now takes an optional `size` prop (default 20), mobile bottom-nav passes `size="24"` to match `TabBar` (commit `5e808e6`). (2) Login's duplicate visible error text fixed — `BaseInput` now takes an optional `hideErrorText` prop (sr-only clip, keeps `aria-describedby` working); applied to the password field so "Invalid email or password." shows once, not twice (commit `3649c01`). (3) `.auth-brand { font-size: var(--text-lg) }` — investigated and retracted as a false positive: `Wordmark`'s text/dot both depend on an ancestor's `font-size` (its `.wordmark__text` uses `font-size: inherit`), and this rule is that ancestor, matching the identical pattern already used around `Wordmark` in `App.vue`. Not vestigial — left as-is, no change made.
-- ⏸️ **Phase 2 checkpoint = user sign-off PENDING before Phase 3** (per executing-plans checkpoints).
-- ⏭️ **NEXT after sign-off: Task 3.0** — sanctioned backend change to expose `times_cooked`/`last_cooked_at` on the recipe read schema (TDD). Extract brief: `task-brief docs/plans/ux-overhaul.md 3.0`; dispatch fresh implementer; review; commit. New BASE for 3.0 = `cedb969`. Note: 3.0 touches `backend/`, not `frontend/` — the implementer should run backend verification (`cd backend && pytest tests/integration/test_recipe_routes.py -q`), not the frontend commands.
-- ⏳ **Phases 3–11** — not started.
-- **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch).
+- ✅ **PHASE 1 COMPLETE — Tasks 1.1 + 1.2 done, reviewed clean.** Desktop top bar + mobile bottom bar, both driven from one shared `userMenuItems` computed.
+- ✅ **PHASE 2 COMPLETE — Tasks 2.1 + 2.2 done, reviewed clean.** Login/Register restyled onto `BaseCard`/`Wordmark`/`BaseInput`/`BaseButton`. Established convention: bind `BaseInput`'s `error` prop only when attributable to a specific field; otherwise a page-level `role="alert"` banner.
+- ✅ **Polish items addressed (post-Phase-2, pre-Phase-3, at user request):** icon-size mismatch, Login's duplicate error text, and a retracted false-positive `.auth-brand` finding. See commits `5e808e6`/`3649c01`/`d681acf`.
+- ✅ **PHASE 3 COMPLETE — Tasks 3.0–3.5 done, reviewed, Minor findings only (rolled up in `.superpowers/sdd/progress.md`).** Full verification GREEN at commit `35671bc`: type-check ✓, build ✓, **406 tests / 52 files** ✓. Backend cook-stats (3.0, the one sanctioned exception) + RecipeCard upgrade (3.2) + add-recipe BottomSheet w/ SegmentedTabs (3.3) + sticky grouped filter chips (3.4, user-approved design deviation) + skeleton/EmptyState (3.5). No sign-off pause per user instruction — proceeded straight to Phase 4.
+- ✅ **PHASE 4 COMPLETE — Tasks 4.1–4.4 done, reviewed, Minor findings only.** Full verification GREEN at commit `090f2ba`: type-check ✓, build ✓, **437 tests / 54 files** ✓. Scaling helper (4.1, one real fix loop — fraction-tolerance bug caught by review) + cookbook layout/live-scaling (4.2) + in-memory checkoff/progress (4.3) + quiet-Edit/overflow-Delete (4.4, reduced scope — shopping-list button descoped, no backend surface exists) + a proactively-caught e2e regression fixed (4.4-adjacent).
+- ⏸️ **Paused here per explicit user instruction: present consolidated Phase 3+4 feedback, do NOT auto-continue to Phase 5 without sign-off.**
+- ⏭️ **NEXT after sign-off: Phase 5 (Recipe form)** — Task 5.1 sticky save bar + inline validation hints on `RecipeForm.vue`. New BASE for 5.1 = `090f2ba`.
+- ⏳ **Phases 5–11** — not started.
+- **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch). **New this session:** also run `git status --short` after every dispatch, not just `git show --stat HEAD` — two separate implementers left stray uncommitted edits (an unrelated scratch `.md` file once swept into a commit and had to be surgically removed via soft-reset; a harmless lint-autofix on an unrelated test file) sitting in the working tree alongside otherwise-clean commits.
 
 ### Cross-task reminders for later phases
 - `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
@@ -435,67 +456,68 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 3 — Recipe list
 
-#### Task 3.0: Expose cook stats on the recipe read schema/route (sanctioned backend change) — TDD
+#### Task 3.0: Expose cook stats on the recipe read schema/route (sanctioned backend change) — TDD ✅
 **Files:** Modify `backend/app/schemas/recipe.py` (`RecipeResponse`), `backend/app/services/recipe_service.py` (recipe read/list); Test `backend/tests/integration/test_recipe_routes.py`
-- [ ] Add `times_cooked: int = 0` and `last_cooked_at: datetime | None = None` to `RecipeResponse` (NOT on `RecipeVersionResponse` — these are recipe-level, derived from `RecipeCookLog`).
-- [ ] In `recipe_service`, when building recipe responses (detail + list), aggregate from `RecipeCookLog`: `times_cooked = count(cooked_at)` for that recipe+user, `last_cooked_at = max(cooked_at)`. Use an efficient grouped query for the list path (avoid N+1) — e.g. one `GROUP BY recipe_id` query keyed into the page.
-- [ ] **TDD:** write a failing integration test: seed a recipe with 0 cook logs → response `times_cooked == 0`, `last_cooked_at is None`; seed 2 cook logs → `times_cooked == 2`, `last_cooked_at` equals the latest. Run (fail) → implement → run (pass).
-- [ ] Run backend suite: `cd backend && pytest tests/integration/test_recipe_routes.py -q`.
-- [ ] Commit `feat(recipes): expose cook stats on recipe read schema`.
+- [x] Add `times_cooked: int = 0` and `last_cooked_at: datetime | None = None` to `RecipeResponse` (NOT on `RecipeVersionResponse` — these are recipe-level, derived from `RecipeCookLog`).
+- [x] In `recipe_service`, when building recipe responses (detail + list), aggregate from `RecipeCookLog`: `times_cooked = count(cooked_at)` for that recipe+user, `last_cooked_at = max(cooked_at)`. Use an efficient grouped query for the list path (avoid N+1) — e.g. one `GROUP BY recipe_id` query keyed into the page.
+- [x] **TDD:** write a failing integration test: seed a recipe with 0 cook logs → response `times_cooked == 0`, `last_cooked_at is None`; seed 2 cook logs → `times_cooked == 2`, `last_cooked_at` equals the latest. Run (fail) → implement → run (pass).
+- [x] Run backend suite: `cd backend && pytest tests/integration/test_recipe_routes.py -q`.
+- [x] Commit `feat(recipes): expose cook stats on recipe read schema` (e76ddae).
 
-#### Task 3.1: Add cook-stats fields to Recipe type (frontend)
+#### Task 3.1: Add cook-stats fields to Recipe type (frontend) ✅
 **Files:** Modify `frontend/src/types/recipe.ts`
-- [ ] Add `times_cooked: number` and `last_cooked_at: string | null` to `Recipe` (now always sent by the backend per Task 3.0).
-- [ ] **VERIFY** + commit `chore(types): add cook-stats fields to Recipe`.
+- [x] Add `times_cooked: number` and `last_cooked_at: string | null` to `Recipe` (now always sent by the backend per Task 3.0).
+- [x] **VERIFY** + commit `chore(types): add cook-stats fields to Recipe` (ada1ea9).
 
-#### Task 3.2: RecipeCard upgrade
+#### Task 3.2: RecipeCard upgrade ✅
 **Files:** Modify `frontend/src/components/RecipeCard.vue`
-- [ ] Display-font title; time + servings as `BaseIcon`(`Clock`/`Users`)+value pairs; subtle `Heart` `IconButton` (favorite affordance — non-persisting visual unless a store hook exists; `aria-label`); cook-count/last-cooked rendered when `recipe.times_cooked > 0` (e.g. "Cooked 3×" / "Last cooked …"); whole card stays the RouterLink tap target; `AddToPlanButton` demoted to a small quiet/secondary affordance (icon button) that does NOT trigger navigation (`@click.stop`/`.prevent` as already done).
-- [ ] **VERIFY** + commit `feat(recipes): upgrade RecipeCard to design system`.
+- [x] Display-font title; time + servings as `BaseIcon`(`Clock`/`Users`)+value pairs; subtle `Heart` `IconButton` (favorite affordance — non-persisting visual unless a store hook exists; `aria-label`); cook-count/last-cooked rendered when `recipe.times_cooked > 0` (e.g. "Cooked 3×" / "Last cooked …"); whole card stays the RouterLink tap target; `AddToPlanButton` demoted to a small quiet/secondary affordance (icon button) that does NOT trigger navigation (`@click.stop`/`.prevent` as already done).
+- [x] **VERIFY** + commit `feat(recipes): upgrade RecipeCard to design system` (5484552).
 
-#### Task 3.3: Add-recipe BottomSheet with SegmentedTabs
+#### Task 3.3: Add-recipe BottomSheet with SegmentedTabs ✅
 **Files:** Modify `frontend/src/views/RecipeListView.vue`; possibly new `components/AddRecipeSheet.vue`
-- [ ] Remove inline import block. Add primary "Add recipe" button + FAB (mobile) → opens `BottomSheet` containing `SegmentedTabs` (From URL / From photo / Write manually); each tab hosts the existing flow (URL import form, image upload, link to/inline manual create). Reuse existing import store/composable calls.
-- [ ] **VERIFY** + commit `feat(recipes): add-recipe sheet with URL/photo/manual tabs`.
+- [x] Remove inline import block. Add primary "Add recipe" button + FAB (mobile) → opens `BottomSheet` containing `SegmentedTabs` (From URL / From photo / Write manually); each tab hosts the existing flow (URL import form, image upload, link to/inline manual create). Reuse existing import store/composable calls.
+- [x] **VERIFY** + commit `feat(recipes): add-recipe sheet with URL/photo/manual tabs` (2dd0c8d).
 
-#### Task 3.4: Sticky filter chip row
+#### Task 3.4: Sticky filter chip row ✅
 **Files:** Modify `frontend/src/views/RecipeListView.vue` (and/or `TagFilter.vue`)
-- [ ] Render filters as a sticky, horizontally-scrollable `ToggleChip` row (no wrap, `overflow-x:auto`, `position:sticky; top:0`). Wire to existing filter state.
-- [ ] **VERIFY** + commit `feat(recipes): sticky horizontal filter chip row`.
+- [x] Render filters as a sticky, horizontally-scrollable `ToggleChip` row (no wrap, `overflow-x:auto`, `position:sticky; top:0`). Wire to existing filter state. **Design deviation (user-approved):** kept the 5 tag-group labels (Protein/Diet/Season/Meal type/Cuisine — 37 tags total; a single flat row would've lost all category structure) — each group is its own horizontal-scroll row, whole block in one sticky container. Old expand/collapse toggle removed entirely.
+- [x] **VERIFY** + commit `feat(recipes): sticky horizontal filter chip row` (d88fa4b).
 
-#### Task 3.5: Skeletons + EmptyState
+#### Task 3.5: Skeletons + EmptyState ✅
 **Files:** Modify `frontend/src/views/RecipeListView.vue`
-- [ ] Replace loading text with `Skeleton` cards (pour motif). Empty state → `EmptyState` (title "No recipes yet", body "Import your first from a URL or snap a cookbook page", action = open add-recipe sheet).
-- [ ] **VERIFY** (existing `RecipeListView.test.ts` passes/updated) + commit `feat(recipes): skeleton loading and empty state`.
+- [x] Replace loading text with `Skeleton` cards (pour motif). Empty state → `EmptyState` (title "No recipes yet", body "Import your first from a URL or snap a cookbook page", action = open add-recipe sheet).
+- [x] **VERIFY** (existing `RecipeListView.test.ts` passes/updated) + commit `feat(recipes): skeleton loading and empty state` (35671bc).
 
-**Phase 3 checkpoint** (raise the cook-stats data gap with the user here).
+**Phase 3 checkpoint — COMPLETE.** Full verification GREEN at commit 35671bc: type-check ✓, build ✓, 406 tests / 52 files ✓. Per user instruction, no sign-off pause — proceeded directly to Phase 4.
 
 ---
 
 ### Phase 4 — Recipe detail
 
-#### Task 4.1: Ingredient scaling helper (TDD)
+#### Task 4.1: Ingredient scaling helper (TDD) ✅
 **Files:** Create `frontend/src/composables/useScaledQuantity.ts` + test
-- [ ] Pure helper `scaleQuantity(raw: string, factor: number): string` that parses freeform quantity strings (`"1½"`, `"2-3"`, `"1.5"`, `"2"`, `""`), multiplies by factor, formats sensibly (whole numbers stay whole; common fractions like .5/.25/.75 render as ½/¼/¾; ranges scale both ends; unparseable returns original unchanged).
-- [ ] Write failing tests covering: `"2"`×2→`"4"`, `"1.5"`×2→`"3"`, `"½"`×2→`"1"`, `"2-3"`×2→`"4-6"`, `"a pinch"`×2→`"a pinch"`. Run (fail) → implement → run (pass).
-- [ ] **VERIFY** + commit `feat(recipes): add ingredient quantity scaling helper`.
+- [x] Pure helper `scaleQuantity(raw: string, factor: number): string` that parses freeform quantity strings (`"1½"`, `"2-3"`, `"1.5"`, `"2"`, `""`), multiplies by factor, formats sensibly (whole numbers stay whole; common fractions like .5/.25/.75 render as ½/¼/¾; ranges scale both ends; unparseable returns original unchanged).
+- [x] Write failing tests covering: `"2"`×2→`"4"`, `"1.5"`×2→`"3"`, `"½"`×2→`"1"`, `"2-3"`×2→`"4-6"`, `"a pinch"`×2→`"a pinch"`. Run (fail) → implement → run (pass).
+- [x] **VERIFY** + commit `feat(recipes): add ingredient quantity scaling helper` (5d96e4d; fraction-tolerance fix 85efcf0).
 
-#### Task 4.2: Cookbook layout + sticky meta bar + Stepper scaling
+#### Task 4.2: Cookbook layout + sticky meta bar + Stepper scaling ✅
 **Files:** Modify `frontend/src/views/RecipeDetailView.vue`
-- [ ] Hero title (display font); sticky meta bar with `Stepper` bound to a local `servings` ref (init = recipe base servings); ingredient quantities rendered through `scaleQuantity(ing.quantity, servings/baseServings)` — **presentational only, never persisted**. Two-column (ingredients|steps) desktop, single mobile.
-- [ ] **VERIFY** + commit `feat(recipes): cookbook detail layout with live servings scaling`.
+- [x] Hero title (display font); sticky meta bar with `Stepper` bound to a local `servings` ref (init = recipe base servings); ingredient quantities rendered through `scaleQuantity(ing.quantity, servings/baseServings)` — **presentational only, never persisted**. Two-column (ingredients|steps) desktop, single mobile.
+- [x] **VERIFY** + commit `feat(recipes): cookbook detail layout with live servings scaling` (772144d).
 
-#### Task 4.3: Checkable ingredients + step progress (in-memory)
+#### Task 4.3: Checkable ingredients + step progress (in-memory) ✅
 **Files:** Modify `frontend/src/views/RecipeDetailView.vue`
-- [ ] Semantic `<input type="checkbox">` per ingredient (local reactive set); steps show subtle done state + a `ProgressBar` of completed steps. State is `ref`-local — resets on reload (do NOT persist).
-- [ ] **VERIFY** + commit `feat(recipes): in-memory ingredient/step checkoff`.
+- [x] Semantic `<input type="checkbox">` per ingredient (local reactive set); steps show subtle done state + a `ProgressBar` of completed steps. State is `ref`-local — resets on reload (do NOT persist).
+- [x] **VERIFY** + commit `feat(recipes): in-memory ingredient/step checkoff` (f55d367).
 
-#### Task 4.4: Add-to-shopping + Edit/Delete relocation
+#### Task 4.4: Add-to-shopping + Edit/Delete relocation ⚠️ (reduced scope, user-approved)
 **Files:** Modify `frontend/src/views/RecipeDetailView.vue`
-- [ ] "Add ingredients to shopping list" button wired to existing shopping-list store/API. Edit demoted to quiet `BaseButton secondary`/`IconButton`; Delete moved into an overflow `⋯` (`EllipsisVertical`) menu using `ConfirmDialog` (reuse existing confirm logic). No print/share buttons.
-- [ ] **VERIFY** + commit `feat(recipes): add-to-shopping and overflow delete on detail`.
+- [ ] ~~"Add ingredients to shopping list" button wired to existing shopping-list store/API.~~ **DESCOPED** — no backend endpoint/store method exists for adding an arbitrary recipe's ingredients to a shopping list (lists are only generated from meal-plan entries via `POST /shopping-lists/generate`, keyed to a `meal_plan_id`). Building this would require a new backend endpoint outside this overhaul's sanctioned scope (Task 3.0 is the only approved exception). No placeholder was added either. Revisit if/when a real "add to list" backend surface is built.
+- [x] Edit demoted to quiet `IconButton` (Pencil, ghost variant). Delete moved into an overflow `⋯` (`EllipsisVertical`) menu using `ConfirmDialog` (reuses existing `confirmDelete()`/`deleting` logic unchanged). No print/share buttons.
+- [x] **VERIFY** + commit `feat(recipes): quiet edit and overflow delete on detail` (5525434; e2e fix 090f2ba for the delete flow's new overflow-menu entry point).
 
-**Phase 4 checkpoint.**
+**Phase 4 checkpoint — COMPLETE.** Full verification GREEN at commit 090f2ba: type-check ✓, build ✓, 437 tests / 54 files ✓. All Phase 3+4 task reviews Approved (Minor findings only, rolled up in `.superpowers/sdd/progress.md`); two real bugs caught via the review loop and fixed (Task 4.1 fraction-tolerance misclassification; Task 4.4 e2e delete-flow regression). Two deliberate scope adjustments made with the user: Task 3.4's filter-row design (grouped horizontal-scroll rows, not one flat row) and Task 4.4's shopping-list button (descoped, no backend surface exists). **Paused here per user instruction for consolidated Phase 3+4 feedback before Phase 5.**
 
 ---
 
