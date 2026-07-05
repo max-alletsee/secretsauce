@@ -9,7 +9,8 @@ import TagFilter from '@/components/TagFilter.vue'
 import AddRecipeSheet from '@/components/AddRecipeSheet.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
-import PourLoader from '@/components/base/PourLoader.vue'
+import Skeleton from '@/components/base/Skeleton.vue'
+import EmptyState from '@/components/base/EmptyState.vue'
 import { Plus } from '@lucide/vue'
 
 const recipeStore = useRecipeStore()
@@ -54,13 +55,30 @@ onMounted(() => {
       class="recipe-list-page__filters"
     />
 
-    <div v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-list-page__loading">
-      <PourLoader />
+    <div v-if="recipeStore.loading && !recipeStore.recipes.length" class="recipe-grid" data-testid="recipe-list-skeleton">
+      <div v-for="n in 6" :key="n" class="skeleton-card">
+        <Skeleton width="70%" height="1.25rem" />
+        <Skeleton width="45%" height="0.875rem" />
+        <div class="skeleton-card__tags">
+          <Skeleton width="3.5rem" height="1.25rem" radius="var(--radius-pill)" />
+          <Skeleton width="3.5rem" height="1.25rem" radius="var(--radius-pill)" />
+          <Skeleton width="3.5rem" height="1.25rem" radius="var(--radius-pill)" />
+        </div>
+      </div>
     </div>
 
-    <p v-else-if="!recipeStore.recipes.length" class="recipe-list-page__empty">
-      No recipes yet. Create your first one!
-    </p>
+    <EmptyState
+      v-else-if="!recipeStore.recipes.length"
+      title="No recipes yet"
+      body="Import your first from a URL or snap a cookbook page"
+      class="recipe-list-page__empty"
+    >
+      <template #action>
+        <BaseButton variant="primary" data-testid="empty-state-add-recipe-btn" @click="sheetOpen = true">
+          Add recipe
+        </BaseButton>
+      </template>
+    </EmptyState>
 
     <div v-else class="recipe-grid">
       <RecipeCard
@@ -105,10 +123,7 @@ onMounted(() => {
   font-weight: 600;
   margin: 0;
 }
-.recipe-list-page__loading,
 .recipe-list-page__empty {
-  text-align: center;
-  color: var(--color-text-muted);
   padding: 3rem 0;
 }
 .recipe-list-page__filters {
@@ -137,6 +152,20 @@ onMounted(() => {
   .recipe-grid {
     grid-template-columns: repeat(3, 1fr);
   }
+}
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.skeleton-card__tags {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
 }
 .recipe-list-page__load-more {
   display: block;
