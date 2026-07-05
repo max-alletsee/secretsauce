@@ -81,6 +81,96 @@ describe('RecipeForm', () => {
     expect(wrapper.emitted('cancel')).toBeTruthy()
   })
 
+  describe('import review', () => {
+    it('does not render the imported banner when isImportReview is false/omitted', () => {
+      const wrapper = mount(RecipeForm)
+      expect(wrapper.find('[data-testid="import-review-banner"]').exists()).toBe(false)
+    })
+
+    it('renders the imported banner with the exact copy when isImportReview is true', () => {
+      const wrapper = mount(RecipeForm, { props: { isImportReview: true } })
+      const banner = wrapper.find('[data-testid="import-review-banner"]')
+      expect(banner.exists()).toBe(true)
+      expect(banner.text()).toContain('Imported — please review')
+    })
+
+    it('blocks Save even with a fully valid form until the confirm-review checkbox is checked', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          isImportReview: true,
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [{ name: 'flour', quantity: '2', unit: 'cup' }],
+            steps: [{ order: 1, instruction: 'Mix it all together' }],
+          },
+        },
+      })
+      const saveBtn = wrapper.find('button[type="submit"]')
+      expect(saveBtn.attributes('disabled')).toBeDefined()
+
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toBeFalsy()
+    })
+
+    it('enables Save and emits a clean submit payload once the confirm-review checkbox is checked and the form is valid', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          isImportReview: true,
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [{ name: 'flour', quantity: '2', unit: 'cup' }],
+            steps: [{ order: 1, instruction: 'Mix it all together' }],
+          },
+        },
+      })
+
+      const confirmCheckbox = wrapper.find('[data-testid="import-review-confirm"]')
+      expect(confirmCheckbox.exists()).toBe(true)
+      await confirmCheckbox.setValue(true)
+
+      const saveBtn = wrapper.find('button[type="submit"]')
+      expect(saveBtn.attributes('disabled')).toBeUndefined()
+
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toBeTruthy()
+      const payload = wrapper.emitted('submit')?.[0]?.[0] as Record<string, unknown>
+      expect(Object.keys(payload).sort()).toEqual(
+        [
+          'cook_time_minutes',
+          'description',
+          'ingredients',
+          'prep_time_minutes',
+          'servings',
+          'steps',
+          'tags',
+          'title',
+          'visibility',
+          'waiting_time_minutes',
+        ].sort(),
+      )
+    })
+
+    it('has zero effect on isValid/submit when isImportReview is false, regardless of confirm state', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          isImportReview: false,
+          initialData: {
+            title: 'Pancakes',
+            ingredients: [{ name: 'flour', quantity: '2', unit: 'cup' }],
+            steps: [{ order: 1, instruction: 'Mix it all together' }],
+          },
+        },
+      })
+      expect(wrapper.find('[data-testid="import-review-confirm"]').exists()).toBe(false)
+
+      const saveBtn = wrapper.find('button[type="submit"]')
+      expect(saveBtn.attributes('disabled')).toBeUndefined()
+
+      await wrapper.find('form').trigger('submit')
+      expect(wrapper.emitted('submit')).toBeTruthy()
+    })
+  })
+
   describe('drag-reorder', () => {
     it('reindexes step.order sequentially (1..n) after reordering via Move down', async () => {
       const wrapper = mount(RecipeForm, {

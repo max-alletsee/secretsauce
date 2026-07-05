@@ -35,8 +35,13 @@ const props = withDefaults(
   defineProps<{
     initialData?: Partial<RecipeCreatePayload>
     submitLabel?: string
+    // True when this form is showing a freshly-imported recipe (URL/photo
+    // import) that the user hasn't confirmed yet. Purely additive: when
+    // false/omitted, no banner/marking/gate renders and isValid/submit
+    // behave exactly as before Task 5.3.
+    isImportReview?: boolean
   }>(),
-  { submitLabel: 'Save' },
+  { submitLabel: 'Save', isImportReview: false },
 )
 
 const emit = defineEmits<{
@@ -85,8 +90,19 @@ const isTitleValid = computed(() => title.value.trim().length > 0)
 const isIngredientsValid = computed(() => ingredientRows.value.length > 0)
 const isStepsValid = computed(() => stepRows.value.length > 0)
 
+// Import-review confirm gate: only relevant when isImportReview is true.
+// When false, this stays true unconditionally so it never affects isValid.
+const importReviewConfirmed = ref(false)
+const isImportReviewSatisfied = computed(
+  () => !props.isImportReview || importReviewConfirmed.value,
+)
+
 const isValid = computed(
-  () => isTitleValid.value && isIngredientsValid.value && isStepsValid.value,
+  () =>
+    isTitleValid.value &&
+    isIngredientsValid.value &&
+    isStepsValid.value &&
+    isImportReviewSatisfied.value,
 )
 
 // Hints stay hidden until the user has tried to save at least once, so an
@@ -199,7 +215,19 @@ function submit() {
 
 <template>
   <form class="recipe-form" @submit.prevent="submit" novalidate>
-    <div class="recipe-form__field">
+    <div
+      v-if="isImportReview"
+      class="recipe-form__import-banner"
+      role="status"
+      data-testid="import-review-banner"
+    >
+      Imported — please review
+    </div>
+
+    <div
+      class="recipe-form__field"
+      :class="{ 'recipe-form__field--imported': isImportReview }"
+    >
       <label for="recipe-title">Title</label>
       <input
         id="recipe-title"
@@ -214,7 +242,10 @@ function submit() {
       </p>
     </div>
 
-    <div class="recipe-form__field">
+    <div
+      class="recipe-form__field"
+      :class="{ 'recipe-form__field--imported': isImportReview }"
+    >
       <label for="rf-desc">Description</label>
       <textarea id="rf-desc" v-model="description" rows="2"></textarea>
     </div>
@@ -239,7 +270,10 @@ function submit() {
     </div>
 
     <!-- Ingredients -->
-    <fieldset class="recipe-form__section">
+    <fieldset
+      class="recipe-form__section"
+      :class="{ 'recipe-form__section--imported': isImportReview }"
+    >
       <legend>Ingredients</legend>
       <DragList
         v-if="ingredientRows.length"
@@ -264,7 +298,10 @@ function submit() {
     </fieldset>
 
     <!-- Steps -->
-    <fieldset class="recipe-form__section">
+    <fieldset
+      class="recipe-form__section"
+      :class="{ 'recipe-form__section--imported': isImportReview }"
+    >
       <legend>Steps</legend>
       <DragList
         v-if="stepRows.length"
@@ -316,6 +353,17 @@ function submit() {
       </div>
     </div>
 
+    <!-- Import review confirm gate -->
+    <div v-if="isImportReview" class="recipe-form__confirm-review">
+      <input
+        id="rf-import-review-confirm"
+        v-model="importReviewConfirmed"
+        type="checkbox"
+        data-testid="import-review-confirm"
+      />
+      <label for="rf-import-review-confirm">I've reviewed this imported recipe</label>
+    </div>
+
     <!-- Actions -->
     <div class="recipe-form__actions">
       <BaseButton type="submit" variant="primary" :disabled="!isValid">
@@ -352,10 +400,30 @@ function submit() {
   /* Reserve room so content isn't hidden behind the sticky actions bar. */
   padding-bottom: calc(var(--space-8) + var(--space-4));
 }
+.recipe-form__import-banner {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
 .recipe-form__field {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+/* Subtle marker for fields prefilled by an import — a thin accent border
+   rather than a badge, so it reads as "this came from the import" without
+   competing with validation-hint styling (which uses --color-danger). */
+.recipe-form__field--imported {
+  border-left: 3px solid var(--color-accent);
+  padding-left: var(--space-3);
+}
+.recipe-form__section--imported {
+  border-left: 3px solid var(--color-accent);
 }
 .recipe-form__row {
   display: grid;
@@ -456,6 +524,26 @@ input[aria-invalid='true'] {
 .recipe-form__toggle-btn.active {
   background: var(--color-primary);
   color: var(--color-primary-ink);
+}
+.recipe-form__confirm-review {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+.recipe-form__confirm-review input[type='checkbox'] {
+  width: auto;
+  flex: none;
+}
+.recipe-form__confirm-review input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.recipe-form__confirm-review label {
+  cursor: pointer;
 }
 .recipe-form__actions {
   /* Sticky bottom save bar: stays reachable while scrolling a long form.

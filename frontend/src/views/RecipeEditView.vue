@@ -76,6 +76,7 @@ async function handleSubmit(data: RecipeCreatePayload) {
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <RecipeForm
         :initial-data="initialData"
+        :is-import-review="!!importedRecipe"
         submit-label="Save changes"
         @submit="handleSubmit"
         @cancel="router.push(`/recipes/${recipeId}`)"
