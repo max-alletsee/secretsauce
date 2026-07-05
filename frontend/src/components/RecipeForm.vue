@@ -1,10 +1,11 @@
 <!-- frontend/src/components/RecipeForm.vue -->
 <script setup lang="ts">
-import { ref, computed, watchEffect } from 'vue'
+import { ref, computed, watchEffect, toRaw } from 'vue'
 import type { Ingredient, Step, RecipeCreatePayload } from '@/types/recipe'
 import TagSelector from './TagSelector.vue'
 import IngredientDrawer from './IngredientDrawer.vue'
 import StepDrawer from './StepDrawer.vue'
+import BaseButton from './base/BaseButton.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 
 const props = withDefaults(
@@ -40,15 +41,29 @@ watchEffect(() => {
   prepTime.value = d.prep_time_minutes ?? undefined
   waitingTime.value = d.waiting_time_minutes ?? undefined
   cookTime.value = d.cook_time_minutes ?? undefined
-  ingredients.value = d.ingredients ? structuredClone(d.ingredients) : []
-  steps.value = d.steps ? structuredClone(d.steps) : []
+  // toRaw() first: props are reactive-proxied by Vue, and structuredClone()
+  // cannot clone a Proxy — only the plain array/objects it wraps.
+  ingredients.value = d.ingredients ? structuredClone(toRaw(d.ingredients)) : []
+  steps.value = d.steps ? structuredClone(toRaw(d.steps)) : []
   tags.value = d.tags ? [...d.tags] : []
   visibility.value = d.visibility ?? 'private'
 })
 
+const isTitleValid = computed(() => title.value.trim().length > 0)
+const isIngredientsValid = computed(() => ingredients.value.length > 0)
+const isStepsValid = computed(() => steps.value.length > 0)
+
 const isValid = computed(
-  () => title.value.trim().length > 0 && ingredients.value.length > 0 && steps.value.length > 0,
+  () => isTitleValid.value && isIngredientsValid.value && isStepsValid.value,
 )
+
+// Hints stay hidden until the user has tried to save at least once, so an
+// empty form isn't scolding them before they've had a chance to fill it in.
+const submitAttempted = ref(false)
+
+const showTitleHint = computed(() => submitAttempted.value && !isTitleValid.value)
+const showIngredientsHint = computed(() => submitAttempted.value && !isIngredientsValid.value)
+const showStepsHint = computed(() => submitAttempted.value && !isStepsValid.value)
 
 // Ingredient drawer state
 const showIngredientDrawer = ref(false)
@@ -115,6 +130,7 @@ function deleteStep() {
 }
 
 function submit() {
+  submitAttempted.value = true
   if (!isValid.value) return
   emit('submit', {
     title: title.value.trim(),
@@ -136,7 +152,17 @@ function submit() {
   <form class="recipe-form" @submit.prevent="submit" novalidate>
     <div class="recipe-form__field">
       <label for="recipe-title">Title</label>
-      <input id="recipe-title" v-model="title" type="text" required />
+      <input
+        id="recipe-title"
+        v-model="title"
+        type="text"
+        required
+        :aria-invalid="showTitleHint ? 'true' : undefined"
+        :aria-describedby="showTitleHint ? 'recipe-title-hint' : undefined"
+      />
+      <p v-if="showTitleHint" id="recipe-title-hint" class="recipe-form__hint" data-testid="title-hint" role="alert">
+        Title is required.
+      </p>
     </div>
 
     <div class="recipe-form__field">
@@ -177,6 +203,9 @@ function submit() {
         </li>
       </ul>
       <p v-else class="recipe-form__empty">No ingredients yet.</p>
+      <p v-if="showIngredientsHint" class="recipe-form__hint" data-testid="ingredients-hint" role="alert">
+        Add at least one ingredient.
+      </p>
       <button type="button" class="recipe-form__add-btn" @click="openIngredientDrawer(null)">
         + Add ingredient
       </button>
@@ -196,6 +225,9 @@ function submit() {
         </li>
       </ol>
       <p v-else class="recipe-form__empty">No steps yet.</p>
+      <p v-if="showStepsHint" class="recipe-form__hint" data-testid="steps-hint" role="alert">
+        Add at least one step.
+      </p>
       <button type="button" class="recipe-form__add-btn" @click="openStepDrawer(null)">
         + Add step
       </button>
@@ -230,10 +262,10 @@ function submit() {
 
     <!-- Actions -->
     <div class="recipe-form__actions">
-      <button type="submit" class="btn btn--primary" :disabled="!isValid">
+      <BaseButton type="submit" variant="primary" :disabled="!isValid">
         {{ submitLabel }}
-      </button>
-      <button type="button" class="btn btn--secondary" @click="emit('cancel')">Cancel</button>
+      </BaseButton>
+      <BaseButton type="button" variant="secondary" @click="emit('cancel')">Cancel</BaseButton>
     </div>
 
     <!-- Drawers -->
@@ -259,18 +291,20 @@ function submit() {
 .recipe-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
   max-width: 640px;
+  /* Reserve room so content isn't hidden behind the sticky actions bar. */
+  padding-bottom: calc(var(--space-8) + var(--space-4));
 }
 .recipe-form__field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 .recipe-form__row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: var(--space-3);
 }
 @media (min-width: 768px) {
   .recipe-form__row {
@@ -278,89 +312,122 @@ function submit() {
   }
 }
 label {
-  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   font-weight: 500;
+  color: var(--color-text);
 }
 input, textarea, select {
-  padding: 0.625rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 1rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   width: 100%;
   box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}
+input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+.recipe-form__hint {
+  color: var(--color-danger);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  margin: 0;
 }
 .recipe-form__section {
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
-  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
   margin: 0;
 }
 .recipe-form__section legend {
-  font-size: 0.9375rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   font-weight: 600;
-  padding: 0 0.25rem;
+  padding: 0 var(--space-1);
+  color: var(--color-text);
 }
 .recipe-form__list {
   list-style: none;
   padding: 0;
-  margin: 0 0 0.5rem;
+  margin: 0 0 var(--space-2);
 }
 .recipe-form__list--numbered {
   list-style: decimal inside;
 }
 .recipe-form__list-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #f3f4f6;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
   cursor: pointer;
-  font-size: 0.9375rem;
+  font-size: var(--text-base);
 }
 .recipe-form__list-item:hover {
-  background: #f9fafb;
+  background: var(--color-surface-2);
 }
 .recipe-form__empty {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  margin: 0 0 0.5rem;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin: 0 0 var(--space-2);
 }
 .recipe-form__add-btn {
   background: none;
   border: none;
-  color: #2563eb;
-  font-size: 0.875rem;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   cursor: pointer;
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 .recipe-form__toggle {
   display: flex;
   gap: 0;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   width: fit-content;
 }
 .recipe-form__toggle-btn {
-  padding: 0.5rem 1rem;
-  background: white;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
   border: none;
-  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 .recipe-form__toggle-btn.active {
-  background: #2563eb;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
 }
 .recipe-form__actions {
+  /* Sticky bottom save bar: stays reachable while scrolling a long form.
+     Matches the sticky-bar pattern used elsewhere (e.g. RecipeDetailView's
+     sticky meta bar), mirrored to the bottom edge. */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-3);
+  margin: 0 calc(var(--space-4) * -1) calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
-.btn {
-  padding: 0.625rem 1.5rem;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 1rem;
-  cursor: pointer;
+.recipe-form__actions :deep(.btn) {
+  flex: 1;
 }
-.btn--primary { background: #2563eb; color: white; }
-.btn--primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn--secondary { background: #f3f4f6; color: #374151; }
+@media (min-width: 768px) {
+  .recipe-form__actions :deep(.btn) {
+    flex: 0 0 auto;
+  }
+}
 </style>
