@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-05 — Phase 4 COMPLETE through Task 4.4; paused for consolidated Phase 3+4 user feedback before Phase 5)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-06 — Phase 5 COMPLETE through Task 5.3; paused for consolidated Phase 5 user feedback before Phase 6)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -31,6 +31,7 @@
 3. **Icons:** use `@lucide/vue` (not the deprecated `lucide-vue-next`). Same icon names/API: `import { Camera } from '@lucide/vue'`.
 4. **Task 3.4 filter design:** the brief's literal "single flat scrollable row" would've collapsed 37 tags across 5 categories into one unlabeled strip. Approved instead: keep the 5 group labels (Protein/Diet/Season/Meal type/Cuisine), each group is its own independent horizontal-scroll row, whole block sits in one sticky container. Old expand/collapse toggle removed.
 5. **Task 4.4 shopping-list button descoped:** "Add ingredients to shopping list" was dropped from scope after investigation found no backend surface exists for it — shopping lists are only ever generated from meal-plan entries (`POST /shopping-lists/generate`, keyed to a `meal_plan_id`), never from an arbitrary recipe outside a plan. Adding one would need a new backend endpoint beyond the one sanctioned exception (Task 3.0). No placeholder was built. Revisit if/when a real backend surface for this exists — likely worth bundling with Phase 8 (shopping list detail's "+ Add item"), which touches the same area.
+6. **Task 5.3 file-ownership correction:** the plan's auto-extracted brief said "modify `RecipeCreateView.vue` if it owns `importedRecipe`" — it doesn't. `importedRecipe` is owned by `RecipeEditView.vue` (a URL/photo import lands on the *edit* route via router history state, not the create route). `RecipeCreateView.vue` was correctly left untouched.
 
 ### Baseline note
 Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing tsconfig test-glob bug + a real RecipeForm `undefined`→`null` bug + 5 leaked test rejections). Fixed in commit `ddc6991` (`fix: green the frontend type-check/build baseline`). Baseline is now green: type-check ✓, build ✓, tests ✓.
@@ -72,6 +73,10 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `090f2ba` fix(e2e): update recipe-delete test for overflow menu  *(4.4-adjacent e2e fix)*
 - `86433b0` docs: mark Phase 3 and Phase 4 complete; update handoff snapshot
 - `a9b8642` fix(e2e): update URL-import test for add-recipe sheet flow  *(final whole-branch review finding)*
+- `8dcebda` docs: record final whole-branch review for Phase 3+4
+- `4704942` feat(recipes): sticky save bar and inline validation hints  *(Task 5.1; includes full RecipeForm.vue token migration + toRaw/structuredClone fix)*
+- `23e0ddf` feat(recipes): drag-reorder ingredients and steps  *(Task 5.2)*
+- `a3dbda7` feat(recipes): imported review banner and confirm gate  *(Task 5.3)*
 
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. That fast-forward has NOT been repeated since — `ui-shell-rework` is stale as of `bc90983`; re-sync it at the next checkpoint if desired. Nothing pushed to origin yet.
 
@@ -83,16 +88,18 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - ✅ **PHASE 3 COMPLETE — Tasks 3.0–3.5 done, reviewed, Minor findings only (rolled up in `.superpowers/sdd/progress.md`).** Full verification GREEN at commit `35671bc`: type-check ✓, build ✓, **406 tests / 52 files** ✓. Backend cook-stats (3.0, the one sanctioned exception) + RecipeCard upgrade (3.2) + add-recipe BottomSheet w/ SegmentedTabs (3.3) + sticky grouped filter chips (3.4, user-approved design deviation) + skeleton/EmptyState (3.5). No sign-off pause per user instruction — proceeded straight to Phase 4.
 - ✅ **PHASE 4 COMPLETE — Tasks 4.1–4.4 done, reviewed, Minor findings only.** Full verification GREEN at commit `090f2ba`: type-check ✓, build ✓, **437 tests / 54 files** ✓. Scaling helper (4.1, one real fix loop — fraction-tolerance bug caught by review) + cookbook layout/live-scaling (4.2) + in-memory checkoff/progress (4.3) + quiet-Edit/overflow-Delete (4.4, reduced scope — shopping-list button descoped, no backend surface exists) + a proactively-caught e2e regression fixed (4.4-adjacent).
 - ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 3+4) done at commit `a9b8642`.** Caught and fixed one Important cross-task finding (a second e2e regression from Task 3.3's sheet restructure, same category as the 4.4 fix, missed by 3.3's own review). One non-blocking Minor noted (RecipeListView's own page-frame CSS never tokenized). Full detail in `.superpowers/sdd/progress.md`'s final-review section.
-- ⏸️ **Paused here per explicit user instruction: present consolidated Phase 3+4 feedback, do NOT auto-continue to Phase 5 without sign-off.**
-- ⏭️ **NEXT after sign-off: Phase 5 (Recipe form)** — Task 5.1 sticky save bar + inline validation hints on `RecipeForm.vue`. New BASE for 5.1 = `a9b8642`.
-- ⏳ **Phases 5–11** — not started.
+- ✅ **PHASE 5 COMPLETE — Tasks 5.1–5.3 done, reviewed, Minor findings only.** Full verification GREEN at commit `a3dbda7`: type-check ✓, build ✓, **454 tests / 55 files** ✓. Sticky save bar + inline validation hints (5.1, plus a full token migration of `RecipeForm.vue` — the last major untouched view — and a real `toRaw()`/`structuredClone()` bug fix) + drag-reorder via the reused `DragList` primitive with local-only stable keys (5.2, `Ingredient`/`Step` have no natural stable id) + imported-recipe review banner/field-marking/confirm-gate (5.3, one file-ownership brief correction — see Decisions §6).
+- ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 5) done at commit `a3dbda7`.** Re-ran verification independently (green). One genuine cross-task Minor finding: in import-review mode with an otherwise-valid form, Save is disabled by the unchecked confirm-gate but none of Task 5.1's inline hints render (they're gated on title/ingredients/steps validity alone) — mitigated by the checkbox's own adjacent visible affordance, not fixed, rolled into the polish backlog. No Critical/Important findings; cross-task data-layer composition (validity checks × wrapper objects × field-marking × import hydration) verified sound. Full detail in `.superpowers/sdd/progress.md`.
+- ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 5 feedback, do NOT auto-continue to Phase 6 without sign-off.**
+- ⏭️ **NEXT after sign-off: Phase 6 (Timeline)** — Task 6.1 vertical day sections with meal-slot cards on `TimelineView.vue`/`MealPlanGrid.vue`/`MealSlot.vue`. New BASE for 6.1 = `a3dbda7`.
+- ⏳ **Phases 6–11** — not started.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch). **New this session:** also run `git status --short` after every dispatch, not just `git show --stat HEAD` — two separate implementers left stray uncommitted edits (an unrelated scratch `.md` file once swept into a commit and had to be surgically removed via soft-reset; a harmless lint-autofix on an unrelated test file) sitting in the working tree alongside otherwise-clean commits.
 
 ### Cross-task reminders for later phases
 - `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
 - Build our own `BaseCard`/`ConfirmDialog` (avoid PrimeVue's `Card`/`ConfirmDialog` name clash).
-- `RecipeForm.vue` will be reworked in Phase 5; its two `?? null` baseline fixes are already in.
 - Test convention: colocated `*.test.ts` next to the component; `tsconfig.app.json` excludes `*.test.ts`, `tsconfig.vitest.json` includes them (fixed in baseline commit).
+- **Polish backlog (not yet applied, candidates for a later pass):** RecipeListView's own page-frame CSS never tokenized (from Phase 3+4 final review); import-review mode's disabled Save lacks a visible inline hint like Task 5.1's other three (from Phase 5 final review) — candidate fix is a hint under the confirm checkbox gated on `submitAttempted && !confirmed`.
 
 ---
 
@@ -528,22 +535,24 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 5 — Recipe form
 
-#### Task 5.1: Sticky save bar + inline validation hints
+#### Task 5.1: Sticky save bar + inline validation hints ✅
 **Files:** Modify `frontend/src/components/RecipeForm.vue`
-- [ ] Sticky bottom bar with primary `BaseButton` save. Inline validation hints beside empty required sections (title, ≥1 ingredient, ≥1 step) — visible text, not just a disabled button.
-- [ ] **VERIFY** + commit `feat(recipes): sticky save bar and inline validation hints`.
+- [x] Sticky bottom bar with primary `BaseButton` save. Inline validation hints beside empty required sections (title, ≥1 ingredient, ≥1 step) — visible text, not just a disabled button.
+- [x] **VERIFY** + commit `feat(recipes): sticky save bar and inline validation hints` (4704942). Also fully migrated `RecipeForm.vue` off hardcoded hex onto tokens (previously untouched by the design system) and fixed a real pre-existing `toRaw()`/`structuredClone()` bug in the `initialData` hydration path.
 
-#### Task 5.2: Drag-to-reorder ingredients + steps
+#### Task 5.2: Drag-to-reorder ingredients + steps ✅
 **Files:** Modify `frontend/src/components/RecipeForm.vue`
-- [ ] Wrap ingredient + step lists in `DragList`; on reorder, reindex `step.order` correctly. Add a test asserting reorder updates `order` sequentially (1..n) using the `moveItem` helper.
-- [ ] **VERIFY** + commit `feat(recipes): drag-reorder ingredients and steps`.
+- [x] Wrap ingredient + step lists in `DragList`; on reorder, reindex `step.order` correctly. Add a test asserting reorder updates `order` sequentially (1..n) using the `moveItem` helper.
+- [x] **VERIFY** + commit `feat(recipes): drag-reorder ingredients and steps` (23e0ddf). Solved `DragList`'s stable-`keyField` requirement (neither `Ingredient` nor `Step` has one; `Step.order` is explicitly unstable) via a local-only `localId` wrapper stripped before the submit emit.
 
-#### Task 5.3: Imported review banner + confirm
-**Files:** Modify `frontend/src/components/RecipeForm.vue` (+ `RecipeCreateView.vue` if it owns `importedRecipe`)
-- [ ] When `importedRecipe` present: banner "Imported — please review"; subtly mark prefilled fields (e.g., accent left-border/badge); "Confirm review" button required before/at save.
-- [ ] **VERIFY** + commit `feat(recipes): imported review banner and confirm gate`.
+#### Task 5.3: Imported review banner + confirm ✅
+**Files:** Modify `frontend/src/components/RecipeForm.vue` + `frontend/src/views/RecipeEditView.vue` (owns `importedRecipe`, not `RecipeCreateView.vue` — corrected during implementation)
+- [x] When `importedRecipe` present: banner "Imported — please review"; subtly mark prefilled fields (e.g., accent left-border/badge); "Confirm review" checkbox required before/at save.
+- [x] **VERIFY** + commit `feat(recipes): imported review banner and confirm gate` (a3dbda7).
 
-**Phase 5 checkpoint.**
+**Phase 5 checkpoint — COMPLETE.** Full verification GREEN at commit a3dbda7: type-check ✓, build ✓, 454 tests / 55 files ✓. All three task reviews Approved (only non-blocking Minor findings). `RecipeForm.vue` is now fully token-driven — the last major untouched view.
+
+**Final whole-branch review (broad, cross-task) at commit a3dbda7:** re-ran verification independently (green). One genuine cross-task Minor finding: when `isImportReview` is true and the form is otherwise fully valid but the confirm-review checkbox is unchecked, Save is disabled but none of Task 5.1's inline hints render (they're gated on title/ingredients/steps validity, all satisfied) — breaking 5.1's "disabled Save always has a visible adjacent reason" pattern. Mitigated by the checkbox's own visible unchecked state + label directly above the save bar, but not fully consistent with 5.1's hint idiom. Not fixed — rolled into the polish backlog (candidate: a hint under the checkbox when `submitAttempted && !confirmed`). No Critical/Important findings; data-layer composition across all three tasks (validity checks, `localId` stripping, field-marking, import hydration) verified sound. **Paused here for consolidated Phase 5 feedback before Phase 6. New BASE for Phase 6 = a3dbda7.**
 
 ---
 
