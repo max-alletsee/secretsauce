@@ -1,12 +1,14 @@
 <!-- frontend/src/views/RecipeDetailView.vue -->
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel.vue'
 import AddToPlanButton from '@/components/AddToPlanButton.vue'
+import Stepper from '@/components/base/Stepper.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
+import { scaleQuantity } from '@/composables/useScaledQuantity'
 import PourLoader from '@/components/base/PourLoader.vue'
 
 const route = useRoute()
@@ -21,6 +23,38 @@ const confirmingDelete = ref(false)
 
 const recipe = computed(() => recipeStore.currentRecipe)
 const isOwner = computed(() => recipe.value?.owner_id === userStore.user?.id)
+
+// Live servings scaling (presentational only — never persisted).
+// `recipe` starts null until the fetch in loadRecipe() resolves, so we can't
+// read the base servings at setup time. Watch for the recipe arriving and
+// initialize `servings`/`baseServings` exactly once from its data.
+const servings = ref<number | null>(null)
+const baseServings = ref<number | null>(null)
+
+watch(
+  recipe,
+  (r) => {
+    if (r && baseServings.value === null) {
+      baseServings.value = r.current_version.servings
+      servings.value = r.current_version.servings
+    }
+  },
+  { immediate: true },
+)
+
+const scaleFactor = computed(() => {
+  if (!baseServings.value || !servings.value) return 1
+  return servings.value / baseServings.value
+})
+
+const scaledIngredients = computed(() => {
+  return (
+    recipe.value?.current_version.ingredients.map((ing) => ({
+      ...ing,
+      quantity: scaleQuantity(ing.quantity, scaleFactor.value),
+    })) ?? []
+  )
+})
 
 async function loadRecipe() {
   error.value = ''
@@ -123,9 +157,14 @@ async function handleRestore(versionId: string) {
       </p>
 
       <div class="recipe-detail__meta">
-        <span v-if="recipe.current_version.servings">
-          {{ recipe.current_version.servings }} servings
-        </span>
+        <Stepper
+          v-if="servings !== null"
+          v-model="servings"
+          :min="1"
+          label="Servings"
+          class="recipe-detail__servings-stepper"
+        />
+        <span class="recipe-detail__meta-label">servings</span>
         <span v-if="recipe.current_version.total_time_minutes">
           {{ recipe.current_version.total_time_minutes }} min total
         </span>
@@ -138,23 +177,25 @@ async function handleRestore(versionId: string) {
         <span class="recipe-detail__badge">{{ recipe.visibility }}</span>
       </div>
 
-      <section class="recipe-detail__section">
-        <h2>Ingredients</h2>
-        <ul class="recipe-detail__ingredients">
-          <li v-for="(ing, i) in recipe.current_version.ingredients" :key="i">
-            {{ formatIngredient(ing) }}
-          </li>
-        </ul>
-      </section>
+      <div class="recipe-detail__columns">
+        <section class="recipe-detail__section">
+          <h2>Ingredients</h2>
+          <ul class="recipe-detail__ingredients">
+            <li v-for="(ing, i) in scaledIngredients" :key="i">
+              {{ formatIngredient(ing) }}
+            </li>
+          </ul>
+        </section>
 
-      <section class="recipe-detail__section">
-        <h2>Steps</h2>
-        <ol class="recipe-detail__steps">
-          <li v-for="step in recipe.current_version.steps" :key="step.order">
-            {{ step.instruction }}
-          </li>
-        </ol>
-      </section>
+        <section class="recipe-detail__section">
+          <h2>Steps</h2>
+          <ol class="recipe-detail__steps">
+            <li v-for="step in recipe.current_version.steps" :key="step.order">
+              {{ step.instruction }}
+            </li>
+          </ol>
+        </section>
+      </div>
 
       <section v-if="recipe.current_version.tags.length" class="recipe-detail__section">
         <h2>Tags</h2>
@@ -177,78 +218,107 @@ async function handleRestore(versionId: string) {
 
 <style scoped>
 .recipe-detail {
-  padding: 1rem;
-  max-width: 720px;
+  padding: var(--space-4);
+  max-width: 960px;
   margin: 0 auto;
 }
 .recipe-detail__error {
   text-align: center;
-  padding: 3rem 0;
-  color: #dc2626;
+  padding: var(--space-8) 0;
+  color: var(--color-danger);
 }
 .recipe-detail__error a {
   display: inline-block;
-  margin-top: 1rem;
-  color: #2563eb;
+  margin-top: var(--space-4);
+  color: var(--color-primary);
 }
 .recipe-detail__error-actions {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-4);
   justify-content: center;
-  margin-top: 1rem;
+  margin-top: var(--space-4);
   align-items: center;
 }
 .recipe-detail__loading {
   text-align: center;
-  padding: 3rem 0;
-  color: #6b7280;
+  padding: var(--space-8) 0;
+  color: var(--color-text-muted);
 }
 .recipe-detail__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 .recipe-detail__header h1 {
-  font-size: 1.75rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   margin: 0;
 }
+@media (min-width: 768px) {
+  .recipe-detail__header h1 {
+    font-size: var(--text-3xl);
+  }
+}
 .recipe-detail__owner-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .recipe-detail__primary-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 .recipe-detail__description {
-  color: #4b5563;
-  margin: 0.5rem 0 0;
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 0;
 }
 .recipe-detail__meta {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0;
-  font-size: 0.875rem;
-  color: #6b7280;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.recipe-detail__meta-label {
+  margin-left: calc(var(--space-2) * -1);
 }
 .recipe-detail__badge {
-  padding: 0.125rem 0.5rem;
-  background: #f3f4f6;
-  border-radius: 1rem;
-  font-size: 0.75rem;
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
   text-transform: capitalize;
 }
+.recipe-detail__columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+@media (min-width: 1024px) {
+  .recipe-detail__columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 .recipe-detail__section {
-  margin: 1.5rem 0;
+  margin: var(--space-5) 0;
+}
+.recipe-detail__columns .recipe-detail__section {
+  margin: 0;
 }
 .recipe-detail__section h2 {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   font-weight: 600;
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--space-3);
 }
 .recipe-detail__ingredients {
   list-style: disc inside;
@@ -256,37 +326,37 @@ async function handleRestore(versionId: string) {
   margin: 0;
 }
 .recipe-detail__ingredients li {
-  padding: 0.25rem 0;
+  padding: var(--space-1) 0;
 }
 .recipe-detail__steps {
-  padding-left: 1.25rem;
+  padding-left: var(--space-5);
   margin: 0;
 }
 .recipe-detail__steps li {
-  padding: 0.375rem 0;
+  padding: var(--space-2) 0;
   line-height: 1.5;
 }
 .recipe-detail__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.375rem;
+  gap: var(--space-2);
 }
 .recipe-detail__tag {
-  padding: 0.25rem 0.625rem;
-  background: #f3f4f6;
-  border-radius: 1rem;
-  font-size: 0.8125rem;
-  color: #374151;
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  color: var(--color-text);
 }
 .btn {
-  padding: 0.5rem 1rem;
+  padding: var(--space-2) var(--space-4);
   border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
   cursor: pointer;
   text-decoration: none;
 }
-.btn--secondary { background: #f3f4f6; color: #374151; }
-.btn--danger { background: #dc2626; color: white; }
+.btn--secondary { background: var(--color-surface-2); color: var(--color-text); }
+.btn--danger { background: var(--color-danger); color: var(--color-primary-ink); }
 .btn--danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
