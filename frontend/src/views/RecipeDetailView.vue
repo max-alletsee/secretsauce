@@ -1,12 +1,15 @@
 <!-- frontend/src/views/RecipeDetailView.vue -->
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Pencil, EllipsisVertical } from '@lucide/vue'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useUserStore } from '@/stores/useUserStore'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel.vue'
 import AddToPlanButton from '@/components/AddToPlanButton.vue'
 import Stepper from '@/components/base/Stepper.vue'
+import IconButton from '@/components/base/IconButton.vue'
+import ConfirmDialog from '@/components/base/ConfirmDialog.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
 import { scaleQuantity } from '@/composables/useScaledQuantity'
 import PourLoader from '@/components/base/PourLoader.vue'
@@ -21,6 +24,7 @@ const error = ref('')
 const deleting = ref(false)
 const isNotFound = ref(false)
 const confirmingDelete = ref(false)
+const menuOpen = ref(false)
 
 const recipe = computed(() => recipeStore.currentRecipe)
 const isOwner = computed(() => recipe.value?.owner_id === userStore.user?.id)
@@ -124,9 +128,60 @@ async function loadRecipe() {
 
 onMounted(loadRecipe)
 
+function goToEdit() {
+  if (!recipe.value) return
+  router.push(`/recipes/${recipe.value.id}/edit`)
+}
+
+const menuTriggerRef = ref<InstanceType<typeof IconButton> | null>(null)
+const menuRootRef = ref<HTMLElement | null>(null)
+
+function focusMenuTrigger() {
+  ;(menuTriggerRef.value?.$el as HTMLElement | undefined)?.focus()
+}
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+
+function closeMenu() {
+  menuOpen.value = false
+}
+
 function handleDelete() {
+  closeMenu()
   confirmingDelete.value = true
 }
+
+function onDocumentKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && menuOpen.value) {
+    closeMenu()
+    focusMenuTrigger()
+  }
+}
+
+function onDocumentPointerdown(e: PointerEvent) {
+  if (!menuOpen.value) return
+  const root = menuRootRef.value
+  if (root && !root.contains(e.target as Node)) {
+    closeMenu()
+  }
+}
+
+watch(menuOpen, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('keydown', onDocumentKeydown)
+    document.addEventListener('pointerdown', onDocumentPointerdown)
+  } else {
+    document.removeEventListener('keydown', onDocumentKeydown)
+    document.removeEventListener('pointerdown', onDocumentPointerdown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onDocumentKeydown)
+  document.removeEventListener('pointerdown', onDocumentPointerdown)
+})
 
 async function confirmDelete() {
   if (!recipe.value) return
@@ -178,24 +233,45 @@ async function handleRestore(versionId: string) {
           />
         </div>
         <div v-if="isOwner" class="recipe-detail__owner-actions">
-          <RouterLink :to="`/recipes/${recipe.id}/edit`" class="btn btn--secondary">
-            Edit
-          </RouterLink>
-          <template v-if="confirmingDelete">
-            <button class="btn btn--danger" @click="confirmDelete">Yes, delete</button>
-            <button class="btn btn--secondary" @click="confirmingDelete = false">Cancel</button>
-          </template>
-          <button
-            v-else
-            data-testid="delete-recipe"
-            class="btn btn--danger"
-            :disabled="deleting"
-            @click="handleDelete"
-          >
-            {{ deleting ? 'Deleting…' : 'Delete' }}
-          </button>
+          <IconButton :icon="Pencil" label="Edit recipe" variant="ghost" @click="goToEdit" />
+
+          <div ref="menuRootRef" class="recipe-detail__overflow">
+            <IconButton
+              ref="menuTriggerRef"
+              :icon="EllipsisVertical"
+              label="More actions"
+              variant="ghost"
+              aria-haspopup="menu"
+              :aria-expanded="menuOpen ? 'true' : 'false'"
+              @click="toggleMenu"
+            />
+            <ul v-if="menuOpen" role="menu" class="recipe-detail__overflow-list">
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-testid="delete-recipe"
+                  class="recipe-detail__overflow-action"
+                  :disabled="deleting"
+                  @click="handleDelete"
+                >
+                  {{ deleting ? 'Deleting…' : 'Delete' }}
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
       </header>
+
+      <ConfirmDialog
+        :open="confirmingDelete"
+        title="Delete recipe?"
+        message="This can't be undone."
+        confirm-label="Yes, delete"
+        danger
+        @confirm="confirmDelete"
+        @cancel="confirmingDelete = false"
+      />
 
       <p v-if="recipe.current_version.description" class="recipe-detail__description">
         {{ recipe.current_version.description }}
@@ -338,7 +414,47 @@ async function handleRestore(versionId: string) {
 }
 .recipe-detail__owner-actions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
+}
+.recipe-detail__overflow {
+  position: relative;
+  display: inline-flex;
+}
+.recipe-detail__overflow-list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 200;
+  min-width: 10rem;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.recipe-detail__overflow-action {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-danger);
+  text-decoration: none;
+  white-space: nowrap;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.recipe-detail__overflow-action:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+.recipe-detail__overflow-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .recipe-detail__primary-actions {
   display: flex;
@@ -470,6 +586,4 @@ async function handleRestore(versionId: string) {
   text-decoration: none;
 }
 .btn--secondary { background: var(--color-surface-2); color: var(--color-text); }
-.btn--danger { background: var(--color-danger); color: var(--color-primary-ink); }
-.btn--danger:disabled { opacity: 0.6; cursor: not-allowed; }
 </style>

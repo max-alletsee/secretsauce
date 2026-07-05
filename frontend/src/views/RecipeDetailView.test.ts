@@ -283,6 +283,95 @@ describe('RecipeDetailView', () => {
     })
   })
 
+  describe('edit affordance', () => {
+    it('navigates to the edit route when the edit icon button is clicked', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const editButton = wrapper.find('[aria-label="Edit recipe"]')
+      expect(editButton.exists()).toBe(true)
+      await editButton.trigger('click')
+
+      expect(mockPush).toHaveBeenCalledWith('/recipes/recipe-1/edit')
+    })
+  })
+
+  describe('overflow delete menu', () => {
+    it('does not show the delete menu item until the overflow trigger is opened', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      expect(wrapper.find('[data-testid="delete-recipe"]').exists()).toBe(false)
+    })
+
+    it('opens the overflow menu and shows the Delete menu item', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      const trigger = wrapper.find('[aria-label="More actions"]')
+      expect(trigger.exists()).toBe(true)
+      await trigger.trigger('click')
+
+      const deleteItem = wrapper.find('[data-testid="delete-recipe"]')
+      expect(deleteItem.exists()).toBe(true)
+      expect(deleteItem.text()).toBe('Delete')
+    })
+
+    it('clicking Delete in the menu closes the menu and opens the ConfirmDialog', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="delete-recipe"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Menu should be closed now.
+      expect(wrapper.find('[data-testid="delete-recipe"]').exists()).toBe(false)
+
+      const dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.props('open')).toBe(true)
+      expect(dialog.props('title')).toBe('Delete recipe?')
+    })
+
+    it('confirming in the dialog calls deleteRecipe and navigates to /recipes', async () => {
+      deleteRecipe.mockResolvedValue(undefined)
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="delete-recipe"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      dialog.vm.$emit('confirm')
+      await flushPromises()
+
+      expect(deleteRecipe).toHaveBeenCalledWith('recipe-1')
+      expect(mockPush).toHaveBeenCalledWith('/recipes')
+    })
+
+    it('canceling the dialog closes it without deleting', async () => {
+      const wrapper = mount(RecipeDetailView, { global: { stubs: globalStubs } })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="delete-recipe"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      let dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.props('open')).toBe(true)
+
+      dialog.vm.$emit('cancel')
+      await wrapper.vm.$nextTick()
+
+      dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.props('open')).toBe(false)
+      expect(deleteRecipe).not.toHaveBeenCalled()
+      expect(mockPush).not.toHaveBeenCalledWith('/recipes')
+    })
+  })
+
   describe('checkoff reset across recipe navigation', () => {
     it('clears ingredient and step checkoff state when the recipe id changes', async () => {
       // Use a reactive store stand-in so mutating `currentRecipe` in place
