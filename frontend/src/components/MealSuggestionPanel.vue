@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import MealSuggestionChip from './MealSuggestionChip.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
 import PourLoader from '@/components/base/PourLoader.vue'
-import { Pencil } from '@lucide/vue'
+import { Pencil, RefreshCw } from '@lucide/vue'
 import type { MealSuggestion } from '@/types/mealPlan'
 
 defineProps<{ suggestions: MealSuggestion[]; loading: boolean; convertingTitle?: string | null }>()
@@ -34,7 +34,7 @@ function handleConvertToRecipe(title: string) {
 <template>
   <div class="suggestion-panel">
     <div class="panel-header">
-      <span class="panel-label">AI Suggestions</span>
+      <span class="panel-label">Today's ideas</span>
       <div class="panel-actions">
         <button
           class="btn-steer"
@@ -46,9 +46,10 @@ function handleConvertToRecipe(title: string) {
         <button
           class="btn-regen"
           data-testid="regen-btn"
+          aria-label="Another idea"
           @click="emit('regenerate', undefined)"
         >
-          ⚡ Regen
+          <BaseIcon :icon="RefreshCw" :size="16" /> Another idea
         </button>
       </div>
     </div>
@@ -77,7 +78,7 @@ function handleConvertToRecipe(title: string) {
         @open-recipe="(id) => emit('open-recipe', id)"
       />
       <span v-if="suggestions.length === 0 && !loading" class="empty-hint">
-        Click Regen to generate suggestions
+        Click "Another idea" to see suggestions
       </span>
     </div>
   </div>
@@ -85,8 +86,8 @@ function handleConvertToRecipe(title: string) {
 
 <style scoped>
 .suggestion-panel {
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
 }
 .panel-header {
@@ -99,7 +100,7 @@ function handleConvertToRecipe(title: string) {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #888;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 .panel-actions {
@@ -107,7 +108,10 @@ function handleConvertToRecipe(title: string) {
   gap: 0.5rem;
 }
 .btn-steer {
-  background: #e9ecef;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--color-surface);
   border: none;
   border-radius: 4px;
   padding: 0.2rem 0.6rem;
@@ -115,8 +119,11 @@ function handleConvertToRecipe(title: string) {
   cursor: pointer;
 }
 .btn-regen {
-  background: #e94560;
-  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
   border: none;
   border-radius: 4px;
   padding: 0.2rem 0.6rem;
@@ -131,13 +138,13 @@ function handleConvertToRecipe(title: string) {
 .steer-field input {
   flex: 1;
   padding: 0.35rem 0.65rem;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 0.875rem;
 }
 .btn-go {
-  background: #e94560;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
   border: none;
   border-radius: 4px;
   padding: 0.35rem 0.75rem;
@@ -151,12 +158,12 @@ function handleConvertToRecipe(title: string) {
 }
 .empty-hint {
   font-size: 0.8rem;
-  color: #aaa;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 .loading-chips {
   font-size: 0.85rem;
-  color: #888;
+  color: var(--color-text-muted);
   font-style: italic;
 }
 </style>

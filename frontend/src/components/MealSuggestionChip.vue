@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import AddToPlanButton from './AddToPlanButton.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { BookOpen, Lightbulb } from '@lucide/vue'
 import type { MealSuggestion } from '@/types/mealPlan'
 
 const props = defineProps<{ suggestion: MealSuggestion; converting?: boolean }>()
@@ -16,7 +18,13 @@ const emit = defineEmits<{
     :data-testid="`chip-${suggestion.entry_type}`"
     @click.stop="suggestion.entry_type === 'recipe' && suggestion.matched_recipe_id && emit('open-recipe', suggestion.matched_recipe_id)"
   >
-    <span class="chip-icon">{{ suggestion.entry_type === 'recipe' ? '📚' : '✨' }}</span>
+    <span class="chip-icon">
+      <BaseIcon
+        :icon="suggestion.entry_type === 'recipe' ? BookOpen : Lightbulb"
+        :size="16"
+        :label="suggestion.entry_type === 'recipe' ? 'Recipe' : 'Idea'"
+      />
+    </span>
     <span class="chip-title">{{ suggestion.title }}</span>
     <AddToPlanButton
       :source="{ kind: 'suggestion', title: props.suggestion.title, matchedRecipeId: props.suggestion.matched_recipe_id }"
@@ -45,24 +53,28 @@ const emit = defineEmits<{
   user-select: none;
 }
 .suggestion-chip.recipe {
-  background: #e8f0fe;
-  border-left: 3px solid #4285f4;
+  background: var(--color-primary-soft);
+  border-left: 3px solid var(--color-primary);
   cursor: pointer;
 }
 .suggestion-chip.suggestion {
-  background: #fff8e1;
-  border-left: 3px solid #f5a623;
+  background: var(--color-accent-soft);
+  border-left: 3px solid var(--color-accent);
   font-style: italic;
+}
+.chip-icon {
+  display: inline-flex;
+  align-items: center;
 }
 .convert-btn {
   background: none;
   border: none;
-  color: #888;
+  color: var(--color-text-muted);
   font-size: 0.75rem;
   cursor: pointer;
   padding: 0;
   margin-left: 0.25rem;
 }
-.convert-btn:hover { color: #333; }
+.convert-btn:hover { color: var(--color-text); }
 .convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>

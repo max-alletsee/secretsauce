@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { Component } from 'vue'
-import { Coffee, Sandwich, Soup, Utensils } from '@lucide/vue'
+import { Coffee, Sandwich, Soup, Utensils, Lightbulb } from '@lucide/vue'
 import BaseCard from './base/BaseCard.vue'
 import BaseIcon from './base/BaseIcon.vue'
 import EntryActionsMenu from './EntryActionsMenu.vue'
@@ -64,7 +64,7 @@ function entryLabel(entry: TimelineEntry): string {
   if (entry.entry_type === 'recipe') {
     return entry.recipe_id ? props.recipeTitles[entry.recipe_id] ?? entry.recipe_id : 'Recipe'
   }
-  if (entry.entry_type === 'suggestion') return `✨ ${entry.note ?? ''}`
+  if (entry.entry_type === 'suggestion') return entry.note ?? ''
   return entry.note ?? ''
 }
 
@@ -102,6 +102,12 @@ function onEntryClick(entry: TimelineEntry) {
           :class="{ clickable: entry.entry_type === 'recipe' && entry.recipe_id }"
           @click.stop="onEntryClick(entry)"
         >
+          <BaseIcon
+            v-if="entry.entry_type === 'suggestion'"
+            :icon="Lightbulb"
+            :size="16"
+            label="Idea"
+          />
           {{ entryLabel(entry) }}
         </span>
         <div v-if="!disabled" class="entry-menu-wrap">
@@ -202,6 +208,9 @@ function onEntryClick(entry: TimelineEntry) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 .slot-entry.recipe .entry-content { color: var(--color-primary); }
 .slot-entry.suggestion .entry-content { color: var(--color-warning); font-style: italic; }

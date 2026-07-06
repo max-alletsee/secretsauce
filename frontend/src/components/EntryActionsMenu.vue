@@ -102,10 +102,10 @@ function openRecipe() {
   right: 0;
   top: 100%;
   min-width: 11rem;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow);
   z-index: 50;
   padding: 0.25rem 0;
   display: flex;
@@ -118,8 +118,8 @@ function openRecipe() {
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   cursor: pointer;
-  color: #1f2937;
+  color: var(--color-text);
 }
-.menu-item:hover { background: #f3f4f6; }
-.menu-item--danger { color: #dc2626; }
+.menu-item:hover { background: var(--color-surface-2); }
+.menu-item--danger { color: var(--color-danger); }
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AddToPlanButton from './AddToPlanButton.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
-import { X } from '@lucide/vue'
+import { X, BookOpen, Lightbulb } from '@lucide/vue'
 import type { ShortlistEntry } from '@/types/mealPlan'
 
 defineProps<{ entries: ShortlistEntry[] }>()
@@ -23,7 +23,13 @@ const emit = defineEmits<{
         class="shortlist-entry"
         :class="entry.entry_type"
       >
-        <span class="entry-icon">{{ entry.entry_type === 'recipe' ? '📚' : '✨' }}</span>
+        <span class="entry-icon">
+          <BaseIcon
+            :icon="entry.entry_type === 'recipe' ? BookOpen : Lightbulb"
+            :size="16"
+            :label="entry.entry_type === 'recipe' ? 'Recipe' : 'Idea'"
+          />
+        </span>
         <span class="entry-note">{{ entry.note ?? entry.recipe_id ?? 'Unnamed entry' }}</span>
         <AddToPlanButton
           :source="{ kind: 'shortlist', entry }"
@@ -48,8 +54,8 @@ const emit = defineEmits<{
 
 <style scoped>
 .shortlist-panel {
-  background: #f0fff4;
-  border-radius: 8px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   min-width: 180px;
 }
@@ -58,7 +64,7 @@ const emit = defineEmits<{
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #888;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 .entry-list { display: flex; flex-direction: column; gap: 0.35rem; }
@@ -70,22 +76,26 @@ const emit = defineEmits<{
   border-radius: 6px;
   font-size: 0.875rem;
 }
-.shortlist-entry.recipe { background: #e8f0fe; border-left: 3px solid #2ecc71; }
-.shortlist-entry.suggestion { background: #fff8e1; border-left: 3px solid #27ae60; font-style: italic; }
+.entry-icon {
+  display: inline-flex;
+  align-items: center;
+}
+.shortlist-entry.recipe { background: var(--color-primary-soft); border-left: 3px solid var(--color-success); }
+.shortlist-entry.suggestion { background: var(--color-accent-soft); border-left: 3px solid var(--color-success); font-style: italic; }
 .entry-note { flex: 1; }
 .remove-btn {
   background: none;
   border: none;
-  color: #aaa;
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 1rem;
   line-height: 1;
   padding: 0;
 }
-.remove-btn:hover { color: #e94560; }
+.remove-btn:hover { color: var(--color-text); }
 .shortlist-empty {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--color-text-muted);
   margin: 0;
   padding: 0.5rem 0.25rem;
   font-style: italic;
