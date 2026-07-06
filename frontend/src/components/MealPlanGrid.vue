@@ -87,9 +87,17 @@ function dayLabel(dateStr: string): string {
   flex-direction: column;
   gap: var(--space-2);
 }
+/*
+ * Past days are de-emphasized but stay fully interactive (tappable, open-able,
+ * loggable) — see MealSlot's `disabled` prop, which is never true here. Use a
+ * partial desaturation rather than full grayscale/opacity so the meal-type
+ * tint colors remain faintly visible and the row doesn't visually read as
+ * "disabled" (that distinct state is `.meal-slot--disabled`, styled with
+ * reduced opacity in MealSlot.vue).
+ */
 .day-row--past .day-label,
 .day-row--past .meal-slot {
-  filter: grayscale(1);
+  filter: grayscale(0.6) opacity(0.85);
 }
 .day-row--today .day-label {
   font-weight: 700;
