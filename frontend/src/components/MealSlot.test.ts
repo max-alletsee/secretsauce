@@ -150,4 +150,44 @@ describe('MealSlot', () => {
     await wrapper.find('.entry-content').trigger('click')
     expect(wrapper.emitted('open-recipe')?.[0]).toEqual(['r1'])
   })
+
+  it.each([
+    ['breakfast', 'meal-slot--breakfast'],
+    ['lunch', 'meal-slot--lunch'],
+    ['dinner', 'meal-slot--dinner'],
+  ])('applies the %s meal-type tint class', (mealType, tintClass) => {
+    const wrapper = mount(MealSlot, {
+      props: {
+        entries: [],
+        date: '2026-05-29',
+        mealType,
+        recipeTitles: {},
+      },
+    })
+    expect(wrapper.classes()).toContain(tintClass)
+  })
+
+  it('falls back to a generic tint class for unrecognized meal types', () => {
+    const wrapper = mount(MealSlot, {
+      props: {
+        entries: [],
+        date: '2026-05-29',
+        mealType: 'snack',
+        recipeTitles: {},
+      },
+    })
+    expect(wrapper.classes()).toContain('meal-slot--other')
+  })
+
+  it('renders a labeled meal-type icon', () => {
+    const wrapper = mount(MealSlot, {
+      props: {
+        entries: [],
+        date: '2026-05-29',
+        mealType: 'breakfast',
+        recipeTitles: {},
+      },
+    })
+    expect(wrapper.find('[aria-label="breakfast icon"]').exists()).toBe(true)
+  })
 })

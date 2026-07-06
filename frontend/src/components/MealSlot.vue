@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import type { Component } from 'vue'
+import { Coffee, Sandwich, Soup, Utensils } from '@lucide/vue'
+import BaseCard from './base/BaseCard.vue'
+import BaseIcon from './base/BaseIcon.vue'
 import EntryActionsMenu from './EntryActionsMenu.vue'
 import RecipePicker from './RecipePicker.vue'
 import type { TimelineEntry } from '@/types/timeline'
@@ -22,6 +26,22 @@ const emit = defineEmits<{
 
 const openMenuId = ref<string | null>(null)
 const pickerOpen = ref(false)
+
+const MEAL_TYPE_ICONS: Record<string, Component> = {
+  breakfast: Coffee,
+  lunch: Sandwich,
+  dinner: Soup,
+}
+
+// Meal-type tint class — falls back to a neutral "other" tint (e.g. snack)
+// so the card still gets an accent bar even for meal types outside the
+// three named tokens.
+const mealTypeTintClass = computed(() => {
+  const known = ['breakfast', 'lunch', 'dinner']
+  return known.includes(props.mealType) ? `meal-slot--${props.mealType}` : 'meal-slot--other'
+})
+
+const mealTypeIcon = computed<Component>(() => MEAL_TYPE_ICONS[props.mealType] ?? Utensils)
 
 function toggleMenu(entryId: string) {
   openMenuId.value = openMenuId.value === entryId ? null : entryId
@@ -56,12 +76,18 @@ function onEntryClick(entry: TimelineEntry) {
 </script>
 
 <template>
-  <div
+  <BaseCard
     class="meal-slot"
-    :class="{ 'meal-slot--disabled': disabled, 'meal-slot--multi': entries.length > 1 }"
+    :class="[
+      mealTypeTintClass,
+      { 'meal-slot--disabled': disabled, 'meal-slot--multi': entries.length > 1 },
+    ]"
     :data-testid="`meal-slot-${date}-${mealType}`"
   >
-    <span class="slot-label">{{ mealType.toUpperCase() }}</span>
+    <span class="slot-label">
+      <BaseIcon :icon="mealTypeIcon" :size="16" :label="`${mealType} icon`" />
+      {{ mealType.toUpperCase() }}
+    </span>
 
     <div class="slot-entries">
       <div
@@ -121,47 +147,65 @@ function onEntryClick(entry: TimelineEntry) {
       @picked="closePicker"
       @cancel="closePicker"
     />
-  </div>
+  </BaseCard>
 </template>
 
 <style scoped>
 .meal-slot {
-  flex: 1;
+  flex: 1 1 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  background: #f0f4ff;
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
+  gap: var(--space-2);
+  padding: var(--space-3);
   min-height: 2.25rem;
+  border-left: 4px solid var(--color-border);
 }
+
+@media (min-width: 768px) {
+  .meal-slot {
+    flex: 1 1 0;
+  }
+}
+
+.meal-slot--breakfast { border-left-color: var(--meal-breakfast); background: var(--meal-breakfast); }
+.meal-slot--lunch { border-left-color: var(--meal-lunch); background: var(--meal-lunch); }
+.meal-slot--dinner { border-left-color: var(--meal-dinner); background: var(--meal-dinner); }
+.meal-slot--other { border-left-color: var(--color-accent-soft); background: var(--color-accent-soft); }
+
 .meal-slot--disabled { opacity: 0.6; }
+
 .slot-label {
-  font-size: 0.7rem;
-  color: #999;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 .slot-entries {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-1);
 }
 .slot-entry {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: var(--space-1);
   position: relative;
 }
 .entry-content {
   flex: 1;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.slot-entry.recipe .entry-content { color: #1a73e8; }
-.slot-entry.suggestion .entry-content { color: #f5a623; font-style: italic; }
-.slot-entry.freetext .entry-content { color: #333; }
+.slot-entry.recipe .entry-content { color: var(--color-primary); }
+.slot-entry.suggestion .entry-content { color: var(--color-warning); font-style: italic; }
+.slot-entry.freetext .entry-content { color: var(--color-text); }
 .clickable { cursor: pointer; text-decoration: underline dotted; }
 .clickable:hover { text-decoration: underline; }
 .entry-menu-wrap {
@@ -170,22 +214,23 @@ function onEntryClick(entry: TimelineEntry) {
 .entry-menu-btn {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: 1.1rem;
   line-height: 1;
-  padding: 0 0.25rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
 }
-.entry-menu-btn:hover { color: #374151; }
+.entry-menu-btn:hover { color: var(--color-text); background: var(--color-surface-2); }
 .slot-add {
   align-self: flex-start;
   background: none;
-  border: 1px dashed #cbd5e1;
-  color: #6b7280;
-  border-radius: 6px;
-  padding: 0.2rem 0.55rem;
-  font-size: 0.8rem;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
   cursor: pointer;
 }
-.slot-add:hover { background: #e0e7ff; color: #1e3a8a; }
+.slot-add:hover { background: var(--color-primary-soft); color: var(--color-primary); }
 </style>

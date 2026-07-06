@@ -393,47 +393,47 @@ async function handleConvertToRecipe(title: string) {
   flex: 1;
 }
 .grid-section {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
 }
 .grid-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 .grid-title { font-weight: 600; }
 .show-earlier-btn {
   display: block;
   width: 100%;
-  padding: 0.35rem;
-  margin-bottom: 0.5rem;
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
   background: none;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  color: #9ca3af;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
 }
-.show-earlier-btn:hover { background: #f3f4f6; color: #6b7280; }
+.show-earlier-btn:hover { background: var(--color-surface); color: var(--color-text); }
 .show-later-btn {
   display: block;
   width: 100%;
-  padding: 0.35rem;
-  margin-top: 0.5rem;
+  padding: var(--space-2);
+  margin-top: var(--space-2);
   background: none;
-  border: 1px dashed #d1d5db;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  color: #9ca3af;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   cursor: pointer;
 }
-.show-later-btn:hover { background: #f3f4f6; color: #6b7280; }
+.show-later-btn:hover { background: var(--color-surface); color: var(--color-text); }
 .convert-error {
-  color: #dc2626;
-  font-size: 0.85rem;
-  margin-bottom: 0.75rem;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-3);
 }
 @media (max-width: 767px) {
   .sources-row { flex-direction: column; }

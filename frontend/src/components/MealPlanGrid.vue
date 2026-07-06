@@ -48,37 +48,31 @@ function dayLabel(dateStr: string): string {
 
 <template>
   <div class="plan-grid">
-    <!-- Header row -->
-    <div class="header-row">
-      <div class="day-label-cell"></div>
-      <div v-for="mt in mealTypes" :key="mt" class="meal-type-header">
-        {{ mt }}
-      </div>
-    </div>
-
-    <!-- Day rows -->
-    <div
+    <section
       v-for="day in days"
       :key="day"
       class="day-row"
       :class="{ 'day-row--past': isPast(day), 'day-row--today': day === todayStr }"
     >
-      <div class="day-label">{{ dayLabel(day) }}</div>
-      <MealSlot
-        v-for="mealType in mealTypes"
-        :key="mealType"
-        :entries="entriesFor(day, mealType)"
-        :date="day"
-        :meal-type="mealType"
-        :recipe-titles="recipeTitles"
-        :disabled="false"
-        @open-recipe="(id) => emit('open-recipe', id)"
-        @move-to-slot="(e) => emit('move-to-slot', e)"
-        @move-to-shortlist="(e) => emit('move-to-shortlist', e)"
-        @save-to-shortlist="(e) => emit('save-to-shortlist', e)"
-        @remove="(e) => emit('remove', e)"
-      />
-    </div>
+      <h3 class="day-label">{{ dayLabel(day) }}</h3>
+
+      <div class="day-slots">
+        <MealSlot
+          v-for="mealType in mealTypes"
+          :key="mealType"
+          :entries="entriesFor(day, mealType)"
+          :date="day"
+          :meal-type="mealType"
+          :recipe-titles="recipeTitles"
+          :disabled="false"
+          @open-recipe="(id) => emit('open-recipe', id)"
+          @move-to-slot="(e) => emit('move-to-slot', e)"
+          @move-to-shortlist="(e) => emit('move-to-shortlist', e)"
+          @save-to-shortlist="(e) => emit('save-to-shortlist', e)"
+          @remove="(e) => emit('remove', e)"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -86,49 +80,38 @@ function dayLabel(dateStr: string): string {
 .plan-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-.header-row {
-  display: flex;
-  gap: 0.4rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-.day-label-cell {
-  width: 5rem;
-  flex-shrink: 0;
-}
-.meal-type-header {
-  flex: 1;
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #6b7280;
-  letter-spacing: 0.05em;
+  gap: var(--space-4);
 }
 .day-row {
   display: flex;
-  align-items: stretch;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .day-row--past .day-label,
 .day-row--past .meal-slot {
   filter: grayscale(1);
 }
-.day-row--past .meal-slot {
-  background: #eceef1;
-}
 .day-row--today .day-label {
   font-weight: 700;
-  color: #2563eb;
+  color: var(--color-primary);
 }
 .day-label {
-  width: 5rem;
-  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.day-slots {
   display: flex;
-  align-items: center;
-  font-size: 0.75rem;
-  color: #6b7280;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Side-by-side meal slots once there's enough width to avoid squeezing content */
+@media (min-width: 768px) {
+  .day-slots {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
 }
 </style>

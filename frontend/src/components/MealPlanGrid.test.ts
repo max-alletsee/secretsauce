@@ -42,3 +42,32 @@ describe('MealPlanGrid past days', () => {
     ).toBe(true)
   })
 })
+
+describe('MealPlanGrid vertical day sections', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('renders one day section per day in range, each grouping its own meal slots', () => {
+    const wrapper = mount(MealPlanGrid, {
+      props: {
+        fromDate: '2026-06-21',
+        toDate: '2026-06-22',
+        mealTypes: ['breakfast', 'dinner'],
+        entries: [],
+        recipeTitles: {},
+        todayStr: '2026-06-21',
+      },
+    })
+    const sections = wrapper.findAll('section.day-row')
+    expect(sections.length).toBe(2)
+    // Each day section contains its own meal slots (scoped, not a shared row)
+    expect(
+      sections[0]!.find('[data-testid="meal-slot-2026-06-21-breakfast"]').exists(),
+    ).toBe(true)
+    expect(
+      sections[0]!.find('[data-testid="meal-slot-2026-06-21-dinner"]').exists(),
+    ).toBe(true)
+    expect(
+      sections[1]!.find('[data-testid="meal-slot-2026-06-22-breakfast"]').exists(),
+    ).toBe(true)
+  })
+})
