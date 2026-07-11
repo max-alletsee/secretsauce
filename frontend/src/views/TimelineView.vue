@@ -7,12 +7,14 @@ import { useUserStore } from '@/stores/useUserStore'
 import { useMealPlanStore } from '@/stores/useMealPlanStore'
 import { useImportPolling } from '@/composables/useImportPolling'
 import { useToast } from '@/composables/useToast'
+import { formatDateRange } from '@/composables/useDateRange'
 import MealPlanGrid from '@/components/MealPlanGrid.vue'
 import MealSuggestionPanel from '@/components/MealSuggestionPanel.vue'
 import ShortlistPanel from '@/components/ShortlistPanel.vue'
 import RecipeDrawer from '@/components/RecipeDrawer.vue'
 import BottomSheet from '@/components/BottomSheet.vue'
 import DayMealPicker from '@/components/DayMealPicker.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import { generateRecipe } from '@/api/recipes'
 import type { DraftRecipeData } from '@/types/importTask'
 import type { Recipe } from '@/types/recipe'
@@ -80,6 +82,8 @@ function addDays(dateStr: string, n: number): string {
 
 const fromDate = ref(addDays(todayStr, -2))
 const toDate = ref(addDays(todayStr, userStore.user?.meal_plan_days_ahead ?? 7))
+
+const planDateRangeLabel = computed(() => formatDateRange(fromDate.value, toDate.value))
 
 const mealTypes = computed(() => userStore.user?.meal_plan_meal_types ?? ['dinner'])
 
@@ -306,24 +310,38 @@ async function handleConvertToRecipe(title: string) {
   <div class="timeline-view">
     <p v-if="convertError" class="convert-error">{{ convertError }}</p>
     <p v-if="actionError" class="convert-error">{{ actionError }}</p>
-    <div class="sources-row">
-      <MealSuggestionPanel
-        :suggestions="planStore.suggestions"
-        :loading="planStore.suggestionLoading"
-        :converting-title="convertingTitle"
-        @regenerate="handleRegenerate"
-        @convert-to-recipe="handleConvertToRecipe"
-        @open-recipe="openRecipeDrawer"
-      />
-      <ShortlistPanel
-        :entries="shortlistStore.entries"
-        @remove="handleRemoveFromShortlist"
-      />
-    </div>
+
+    <details class="sources-collapsible" open>
+      <summary class="sources-toggle">Suggestions &amp; shortlist</summary>
+      <div class="sources-row">
+        <MealSuggestionPanel
+          :suggestions="planStore.suggestions"
+          :loading="planStore.suggestionLoading"
+          :converting-title="convertingTitle"
+          @regenerate="handleRegenerate"
+          @convert-to-recipe="handleConvertToRecipe"
+          @open-recipe="openRecipeDrawer"
+        />
+        <ShortlistPanel
+          :entries="shortlistStore.entries"
+          @remove="handleRemoveFromShortlist"
+        />
+      </div>
+    </details>
 
     <div class="grid-section">
       <div class="grid-header">
-        <span class="grid-title">Meal Plan</span>
+        <div class="grid-heading">
+          <span class="grid-title">Meal Plan</span>
+          <span class="grid-date-range">{{ planDateRangeLabel }}</span>
+        </div>
+        <BaseButton
+          variant="primary"
+          :loading="planStore.suggestionLoading"
+          @click="handleRegenerate()"
+        >
+          Generate plan
+        </BaseButton>
       </div>
 
       <button class="show-earlier-btn" @click="loadEarlier">
@@ -384,10 +402,33 @@ async function handleConvertToRecipe(title: string) {
   margin: 0 auto;
   padding: 1rem;
 }
+.sources-collapsible {
+  margin-bottom: 1rem;
+}
+.sources-toggle {
+  display: none;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: var(--space-2) 0;
+}
+.sources-toggle::-webkit-details-marker {
+  display: none;
+}
+.sources-toggle::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: var(--space-2);
+  transition: transform 0.15s ease;
+}
+.sources-collapsible[open] > .sources-toggle::before {
+  transform: rotate(90deg);
+}
 .sources-row {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 .sources-row > :first-child {
   flex: 1;
@@ -401,9 +442,20 @@ async function handleConvertToRecipe(title: string) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+.grid-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
 .grid-title { font-weight: 600; }
+.grid-date-range {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
 .show-earlier-btn {
   display: block;
   width: 100%;
@@ -436,6 +488,7 @@ async function handleConvertToRecipe(title: string) {
   margin-bottom: var(--space-3);
 }
 @media (max-width: 767px) {
+  .sources-toggle { display: block; }
   .sources-row { flex-direction: column; }
 }
 </style>
