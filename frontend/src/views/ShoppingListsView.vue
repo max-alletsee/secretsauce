@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch, type ComponentPublicInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { EllipsisVertical, Trash2 } from '@lucide/vue'
 import * as shoppingApi from '@/api/shoppingLists'
@@ -32,6 +32,13 @@ const swipeRevealedId = ref<string | null>(null)
 const swipeStartX = ref<number | null>(null)
 const swipeDeltaX = ref(0)
 const SWIPE_THRESHOLD = 64
+// Any real horizontal drag past this (much smaller) distance means the
+// touch sequence was a swipe gesture, not a tap — even if it didn't travel
+// far enough to reveal the delete action. Browsers synthesize a `click` on
+// the element under the finger right after `touchend`, so without this we'd
+// navigate away immediately after revealing (or almost revealing) delete.
+const SWIPE_CLICK_SUPPRESS_THRESHOLD = 10
+const justSwiped = ref(false)
 
 function toggleMenu(id: string) {
   menuOpenId.value = menuOpenId.value === id ? null : id
@@ -40,6 +47,46 @@ function toggleMenu(id: string) {
 function closeMenu() {
   menuOpenId.value = null
 }
+
+// Menu root elements, keyed by list id, so the outside-click listener can
+// check `.contains()` against whichever card's menu is currently open.
+// Mirrors RecipeDetailView.vue's overflow-menu pattern, adapted for this
+// view's per-card menu state (menuOpenId) instead of a single boolean.
+const menuRootRefs = ref<Record<string, HTMLElement | null>>({})
+
+function setMenuRootRef(id: string, el: Element | ComponentPublicInstance | null) {
+  menuRootRefs.value[id] = el instanceof HTMLElement ? el : null
+}
+
+function onDocumentKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && menuOpenId.value) {
+    closeMenu()
+  }
+}
+
+function onDocumentPointerdown(e: PointerEvent) {
+  const openId = menuOpenId.value
+  if (!openId) return
+  const root = menuRootRefs.value[openId]
+  if (root && !root.contains(e.target as Node)) {
+    closeMenu()
+  }
+}
+
+watch(menuOpenId, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('keydown', onDocumentKeydown)
+    document.addEventListener('pointerdown', onDocumentPointerdown)
+  } else {
+    document.removeEventListener('keydown', onDocumentKeydown)
+    document.removeEventListener('pointerdown', onDocumentPointerdown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onDocumentKeydown)
+  document.removeEventListener('pointerdown', onDocumentPointerdown)
+})
 
 function requestDelete(id: string) {
   closeMenu()
@@ -56,6 +103,7 @@ async function confirmDelete() {
   try {
     await shoppingApi.deleteShoppingList(id)
     lists.value = lists.value.filter((l) => l.id !== id)
+    delete progress.value[id]
     toast.show({ message: 'Shopping list deleted' })
   } catch {
     deleteErrorId.value = id
@@ -71,6 +119,12 @@ function cancelDelete() {
 function onTouchStart(id: string, e: TouchEvent) {
   swipeStartX.value = e.touches[0]!.clientX
   swipeDeltaX.value = 0
+  // Clear the suppression flag at the start of a fresh gesture rather than
+  // right after consuming it: the browser's synthesized click fires very
+  // shortly after touchend, but a new touch sequence only starts on the
+  // user's next deliberate gesture — so clearing here is the safer point
+  // that can't race the synthesized click.
+  justSwiped.value = false
   // Revealing a different card's swipe action closes any other open one.
   if (swipeRevealedId.value !== id) swipeRevealedId.value = null
 }
@@ -88,8 +142,21 @@ function onTouchEnd(id: string) {
   } else {
     swipeRevealedId.value = null
   }
+  if (-swipeDeltaX.value >= SWIPE_CLICK_SUPPRESS_THRESHOLD) {
+    justSwiped.value = true
+  }
   swipeStartX.value = null
   swipeDeltaX.value = 0
+}
+
+// Navigation handler for the card body. Guards against the synthesized
+// `click` a touchscreen fires on the element under the finger right after
+// `touchend` — without this, completing a swipe gesture would immediately
+// navigate away before the user gets a chance to tap the just-revealed
+// delete button.
+function openList(id: string) {
+  if (justSwiped.value) return
+  router.push(`/shopping-lists/${id}`)
 }
 
 function swipeCardStyle(id: string) {
@@ -186,7 +253,8 @@ function listDateRange(list: ShoppingListSummary): string {
           type="button"
           data-testid="swipe-delete"
           class="list-card-swipe-action"
-          aria-label="Delete list"
+          :aria-label="deletingId === list.id ? 'Deleting…' : 'Delete list'"
+          :disabled="deletingId === list.id"
           @click="requestDelete(list.id)"
         >
           <Trash2 :size="20" />
@@ -203,14 +271,19 @@ function listDateRange(list: ShoppingListSummary): string {
             class="list-card"
             role="button"
             tabindex="0"
-            @click="router.push(`/shopping-lists/${list.id}`)"
-            @keydown.enter="router.push(`/shopping-lists/${list.id}`)"
+            @click="openList(list.id)"
+            @keydown.enter="openList(list.id)"
           >
             <div class="list-card__top">
               <span class="list-name">{{ list.name }}</span>
               <span class="list-meta">{{ listDateRange(list) }}</span>
 
-              <div class="list-card__overflow" @click.stop @keydown.stop>
+              <div
+                :ref="(el) => setMenuRootRef(list.id, el)"
+                class="list-card__overflow"
+                @click.stop
+                @keydown.stop
+              >
                 <IconButton
                   :icon="EllipsisVertical"
                   label="More actions"
@@ -431,6 +504,11 @@ function listDateRange(list: ShoppingListSummary): string {
   background: var(--color-danger);
   color: var(--color-primary-ink);
   cursor: pointer;
+}
+
+.list-card-swipe-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .list-card-swipe {

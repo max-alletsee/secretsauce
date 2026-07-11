@@ -231,6 +231,56 @@ describe('ShoppingListsView', () => {
     expect(wrapper.find('[data-testid="swipe-delete"]').exists()).toBe(false)
   })
 
+  it('does not navigate when a browser-synthesized click follows a completed swipe gesture', async () => {
+    // Real touchscreens synthesize a `click` on the element under the finger
+    // right after `touchend`, even though @vue/test-utils won't do this for
+    // us automatically. Simulate that sequence explicitly: a swipe past the
+    // threshold, then a separate click dispatched on the card underneath —
+    // and assert it does NOT navigate away (which would skip past the
+    // just-revealed delete button).
+    const wrapper = await mountWithOneList()
+
+    const swipeArea = wrapper.find('.list-card-swipe')
+    await swipeArea.trigger('touchstart', { touches: [{ clientX: 300, clientY: 10 }] })
+    await swipeArea.trigger('touchmove', { touches: [{ clientX: 100, clientY: 10 }] })
+    await swipeArea.trigger('touchend')
+
+    expect(wrapper.find('[data-testid="swipe-delete"]').exists()).toBe(true)
+
+    // The synthesized click lands on the card element, not the swipe wrapper.
+    await wrapper.find('.list-card').trigger('click')
+
+    expect(mockPush).not.toHaveBeenCalledWith('/shopping-lists/list-1')
+  })
+
+  it('navigates normally on a plain click with no prior swipe', async () => {
+    const wrapper = await mountWithOneList()
+
+    await wrapper.find('.list-card').trigger('click')
+
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/list-1')
+  })
+
+  it('allows navigation again on a later genuine tap after a swipe-suppressed click', async () => {
+    const wrapper = await mountWithOneList()
+
+    const swipeArea = wrapper.find('.list-card-swipe')
+    await swipeArea.trigger('touchstart', { touches: [{ clientX: 300, clientY: 10 }] })
+    await swipeArea.trigger('touchmove', { touches: [{ clientX: 100, clientY: 10 }] })
+    await swipeArea.trigger('touchend')
+
+    // Synthesized click right after touchend — suppressed.
+    await wrapper.find('.list-card').trigger('click')
+    expect(mockPush).not.toHaveBeenCalledWith('/shopping-lists/list-1')
+
+    // A later, genuine tap starts its own fresh touch sequence (no drag)
+    // before its synthesized click fires — this should navigate normally.
+    await swipeArea.trigger('touchstart', { touches: [{ clientX: 50, clientY: 10 }] })
+    await swipeArea.trigger('touchend')
+    await wrapper.find('.list-card').trigger('click')
+    expect(mockPush).toHaveBeenCalledWith('/shopping-lists/list-1')
+  })
+
   it('shows an inline error and keeps the card when delete fails', async () => {
     vi.mocked(shoppingApi.deleteShoppingList).mockRejectedValue(new Error('boom'))
     const wrapper = await mountWithOneList()
@@ -243,5 +293,29 @@ describe('ShoppingListsView', () => {
 
     expect(wrapper.find('.list-card').exists()).toBe(true)
     expect(wrapper.text()).toContain('Failed to delete')
+  })
+
+  it('closes the overflow menu when clicking outside of it', async () => {
+    const wrapper = await mountWithOneList()
+
+    await wrapper.find('[aria-label="More actions"]').trigger('click')
+    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+
+    document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    await flushPromises()
+
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+  })
+
+  it('closes the overflow menu when pressing Escape', async () => {
+    const wrapper = await mountWithOneList()
+
+    await wrapper.find('[aria-label="More actions"]').trigger('click')
+    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+
+    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
   })
 })
