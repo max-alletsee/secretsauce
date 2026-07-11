@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-06 — Phase 5 COMPLETE through Task 5.3; paused for consolidated Phase 5 user feedback before Phase 6)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-11 — Phase 6 COMPLETE through Task 6.4; paused for consolidated Phase 6 user feedback before Phase 7)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -32,6 +32,8 @@
 4. **Task 3.4 filter design:** the brief's literal "single flat scrollable row" would've collapsed 37 tags across 5 categories into one unlabeled strip. Approved instead: keep the 5 group labels (Protein/Diet/Season/Meal type/Cuisine), each group is its own independent horizontal-scroll row, whole block sits in one sticky container. Old expand/collapse toggle removed.
 5. **Task 4.4 shopping-list button descoped:** "Add ingredients to shopping list" was dropped from scope after investigation found no backend surface exists for it — shopping lists are only ever generated from meal-plan entries (`POST /shopping-lists/generate`, keyed to a `meal_plan_id`), never from an arbitrary recipe outside a plan. Adding one would need a new backend endpoint beyond the one sanctioned exception (Task 3.0). No placeholder was built. Revisit if/when a real backend surface for this exists — likely worth bundling with Phase 8 (shopping list detail's "+ Add item"), which touches the same area.
 6. **Task 5.3 file-ownership correction:** the plan's auto-extracted brief said "modify `RecipeCreateView.vue` if it owns `importedRecipe`" — it doesn't. `importedRecipe` is owned by `RecipeEditView.vue` (a URL/photo import lands on the *edit* route via router history state, not the create route). `RecipeCreateView.vue` was correctly left untouched.
+7. **Task 6.3 scope correction:** the brief's literal file list (`MealSlot.vue`/`EntryActionsMenu.vue`/`TimelineView.vue`) did not contain the actual red "⚡ Regen" button or most emoji/AI-wording violations — those live in `MealSuggestionPanel.vue`, `MealSuggestionChip.vue`, and `ShortlistPanel.vue` instead. User approved expanding scope to the files where these elements actually live (see Phase 6 Task 6.3 for the corrected file list).
+8. **Task 6.4 duplicate-CTA decision:** the new top-level "Generate plan" button and the existing in-panel "Another idea" button (Task 6.3) both call the identical `generateSuggestions` action and render as primary-styled buttons simultaneously. User reviewed and decided to leave both as-is — they make sense on their own terms (top-level entry point vs. in-panel iteration) even though they share one backing action today. Logged as a Minor/backlog item, not fixed.
 
 ### Baseline note
 Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing tsconfig test-glob bug + a real RecipeForm `undefined`→`null` bug + 5 leaked test rejections). Fixed in commit `ddc6991` (`fix: green the frontend type-check/build baseline`). Baseline is now green: type-check ✓, build ✓, tests ✓.
@@ -77,6 +79,11 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `4704942` feat(recipes): sticky save bar and inline validation hints  *(Task 5.1; includes full RecipeForm.vue token migration + toRaw/structuredClone fix)*
 - `23e0ddf` feat(recipes): drag-reorder ingredients and steps  *(Task 5.2)*
 - `a3dbda7` feat(recipes): imported review banner and confirm gate  *(Task 5.3)*
+- `a839d13` docs: mark Phase 5 complete; update handoff snapshot
+- `5b99f3c` feat(timeline): vertical day sections with meal cards  *(Task 6.1)*
+- `bca9bcc` fix(timeline): make past meal slots viewable and loggable  *(Task 6.2)*
+- `d734e40` feat(timeline): recolor regen and replace emoji actions  *(Task 6.3, user-approved scope correction)*
+- `3e9e7ce` feat(timeline): date-range header and generate CTA  *(Task 6.4; a real `<details open>` default-state bug caught during pickup and fixed)*
 
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. That fast-forward has NOT been repeated since — `ui-shell-rework` is stale as of `bc90983`; re-sync it at the next checkpoint if desired. Nothing pushed to origin yet.
 
@@ -91,15 +98,18 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - ✅ **PHASE 5 COMPLETE — Tasks 5.1–5.3 done, reviewed, Minor findings only.** Full verification GREEN at commit `a3dbda7`: type-check ✓, build ✓, **454 tests / 55 files** ✓. Sticky save bar + inline validation hints (5.1, plus a full token migration of `RecipeForm.vue` — the last major untouched view — and a real `toRaw()`/`structuredClone()` bug fix) + drag-reorder via the reused `DragList` primitive with local-only stable keys (5.2, `Ingredient`/`Step` have no natural stable id) + imported-recipe review banner/field-marking/confirm-gate (5.3, one file-ownership brief correction — see Decisions §6).
 - ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 5) done at commit `a3dbda7`.** Re-ran verification independently (green). One genuine cross-task Minor finding: in import-review mode with an otherwise-valid form, Save is disabled by the unchecked confirm-gate but none of Task 5.1's inline hints render (they're gated on title/ingredients/steps validity alone) — mitigated by the checkbox's own adjacent visible affordance, not fixed, rolled into the polish backlog. No Critical/Important findings; cross-task data-layer composition (validity checks × wrapper objects × field-marking × import hydration) verified sound. Full detail in `.superpowers/sdd/progress.md`.
 - ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 5 feedback, do NOT auto-continue to Phase 6 without sign-off.**
-- ⏭️ **NEXT after sign-off: Phase 6 (Timeline)** — Task 6.1 vertical day sections with meal-slot cards on `TimelineView.vue`/`MealPlanGrid.vue`/`MealSlot.vue`. New BASE for 6.1 = `a3dbda7`.
-- ⏳ **Phases 6–11** — not started.
+- ✅ **PHASE 6 COMPLETE — Tasks 6.1–6.4 done, reviewed, Minor findings only.** Full verification GREEN at commit `3e9e7ce`: type-check ✓, build ✓, **466 tests / 56 files** ✓. Vertical day sections + BaseCard wrapping + meal-type tint/icon (6.1) + past-day tappability verified/tested (6.2, no functional change needed — behavior already correct, just untested/undocumented before) + Regen recolor/emoji sweep/AI-wording cleanup (6.3, scope expanded to the files where violations actually lived — see Decisions §7) + date-range header/Generate CTA (6.4, one real `<details>` default-open bug caught during pickup and fixed — see Decisions §8 for the duplicate-CTA decision).
+- ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 6) done at commit `3e9e7ce`.** Re-ran verification independently (green, after self-correcting an initial wrong-checkout mistake). All 6 acceptance criteria met. One genuine new cross-task Minor finding: `BaseCard` and `MealSlot`'s tint class both set `background`/`padding` at identical CSS specificity in separate stylesheet chunks — the tint currently wins only by chunk insertion order, which is fragile (a future build-order change could silently flip it); not a live defect today, rolled into the polish backlog. No Critical/Important findings. Full detail in `.superpowers/sdd/progress.md`.
+- ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 6 feedback, do NOT auto-continue to Phase 7 without sign-off.**
+- ⏭️ **NEXT after sign-off: Phase 7 (Shopping lists index)** — Task 7.1 card status (progress + count + plan) on `ShoppingListsView.vue`. New BASE for 7.1 = `3e9e7ce`.
+- ⏳ **Phases 7–11** — not started.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch). **New this session:** also run `git status --short` after every dispatch, not just `git show --stat HEAD` — two separate implementers left stray uncommitted edits (an unrelated scratch `.md` file once swept into a commit and had to be surgically removed via soft-reset; a harmless lint-autofix on an unrelated test file) sitting in the working tree alongside otherwise-clean commits.
 
 ### Cross-task reminders for later phases
 - `BottomSheet.vue`, `useToast.ts`/`ToastHost.vue` already exist — UPGRADE/tokenize them (Task 0.15), don't duplicate.
 - Build our own `BaseCard`/`ConfirmDialog` (avoid PrimeVue's `Card`/`ConfirmDialog` name clash).
 - Test convention: colocated `*.test.ts` next to the component; `tsconfig.app.json` excludes `*.test.ts`, `tsconfig.vitest.json` includes them (fixed in baseline commit).
-- **Polish backlog (not yet applied, candidates for a later pass):** RecipeListView's own page-frame CSS never tokenized (from Phase 3+4 final review); import-review mode's disabled Save lacks a visible inline hint like Task 5.1's other three (from Phase 5 final review) — candidate fix is a hint under the confirm checkbox gated on `submitAttempted && !confirmed`.
+- **Polish backlog (not yet applied, candidates for a later pass):** RecipeListView's own page-frame CSS never tokenized (from Phase 3+4 final review); import-review mode's disabled Save lacks a visible inline hint like Task 5.1's other three (from Phase 5 final review) — candidate fix is a hint under the confirm checkbox gated on `submitAttempted && !confirmed`; from Phase 6 final review — `BaseCard`/`MealSlot` background+padding CSS-specificity collision (tint currently wins only by chunk insertion order); `RecipePicker.vue` still has raw emoji (reachable from the meal-slot "+Add" flow); meal-type border-left accent same color as card background (cosmetic, from 6.1); `BaseCard`'s border-radius clips the border-left accent corners (from 6.1); duplicate primary CTA "Generate plan"/"Another idea" both calling the same action (from 6.4, user explicitly decided: leave as-is, not a bug).
 
 ---
 
@@ -558,27 +568,27 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 6 — Timeline
 
-#### Task 6.1: Vertical day sections with meal-slot cards
+#### Task 6.1: Vertical day sections with meal-slot cards ✅
 **Files:** Modify `frontend/src/views/TimelineView.vue`, `components/MealPlanGrid.vue`, `components/MealSlot.vue`
-- [ ] Replace horizontal grid with a vertical scroll of day sections; each day renders its meal slots as `BaseCard`s. No horizontal grid at 375px. Meal types get tint (`--meal-breakfast/lunch/dinner`) and/or icon.
-- [ ] **VERIFY** (existing `MealPlanGrid.test.ts`/`MealSlot.test.ts` pass/updated) + commit `feat(timeline): vertical day sections with meal cards`.
+- [x] Replace horizontal grid with a vertical scroll of day sections; each day renders its meal slots as `BaseCard`s. No horizontal grid at 375px. Meal types get tint (`--meal-breakfast/lunch/dinner`) and/or icon.
+- [x] **VERIFY** (existing `MealPlanGrid.test.ts`/`MealSlot.test.ts` pass/updated) + commit `feat(timeline): vertical day sections with meal cards` (5b99f3c).
 
-#### Task 6.2: Past days greyed but tappable
+#### Task 6.2: Past days greyed but tappable ✅
 **Files:** Modify `components/MealSlot.vue` / `MealPlanGrid.vue`
-- [ ] Remove `pointer-events:none` on past days; grey them (muted tokens) but keep open-recipe + log-cooked working for past slots.
-- [ ] **VERIFY** + commit `fix(timeline): make past meal slots viewable and loggable`.
+- [x] Remove `pointer-events:none` on past days; grey them (muted tokens) but keep open-recipe + log-cooked working for past slots. (Investigation found no `pointer-events:none` ever existed; `disabled` was already hardcoded `false` for every slot, so past days were already interactive — this was implicit/untested, not broken. Added regression tests to pin the invariant + softened the grayscale filter so muted-but-alive doesn't read as the real `.meal-slot--disabled` state.)
+- [x] **VERIFY** + commit `fix(timeline): make past meal slots viewable and loggable` (bca9bcc).
 
-#### Task 6.3: Recolor Regen + replace emoji + warm wording
-**Files:** Modify `components/MealSlot.vue`, `components/EntryActionsMenu.vue`, `TimelineView.vue`
-- [ ] "Regen" → primary/accent (NOT red), Lucide `RefreshCw`/`RotateCw`, warm label ("Swap"/"Another idea"). Reserve red strictly for delete. Replace all emoji actions with Lucide icons (via `BaseIcon`, with `aria-label`s).
-- [ ] **VERIFY** + commit `feat(timeline): recolor regen and replace emoji actions`.
+#### Task 6.3: Recolor Regen + replace emoji + warm wording ✅
+**Files:** Modify `components/MealSuggestionPanel.vue`, `components/MealSuggestionChip.vue`, `components/ShortlistPanel.vue`, `components/MealSlot.vue`, `components/EntryActionsMenu.vue` *(scope corrected — see Decisions §7)*
+- [x] "Regen" → primary/accent (NOT red), Lucide `RefreshCw`/`RotateCw`, warm label ("Swap"/"Another idea"). Reserve red strictly for delete. Replace all emoji actions with Lucide icons (via `BaseIcon`, with `aria-label`s).
+- [x] **VERIFY** + commit `feat(timeline): recolor regen and replace emoji actions` (d734e40).
 
-#### Task 6.4: Header date range + Generate CTA
+#### Task 6.4: Header date range + Generate CTA ✅
 **Files:** Modify `frontend/src/views/TimelineView.vue`
-- [ ] Header showing visible date range + one prominent "Generate plan" primary CTA (warm wording ok). Keep suggestions/shortlist but collapse/move below the fold on mobile so it doesn't crowd the plan.
-- [ ] **VERIFY** + commit `feat(timeline): date-range header and generate CTA`.
+- [x] Header showing visible date range + one prominent "Generate plan" primary CTA (warm wording ok). Keep suggestions/shortlist but collapse/move below the fold on mobile so it doesn't crowd the plan.
+- [x] **VERIFY** + commit `feat(timeline): date-range header and generate CTA` (3e9e7ce).
 
-**Phase 6 checkpoint.**
+**Phase 6 checkpoint — COMPLETE.** Full verification GREEN at commit `3e9e7ce`: type-check ✓, build ✓, **466 tests / 56 files** ✓. All 6 acceptance criteria met (no horizontal grid at 375px; past slots actionable; Regen not red; emoji gone modulo one pre-scoped exception; date-range header + Generate CTA; meal types visually distinct). See `.superpowers/sdd/progress.md` for full task-by-task and final-review detail. **⏸️ Paused for user sign-off before Phase 7** (per executing-plans checkpoints).
 
 ---
 
