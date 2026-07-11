@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import BottomSheet from './BottomSheet.vue'
+import BaseIcon from './base/BaseIcon.vue'
+import { BookOpen, Lightbulb } from '@lucide/vue'
 import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useShortlistStore } from '@/stores/useShortlistStore'
 import { useMealPlanStore } from '@/stores/useMealPlanStore'
@@ -219,7 +221,7 @@ async function submitNote() {
             :data-testid="`recipe-picker-shortlist-${entry.id}`"
             @click="pickShortlist(entry.id)"
           >
-            {{ entry.entry_type === 'recipe' ? '📚' : '✨' }}
+            <BaseIcon :icon="entry.entry_type === 'recipe' ? BookOpen : Lightbulb" :size="16" />
             {{ entry.note ?? entry.recipe_id ?? 'Unnamed' }}
           </button>
         </li>
@@ -238,7 +240,8 @@ async function submitNote() {
             :data-testid="`recipe-picker-suggestion-${i}`"
             @click="pickSuggestion(i)"
           >
-            {{ s.matched_recipe_id ? '📚' : '✨' }} {{ s.title }}
+            <BaseIcon :icon="s.matched_recipe_id ? BookOpen : Lightbulb" :size="16" />
+            {{ s.title }}
           </button>
         </li>
         <li v-if="planStore.suggestions.length === 0" class="picker-empty">
@@ -282,7 +285,7 @@ async function submitNote() {
 
 <style scoped>
 .picker-error {
-  color: #dc2626;
+  color: var(--color-danger);
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
 }
@@ -290,7 +293,7 @@ async function submitNote() {
   display: flex;
   gap: 0.4rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
 }
 .picker-tabs button {
   background: none;
@@ -298,13 +301,13 @@ async function submitNote() {
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text-muted);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
 }
 .picker-tabs button.tab--active {
-  color: #2563eb;
-  border-bottom-color: #2563eb;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
   font-weight: 600;
 }
 .picker-panel {
@@ -316,7 +319,7 @@ async function submitNote() {
 .picker-search {
   width: 100%;
   padding: 0.5rem 0.65rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 0.875rem;
 }
@@ -332,17 +335,20 @@ async function submitNote() {
 }
 .picker-row {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   text-align: left;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 0.55rem 0.75rem;
   font-size: 0.875rem;
   cursor: pointer;
 }
-.picker-row:hover { background: #f3f4f6; }
+.picker-row:hover { background: var(--color-primary-soft); }
 .picker-empty {
-  color: #9ca3af;
+  color: var(--color-text-muted);
   font-style: italic;
   font-size: 0.85rem;
   padding: 0.5rem 0.25rem;
@@ -360,15 +366,15 @@ async function submitNote() {
   cursor: pointer;
 }
 .btn--primary {
-  background: #2563eb;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
 }
 .btn--primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 .btn--secondary {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 </style>
