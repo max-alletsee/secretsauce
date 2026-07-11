@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-11 — Phase 6 COMPLETE through Task 6.4; paused for consolidated Phase 6 user feedback before Phase 7)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-11 — Phase 7 COMPLETE through Task 7.2 + whole-review fix; paused for consolidated Phase 7 user feedback before Phase 8)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -34,6 +34,8 @@
 6. **Task 5.3 file-ownership correction:** the plan's auto-extracted brief said "modify `RecipeCreateView.vue` if it owns `importedRecipe`" — it doesn't. `importedRecipe` is owned by `RecipeEditView.vue` (a URL/photo import lands on the *edit* route via router history state, not the create route). `RecipeCreateView.vue` was correctly left untouched.
 7. **Task 6.3 scope correction:** the brief's literal file list (`MealSlot.vue`/`EntryActionsMenu.vue`/`TimelineView.vue`) did not contain the actual red "⚡ Regen" button or most emoji/AI-wording violations — those live in `MealSuggestionPanel.vue`, `MealSuggestionChip.vue`, and `ShortlistPanel.vue` instead. User approved expanding scope to the files where these elements actually live (see Phase 6 Task 6.3 for the corrected file list).
 8. **Task 6.4 duplicate-CTA decision:** the new top-level "Generate plan" button and the existing in-panel "Another idea" button (Task 6.3) both call the identical `generateSuggestions` action and render as primary-styled buttons simultaneously. User reviewed and decided to leave both as-is — they make sense on their own terms (top-level entry point vs. in-panel iteration) even though they share one backing action today. Logged as a Minor/backlog item, not fixed.
+9. **Task 7.1 data-source decision:** the shopping-lists index endpoint has no item/checked counts at all (not even a "show count only" fallback was possible). User approved an N+1 per-card detail-fetch pattern (fetch each list's full detail after the summary loads, compute checked/total client-side) instead of the brief's literal "do not add backend calls beyond existing." Sanctioned as scoped to this one page, not a general pattern to reuse elsewhere without reconsidering.
+10. **Task 7.2 sanctioned backend exception #2:** no delete-shopping-list backend action existed anywhere in the codebase. User approved adding `DELETE /shopping-lists/{id}` (thin route + service) as a second sanctioned backend exception, same shape as Task 3.0's cook-stats addition. "Confirm/undo" in the brief became confirm-only (both swipe and overflow paths share one `ConfirmDialog`-gated delete function) since a deleted shopping list can't be restored — no direct create-list endpoint exists, only the async AI-driven `generate` flow keyed to a meal plan.
 
 ### Baseline note
 Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing tsconfig test-glob bug + a real RecipeForm `undefined`→`null` bug + 5 leaked test rejections). Fixed in commit `ddc6991` (`fix: green the frontend type-check/build baseline`). Baseline is now green: type-check ✓, build ✓, tests ✓.
@@ -594,17 +596,18 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 7 — Shopping lists index
 
-#### Task 7.1: Card status (progress + count + plan)
+#### Task 7.1: Card status (progress + count + plan) ✅
 **Files:** Modify `frontend/src/views/ShoppingListsView.vue`
-- [ ] Each card: `ProgressBar` + "n / total checked", item count, linked plan / date range. Pull from existing list payload (inspect `types/shoppingList.ts` + store for available fields; if checked/total counts aren't on the index payload, derive from what's available or show count only — do not add backend calls beyond existing).
-- [ ] **VERIFY** + commit `feat(shopping): list cards show progress, count, plan`.
+- [x] Each card: `ProgressBar` + "n / total checked", item count, linked plan / date range. Pull from existing list payload (inspect `types/shoppingList.ts` + store for available fields; if checked/total counts aren't on the index payload, derive from what's available or show count only — do not add backend calls beyond existing).
+- [x] **VERIFY** + commit `feat(shopping): list cards show progress, count, plan` (966d032). **Decision (user-approved):** the index endpoint has no item/checked counts at all, so "do not add backend calls beyond existing" was relaxed to an accepted N+1 pattern — after the summary list loads, fetch each list's full detail (`getShoppingList(list.id)`) to compute checked/total client-side. Per-card fetch failures degrade gracefully (no progress bar on that card, rest of the card still renders).
 
-#### Task 7.2: Swipe-to-delete + overflow fallback
-**Files:** Modify `frontend/src/views/ShoppingListsView.vue`
-- [ ] Mobile swipe-to-delete gesture + an overflow `⋯` menu delete fallback (desktop/AT). Both call existing delete action with confirm/undo per current pattern.
-- [ ] **VERIFY** + commit `feat(shopping): swipe-to-delete with overflow fallback`.
+#### Task 7.2: Swipe-to-delete + overflow fallback ✅
+**Files:** Modify `frontend/src/views/ShoppingListsView.vue`; **new:** `backend/app/api/routes/shopping_lists.py`, `backend/app/services/shopping.py`
+- [x] Mobile swipe-to-delete gesture + an overflow `⋯` menu delete fallback (desktop/AT). Both call existing delete action with confirm/undo per current pattern.
+- [x] **VERIFY** + commit `feat(shopping): swipe-to-delete with overflow fallback` (f76ecfd). **Decisions (user-approved):** (1) no delete-shopping-list backend action existed anywhere — added `DELETE /shopping-lists/{id}` + `delete_shopping_list` service as a **second sanctioned backend exception** (same shape as Task 3.0's cook-stats addition); explicit child-item deletion since there's no ORM cascade on `shopping_list_items`. (2) "confirm/undo" → confirm-only: a deleted shopping list can't be truly restored (no direct create-list endpoint, only the async AI-driven `generate` flow), so both the swipe path and the overflow path route through one shared `ConfirmDialog`-gated delete function instead of instant-delete-with-toast-undo.
+- [x] **Whole-phase review (opus) caught a real cross-task bug** the two isolated task reviews missed: on a real touchscreen, `touchend` synthesizes a `click` on the underlying element, and the card's click-to-navigate handler (from 7.1) had no swipe-suppression, so completing a swipe navigated away before the revealed delete button could be tapped. Fixed in `c325457` (`fix(shopping): suppress navigation on swipe, close overflow menu on outside click/Escape`) — also closed out 3 Minor findings (dangling `progress[id]` after delete, overflow menu missing outside-click/Escape close vs. the `RecipeDetailView.vue` pattern it was meant to mirror, swipe-delete button missing disabled/"Deleting…" state). Re-review confirmed all fixes genuine with real regression-shaped tests, zero regressions, 482/482 tests green.
 
-**Phase 7 checkpoint.**
+**Phase 7 checkpoint — COMPLETE.** Full verification GREEN at commit c325457: frontend type-check ✓, build ✓, 482 tests / 57 files ✓; backend 122/122 integration tests ✓. Two new sanctioned backend exceptions this phase (cook-stats precedent from Task 3.0 is now joined by the shopping-list DELETE endpoint) — both scoped, user-approved, and thin (route + service, no schema change). **Paused here for consolidated Phase 7 feedback before Phase 8. New BASE for Phase 8 = c325457.**
 
 ---
 
