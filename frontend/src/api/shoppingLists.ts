@@ -17,3 +17,6 @@ export const regenerateShoppingList = (mealPlanId: string) =>
 
 export const toggleItem = (mealPlanId: string, itemId: string, checked: boolean) =>
   client.patch<ShoppingListItem>(`/shopping-lists/${mealPlanId}/items/${itemId}`, { checked })
+
+export const deleteShoppingList = (id: string) =>
+  client.delete<void>(`/shopping-lists/${id}`)

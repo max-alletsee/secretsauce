@@ -102,6 +102,15 @@ async def regenerate_shopping_list(
     return _to_response(shopping_list, items)
 
 
+@router.delete("/{list_id}", status_code=204)
+async def delete_shopping_list(
+    list_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> None:
+    await shopping_service.delete_shopping_list(db, user.id, list_id)
+
+
 @router.patch("/{meal_plan_id}/items/{item_id}", response_model=ShoppingListItemResponse)
 async def toggle_item(
     meal_plan_id: uuid.UUID,

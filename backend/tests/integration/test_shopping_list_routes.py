@@ -236,3 +236,76 @@ async def test_toggle_item_checked(client):
     )
     assert uncheck_r.status_code == 200
     assert uncheck_r.json()["checked"] is False
+
+
+# ── DELETE /api/v1/shopping-lists/{id} ────────────────────────────────────────
+
+async def test_delete_shopping_list_requires_auth(client):
+    r = await client.delete(f"/api/v1/shopping-lists/{uuid.uuid4()}")
+    assert r.status_code == 401
+
+
+async def test_delete_shopping_list_404_for_unknown_list(client):
+    _, token = await _auth_token(client)
+    r = await client.delete(f"/api/v1/shopping-lists/{uuid.uuid4()}", headers=_auth(token))
+    assert r.status_code == 404
+
+
+async def test_delete_shopping_list_removes_list_and_items(client):
+    """Deleting a list removes it (404 afterward) and its items."""
+    _, token = await _auth_token(client)
+    recipe_id = await _create_recipe(client, token)
+    plan_id = await _create_plan_with_entry(client, token, recipe_id)
+
+    mock_ai_result = ShoppingListAIResult(items=[
+        ShoppingItemAIResult(
+            ingredient_name="flour",
+            total_quantity=200.0,
+            unit="g",
+            detail="200 g for Shopping Test Recipe",
+            category="Basic Ingredients for Cooking and Baking",
+            recipe_names=["Shopping Test Recipe"],
+        ),
+    ])
+
+    with patch(
+        "app.services.ai_service.call_ai_structured",
+        new=AsyncMock(return_value=mock_ai_result),
+    ):
+        regen = await client.post(
+            f"/api/v1/shopping-lists/{plan_id}/regenerate",
+            headers=_auth(token),
+        )
+    assert regen.status_code == 200
+    list_id = regen.json()["id"]
+    assert len(regen.json()["items"]) == 1
+
+    delete_r = await client.delete(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token))
+    assert delete_r.status_code == 204
+
+    # The list is gone — subsequent GET-by-meal-plan-id now creates a fresh empty
+    # shell (get_or_create_shopping_list semantics), so assert via the list index
+    # instead, which reflects actual row deletion.
+    index_r = await client.get("/api/v1/shopping-lists", headers=_auth(token))
+    assert index_r.status_code == 200
+    assert list_id not in [item["id"] for item in index_r.json()]
+
+
+async def test_delete_shopping_list_404_for_other_user(client):
+    """A second user cannot delete another user's shopping list — 404, not 403."""
+    _, token_a = await _auth_token(client)
+    _, token_b = await _auth_token(client)
+
+    recipe_id = await _create_recipe(client, token_a)
+    plan_id = await _create_plan_with_entry(client, token_a, recipe_id)
+
+    get_r = await client.get(f"/api/v1/shopping-lists/{plan_id}", headers=_auth(token_a))
+    assert get_r.status_code == 200
+    list_id = get_r.json()["id"]
+
+    delete_r = await client.delete(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token_b))
+    assert delete_r.status_code == 404
+
+    # Confirm it still exists for the owner
+    still_there = await client.get("/api/v1/shopping-lists", headers=_auth(token_a))
+    assert list_id in [item["id"] for item in still_there.json()]

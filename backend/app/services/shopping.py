@@ -344,6 +344,32 @@ async def process_shopping_generate(
         await db.commit()
 
 
+async def delete_shopping_list(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    list_id: uuid.UUID,
+) -> None:
+    """Delete a shopping list and all its items. Owner only.
+
+    There is no ORM cascade configured between shopping_list_items and
+    shopping_lists, so items must be deleted explicitly before the list row.
+    """
+    shopping_list = await db.get(ShoppingList, list_id)
+    if shopping_list is None or shopping_list.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Shopping list not found")
+
+    items_result = await db.execute(
+        select(ShoppingListItem).where(ShoppingListItem.shopping_list_id == shopping_list.id)
+    )
+    items = list(items_result.scalars().all())
+    for item in items:
+        await db.delete(item)
+    await db.flush()
+
+    await db.delete(shopping_list)
+    await db.commit()
+
+
 async def toggle_item_checked(
     db: AsyncSession,
     user_id: uuid.UUID,
