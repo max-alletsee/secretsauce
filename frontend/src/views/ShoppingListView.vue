@@ -1,11 +1,12 @@
 <!-- frontend/src/views/ShoppingListView.vue -->
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
 import PourLoader from '@/components/base/PourLoader.vue'
 import ProgressBar from '@/components/base/ProgressBar.vue'
 import ToggleChip from '@/components/base/ToggleChip.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const CATEGORY_ORDER = [
   'Fresh Fruits and Vegetables',
@@ -74,6 +75,57 @@ function formatQty(n: number): string {
 async function handleRegenerate() {
   await store.regenerate(listId)
 }
+
+// ── Add ad-hoc item ─────────────────────────────────────────────────────────
+
+const newItemName = ref('')
+
+async function handleAddItem() {
+  const name = newItemName.value.trim()
+  if (!name) return
+  await store.addItem(listId, name, 1, '')
+  newItemName.value = ''
+}
+
+// ── Inline quantity edit ────────────────────────────────────────────────────
+
+const editingItemId = ref<string | null>(null)
+const editingValue = ref('')
+let editingCancelled = false
+
+function startEditingQuantity(itemId: string, currentQuantity: number) {
+  editingItemId.value = itemId
+  editingValue.value = formatQty(currentQuantity)
+  editingCancelled = false
+  nextTick(() => {
+    const el = document.querySelector<HTMLInputElement>(
+      `[data-testid="item-quantity-input-${itemId}"] input`,
+    )
+    el?.focus()
+    el?.select()
+  })
+}
+
+async function commitEditingQuantity(itemId: string, unit: string, originalQuantity: number) {
+  if (editingItemId.value !== itemId) return
+  if (editingCancelled) {
+    editingCancelled = false
+    editingItemId.value = null
+    return
+  }
+
+  const parsed = Number(editingValue.value)
+  editingItemId.value = null
+
+  if (!Number.isFinite(parsed) || parsed === originalQuantity) return
+
+  await store.updateItemQuantity(listId, itemId, parsed, unit)
+}
+
+function cancelEditingQuantity() {
+  editingCancelled = true
+  editingItemId.value = null
+}
 </script>
 
 <template>
@@ -118,6 +170,20 @@ async function handleRegenerate() {
           <ProgressBar :value="checkedCount" :max="totalCount" />
         </div>
 
+        <form
+          class="add-item-form"
+          data-testid="add-item-form"
+          @submit.prevent="handleAddItem"
+        >
+          <BaseInput
+            v-model="newItemName"
+            data-testid="add-item-name-input"
+            placeholder="Add item…"
+            aria-label="Ingredient name"
+          />
+          <button type="submit" class="add-item-button">+ Add item</button>
+        </form>
+
         <div class="category-list">
           <section
             v-for="group in groupedItems"
@@ -142,9 +208,33 @@ async function handleRegenerate() {
                   <span class="item-content">
                     <span class="item-name">
                       {{ item.ingredient_name }}
-                      <span class="item-quantity">
+                      <span
+                        v-if="editingItemId !== item.id"
+                        class="item-quantity"
+                        :data-testid="`item-quantity-${item.id}`"
+                        tabindex="0"
+                        role="button"
+                        :aria-label="`Edit quantity for ${item.ingredient_name}`"
+                        @click.prevent.stop="startEditingQuantity(item.id, item.total_quantity)"
+                        @keydown.enter.prevent.stop="startEditingQuantity(item.id, item.total_quantity)"
+                      >
                         {{ formatQty(item.total_quantity) }}
                         {{ item.unit }}
+                      </span>
+                      <span
+                        v-else
+                        class="item-quantity-edit"
+                        :data-testid="`item-quantity-input-${item.id}`"
+                        @click.prevent.stop
+                      >
+                        <BaseInput
+                          v-model="editingValue"
+                          type="number"
+                          :aria-label="`Quantity for ${item.ingredient_name}`"
+                          @keydown.enter="commitEditingQuantity(item.id, item.unit, item.total_quantity)"
+                          @keydown.esc="cancelEditingQuantity"
+                          @blur="commitEditingQuantity(item.id, item.unit, item.total_quantity)"
+                        />
                       </span>
                     </span>
                     <span v-if="item.detail" class="item-detail">{{ item.detail }}</span>
@@ -259,6 +349,42 @@ async function handleRegenerate() {
   padding: 3rem 1rem;
 }
 
+.add-item-form {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+}
+
+.add-item-form :deep(.input-wrapper) {
+  flex: 1;
+}
+
+.add-item-button {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  /* Match BaseInput's height so the row aligns. */
+  height: 2.375rem;
+}
+
+.add-item-button:hover {
+  filter: brightness(0.92);
+}
+
+.add-item-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .category-section {
   margin-bottom: 1.5rem;
 }
@@ -316,6 +442,30 @@ async function handleRegenerate() {
 .item-quantity {
   font-weight: 600;
   margin-left: 0.4rem;
+  border-radius: var(--radius-sm);
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.item-quantity:hover {
+  background: var(--color-surface-2);
+}
+
+.item-quantity:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.item-quantity-edit {
+  display: inline-block;
+  width: 5.5rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.item-quantity-edit :deep(.input) {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .item-detail {

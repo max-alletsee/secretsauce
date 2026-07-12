@@ -18,5 +18,20 @@ export const regenerateShoppingList = (mealPlanId: string) =>
 export const toggleItem = (mealPlanId: string, itemId: string, checked: boolean) =>
   client.patch<ShoppingListItem>(`/shopping-lists/${mealPlanId}/items/${itemId}`, { checked })
 
+export const updateItemQuantity = (mealPlanId: string, itemId: string, quantity: number, unit: string) =>
+  client.patch<ShoppingListItem>(`/shopping-lists/${mealPlanId}/items/${itemId}`, { quantity, unit })
+
+export const addItem = (
+  mealPlanId: string,
+  ingredientName: string,
+  quantity: number,
+  unit: string,
+) =>
+  client.post<ShoppingListItem>(`/shopping-lists/${mealPlanId}/items`, {
+    ingredient_name: ingredientName,
+    quantity,
+    unit,
+  })
+
 export const deleteShoppingList = (id: string) =>
   client.delete<void>(`/shopping-lists/${id}`)

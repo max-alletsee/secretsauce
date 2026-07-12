@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+// Fallthrough attrs (data-testid, @blur, @focus, aria-*, etc.) are bound
+// explicitly onto the inner <input> below rather than the wrapper <div> —
+// event listeners like blur/focus don't bubble, so callers need them on the
+// actual form control.
+defineOptions({ inheritAttrs: false })
+
 const props = withDefaults(
   defineProps<{
     modelValue: string
@@ -42,6 +48,7 @@ const errorId = computed(() => `${inputId.value}-error`)
       :required="required || undefined"
       :aria-invalid="error ? 'true' : undefined"
       :aria-describedby="error ? errorId : undefined"
+      v-bind="$attrs"
       @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <span

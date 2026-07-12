@@ -12,6 +12,8 @@ vi.mock('vue-router', () => ({
 const fetchList = vi.fn()
 const regenerate = vi.fn()
 const toggleItem = vi.fn()
+const addItem = vi.fn()
+const updateItemQuantity = vi.fn()
 
 vi.mock('@/stores/useShoppingListStore', () => ({
   useShoppingListStore: vi.fn(),
@@ -56,6 +58,8 @@ function mockStore(overrides: Record<string, unknown> = {}) {
     fetchList,
     regenerate,
     toggleItem,
+    addItem,
+    updateItemQuantity,
     ...overrides,
   } as unknown as ReturnType<typeof useShoppingListStore>)
 }
@@ -67,6 +71,8 @@ describe('ShoppingListView', () => {
     fetchList.mockResolvedValue(undefined)
     regenerate.mockResolvedValue(undefined)
     toggleItem.mockResolvedValue(undefined)
+    addItem.mockResolvedValue(undefined)
+    updateItemQuantity.mockResolvedValue(undefined)
   })
 
   it('shows the empty state when the list has no items', async () => {
@@ -183,5 +189,105 @@ describe('ShoppingListView', () => {
 
     await wrapper.find('.item-checkbox').trigger('change')
     expect(toggleItem).toHaveBeenCalledWith('list-1', 'i1', true)
+  })
+
+  describe('add item', () => {
+    it('calls the store method with the entered values and clears the input on success', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      const nameInput = wrapper.find('[data-testid="add-item-name-input"]')
+      expect(nameInput.exists()).toBe(true)
+      await nameInput.setValue('napkins')
+
+      await wrapper.find('[data-testid="add-item-form"]').trigger('submit')
+      await flushPromises()
+
+      expect(addItem).toHaveBeenCalledWith('list-1', 'napkins', 1, '')
+      expect((nameInput.element as HTMLInputElement).value).toBe('')
+    })
+
+    it('does not call the store when the name is blank', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="add-item-form"]').trigger('submit')
+      await flushPromises()
+
+      expect(addItem).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('inline quantity edit', () => {
+    it('turns into an input on click and saves via the update method on Enter', async () => {
+      mockStore({
+        list: makeList([makeItem({ id: 'i1', total_quantity: 200, unit: 'g' })]),
+      })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      const qtyDisplay = wrapper.find('[data-testid="item-quantity-i1"]')
+      expect(qtyDisplay.exists()).toBe(true)
+      await qtyDisplay.trigger('click')
+
+      const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      expect(qtyInput.exists()).toBe(true)
+      await qtyInput.setValue('5')
+      await qtyInput.trigger('keydown.enter')
+      await flushPromises()
+
+      expect(updateItemQuantity).toHaveBeenCalledWith('list-1', 'i1', 5, 'g')
+    })
+
+    it('saves via the update method on blur', async () => {
+      mockStore({
+        list: makeList([makeItem({ id: 'i1', total_quantity: 200, unit: 'g' })]),
+      })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="item-quantity-i1"]').trigger('click')
+      const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      await qtyInput.setValue('7')
+      await qtyInput.trigger('blur')
+      await flushPromises()
+
+      expect(updateItemQuantity).toHaveBeenCalledWith('list-1', 'i1', 7, 'g')
+    })
+
+    it('Escape cancels without calling the API', async () => {
+      mockStore({
+        list: makeList([makeItem({ id: 'i1', total_quantity: 200, unit: 'g' })]),
+      })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="item-quantity-i1"]').trigger('click')
+      const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      await qtyInput.setValue('99')
+      await qtyInput.trigger('keydown.esc')
+      await flushPromises()
+
+      expect(updateItemQuantity).not.toHaveBeenCalled()
+      // Reverted back to display mode showing the original value.
+      expect(wrapper.find('[data-testid="item-quantity-i1"]').exists()).toBe(true)
+    })
+
+    it('blurring without a changed value does not call the API', async () => {
+      mockStore({
+        list: makeList([makeItem({ id: 'i1', total_quantity: 200, unit: 'g' })]),
+      })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="item-quantity-i1"]').trigger('click')
+      const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      await qtyInput.trigger('blur')
+      await flushPromises()
+
+      expect(updateItemQuantity).not.toHaveBeenCalled()
+    })
   })
 })
