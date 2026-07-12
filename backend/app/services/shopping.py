@@ -378,6 +378,24 @@ async def toggle_item_checked(
     checked: bool,
 ) -> ShoppingListItem:
     """Toggle the checked state of a single shopping list item."""
+    return await update_item(db, user_id, meal_plan_id, item_id, checked=checked)
+
+
+async def update_item(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    meal_plan_id: uuid.UUID,
+    item_id: uuid.UUID,
+    checked: bool | None = None,
+    quantity: float | None = None,
+    unit: str | None = None,
+) -> ShoppingListItem:
+    """Partially update a shopping list item.
+
+    Only fields that were actually provided (non-None) are updated — this is a
+    partial update, not a full replace. `checked=False` and `quantity=0` are
+    valid, meaningful values, so callers pass None to mean "leave unchanged".
+    """
     result = await db.execute(
         select(ShoppingList).where(ShoppingList.meal_plan_id == meal_plan_id)
     )
@@ -389,7 +407,46 @@ async def toggle_item_checked(
     if item is None or item.shopping_list_id != shopping_list.id:
         raise HTTPException(status_code=404, detail="Item not found")
 
-    item.checked = checked
+    if checked is not None:
+        item.checked = checked
+    if quantity is not None:
+        item.total_quantity = quantity
+    if unit is not None:
+        item.unit = unit
+
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def create_ad_hoc_item(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    meal_plan_id: uuid.UUID,
+    ingredient_name: str,
+    quantity: float,
+    unit: str,
+    category: str,
+) -> ShoppingListItem:
+    """Create a single ad-hoc shopping list item on the list for this meal plan.
+
+    Ad-hoc items have no backing recipe, so recipe_ids is empty and detail is
+    blank. Creates the list shell first if it doesn't exist yet (same
+    get-or-create semantics as GET).
+    """
+    shopping_list = await get_or_create_shopping_list(db, user_id, meal_plan_id)
+
+    item = ShoppingListItem(
+        shopping_list_id=shopping_list.id,
+        ingredient_name=ingredient_name,
+        total_quantity=quantity,
+        unit=unit,
+        detail="",
+        category=category,
+        recipe_ids=[],
+        checked=False,
+    )
     db.add(item)
     await db.commit()
     await db.refresh(item)

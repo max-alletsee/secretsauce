@@ -21,7 +21,16 @@ class ShoppingListItemResponse(BaseModel):
 
 
 class ShoppingListItemUpdate(BaseModel):
-    checked: bool
+    checked: bool | None = None
+    quantity: float | None = None
+    unit: str | None = None
+
+
+class ShoppingListItemCreate(BaseModel):
+    ingredient_name: str
+    quantity: float
+    unit: str
+    category: str = "Basic Ingredients for Cooking and Baking"
 
 
 class ShoppingListResponse(BaseModel):

@@ -13,6 +13,7 @@ from app.models.user import User
 from app.schemas.import_task import ImportTaskCreated
 from app.schemas.shopping_list import (
     ShoppingListGenerateRequest,
+    ShoppingListItemCreate,
     ShoppingListItemResponse,
     ShoppingListItemUpdate,
     ShoppingListResponse,
@@ -112,12 +113,39 @@ async def delete_shopping_list(
 
 
 @router.patch("/{meal_plan_id}/items/{item_id}", response_model=ShoppingListItemResponse)
-async def toggle_item(
+async def update_item(
     meal_plan_id: uuid.UUID,
     item_id: uuid.UUID,
     body: ShoppingListItemUpdate,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ShoppingListItemResponse:
-    item = await shopping_service.toggle_item_checked(db, user.id, meal_plan_id, item_id, body.checked)
+    item = await shopping_service.update_item(
+        db,
+        user.id,
+        meal_plan_id,
+        item_id,
+        checked=body.checked,
+        quantity=body.quantity,
+        unit=body.unit,
+    )
+    return ShoppingListItemResponse.model_validate(item)
+
+
+@router.post("/{meal_plan_id}/items", response_model=ShoppingListItemResponse, status_code=201)
+async def create_item(
+    meal_plan_id: uuid.UUID,
+    body: ShoppingListItemCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_active_user),
+) -> ShoppingListItemResponse:
+    item = await shopping_service.create_ad_hoc_item(
+        db,
+        user.id,
+        meal_plan_id,
+        ingredient_name=body.ingredient_name,
+        quantity=body.quantity,
+        unit=body.unit,
+        category=body.category,
+    )
     return ShoppingListItemResponse.model_validate(item)
