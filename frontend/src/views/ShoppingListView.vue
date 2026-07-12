@@ -1,9 +1,11 @@
 <!-- frontend/src/views/ShoppingListView.vue -->
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
 import PourLoader from '@/components/base/PourLoader.vue'
+import ProgressBar from '@/components/base/ProgressBar.vue'
+import ToggleChip from '@/components/base/ToggleChip.vue'
 
 const CATEGORY_ORDER = [
   'Fresh Fruits and Vegetables',
@@ -28,10 +30,20 @@ const listId = String(route.params.id)
 
 onMounted(() => store.fetchList(listId))
 
+const hideChecked = ref(false)
+
+const checkedCount = computed(
+  () => store.list?.items.filter((item) => item.checked).length ?? 0,
+)
+const totalCount = computed(() => store.list?.items.length ?? 0)
+
 const groupedItems = computed(() => {
   if (!store.list) return []
+  const visibleItems = hideChecked.value
+    ? store.list.items.filter((item) => !item.checked)
+    : store.list.items
   const byCategory: Record<string, typeof store.list.items> = {}
-  for (const item of store.list.items) {
+  for (const item of visibleItems) {
     if (!byCategory[item.category]) byCategory[item.category] = []
     byCategory[item.category]!.push(item)
   }
@@ -48,6 +60,11 @@ const groupedItems = computed(() => {
 
 async function handleToggle(itemId: string, currentChecked: boolean) {
   await store.toggleItem(listId, itemId, !currentChecked)
+}
+
+async function handleClearChecked() {
+  const checkedItems = store.list?.items.filter((item) => item.checked) ?? []
+  await Promise.all(checkedItems.map((item) => store.toggleItem(listId, item.id, false)))
 }
 
 function formatQty(n: number): string {
@@ -79,42 +96,65 @@ async function handleRegenerate() {
         <p>No items yet. Click <strong>Regenerate</strong> to build your shopping list.</p>
       </div>
 
-      <div v-else class="category-list">
-        <section
-          v-for="group in groupedItems"
-          :key="group.category"
-          class="category-section"
-        >
-          <h2 class="category-title">{{ group.category }}</h2>
-          <ul class="item-list">
-            <li
-              v-for="item in group.items"
-              :key="item.id"
-              class="item-row"
-              :class="{ 'item-checked': item.checked }"
+      <template v-else>
+        <div class="progress-header">
+          <div class="progress-header__row">
+            <span class="progress-header__count">{{ checkedCount }} / {{ totalCount }} checked</span>
+            <ToggleChip
+              v-model="hideChecked"
+              data-testid="hide-checked-toggle"
+              label="Hide checked"
+            />
+            <button
+              type="button"
+              class="clear-checked-button"
+              data-testid="clear-checked-button"
+              :disabled="checkedCount === 0"
+              @click="handleClearChecked"
             >
-              <label class="item-label">
-                <input
-                  type="checkbox"
-                  :checked="item.checked"
-                  class="item-checkbox"
-                  @change="handleToggle(item.id, item.checked)"
-                />
-                <span class="item-content">
-                  <span class="item-name">
-                    {{ item.ingredient_name }}
-                    <span class="item-quantity">
-                      {{ formatQty(item.total_quantity) }}
-                      {{ item.unit }}
+              Clear checked
+            </button>
+          </div>
+          <ProgressBar :value="checkedCount" :max="totalCount" />
+        </div>
+
+        <div class="category-list">
+          <section
+            v-for="group in groupedItems"
+            :key="group.category"
+            class="category-section"
+          >
+            <h2 class="category-title">{{ group.category }}</h2>
+            <ul class="item-list">
+              <li
+                v-for="item in group.items"
+                :key="item.id"
+                class="item-row"
+                :class="{ 'item-checked': item.checked }"
+              >
+                <label class="item-label">
+                  <input
+                    type="checkbox"
+                    :checked="item.checked"
+                    class="item-checkbox"
+                    @change="handleToggle(item.id, item.checked)"
+                  />
+                  <span class="item-content">
+                    <span class="item-name">
+                      {{ item.ingredient_name }}
+                      <span class="item-quantity">
+                        {{ formatQty(item.total_quantity) }}
+                        {{ item.unit }}
+                      </span>
                     </span>
+                    <span v-if="item.detail" class="item-detail">{{ item.detail }}</span>
                   </span>
-                  <span v-if="item.detail" class="item-detail">{{ item.detail }}</span>
-                </span>
-              </label>
-            </li>
-          </ul>
-        </section>
-      </div>
+                </label>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </template>
     </template>
   </div>
 </template>
@@ -151,6 +191,64 @@ async function handleRegenerate() {
 }
 
 .btn-regenerate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progress-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.progress-header__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.progress-header__count {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.clear-checked-button {
+  margin-left: auto;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.clear-checked-button:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.clear-checked-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.clear-checked-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
