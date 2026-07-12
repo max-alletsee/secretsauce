@@ -2,12 +2,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { EllipsisVertical } from '@lucide/vue'
+import { EllipsisVertical, RefreshCw } from '@lucide/vue'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
 import PourLoader from '@/components/base/PourLoader.vue'
 import ProgressBar from '@/components/base/ProgressBar.vue'
 import ToggleChip from '@/components/base/ToggleChip.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
 import IconButton from '@/components/base/IconButton.vue'
 import ConfirmDialog from '@/components/base/ConfirmDialog.vue'
 
@@ -225,6 +226,7 @@ function cancelEditingQuantity() {
                 :disabled="store.regenerating"
                 @click="handleRegenerateMenuItem"
               >
+                <BaseIcon :icon="RefreshCw" :size="16" />
                 {{ store.regenerating ? 'Generating…' : 'Regenerate' }}
               </button>
             </li>
@@ -387,7 +389,9 @@ function cancelEditingQuantity() {
 }
 
 .shopping-header__overflow-action {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
   font-family: var(--font-sans);
