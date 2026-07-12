@@ -82,6 +82,16 @@ describe('ShoppingListView', () => {
     expect(wrapper.text()).toContain('No items yet')
   })
 
+  it('empty-state copy does not claim Regenerate is directly clickable (it is behind the overflow menu)', async () => {
+    mockStore({ list: makeList([]) })
+    const wrapper = mount(ShoppingListView)
+    await flushPromises()
+
+    const emptyStateText = wrapper.find('.empty-state').text()
+    expect(emptyStateText).not.toMatch(/Click\s+Regenerate/i)
+    expect(emptyStateText).toContain('Regenerate')
+  })
+
   it('renders checked/total count and passes them to ProgressBar', async () => {
     mockStore({
       list: makeList([
@@ -413,6 +423,25 @@ describe('ShoppingListView', () => {
 
       await wrapper.find('[data-testid="item-quantity-i1"]').trigger('click')
       const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      await qtyInput.trigger('blur')
+      await flushPromises()
+
+      expect(updateItemQuantity).not.toHaveBeenCalled()
+    })
+
+    it('blurring without editing a quantity that displays truncated (>2 decimals) does not call the API', async () => {
+      // total_quantity has 3 decimal places; formatQty truncates the displayed
+      // value to "0.33". If the user doesn't touch the input, the guard must
+      // compare against what was actually displayed, not the raw 0.333 value.
+      mockStore({
+        list: makeList([makeItem({ id: 'i1', total_quantity: 0.333, unit: 'g' })]),
+      })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[data-testid="item-quantity-i1"]').trigger('click')
+      const qtyInput = wrapper.find('[data-testid="item-quantity-input-i1"] input')
+      expect((qtyInput.element as HTMLInputElement).value).toBe('0.33')
       await qtyInput.trigger('blur')
       await flushPromises()
 

@@ -187,7 +187,7 @@ async function commitEditingQuantity(itemId: string, unit: string, originalQuant
   const parsed = Number(editingValue.value)
   editingItemId.value = null
 
-  if (!Number.isFinite(parsed) || parsed === originalQuantity) return
+  if (!Number.isFinite(parsed) || parsed === Number(formatQty(originalQuantity))) return
 
   await store.updateItemQuantity(listId, itemId, parsed, unit)
 }
@@ -244,7 +244,7 @@ function cancelEditingQuantity() {
       />
 
       <div v-if="store.list.items.length === 0 && !store.regenerating" class="empty-state">
-        <p>No items yet. Click <strong>Regenerate</strong> to build your shopping list.</p>
+        <p>No items yet. Open the menu and choose <strong>Regenerate</strong> to build your shopping list.</p>
       </div>
 
       <template v-else>
