@@ -1,12 +1,15 @@
 <!-- frontend/src/views/ShoppingListView.vue -->
 <script setup lang="ts">
-import { onMounted, computed, ref, nextTick } from 'vue'
+import { onMounted, onUnmounted, computed, ref, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { EllipsisVertical } from '@lucide/vue'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
 import PourLoader from '@/components/base/PourLoader.vue'
 import ProgressBar from '@/components/base/ProgressBar.vue'
 import ToggleChip from '@/components/base/ToggleChip.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+import IconButton from '@/components/base/IconButton.vue'
+import ConfirmDialog from '@/components/base/ConfirmDialog.vue'
 
 const CATEGORY_ORDER = [
   'Fresh Fruits and Vegetables',
@@ -76,6 +79,72 @@ async function handleRegenerate() {
   await store.regenerate(listId)
 }
 
+// ── Overflow menu (Regenerate) ──────────────────────────────────────────────
+// Mirrors the hand-rolled overflow-menu pattern in RecipeDetailView.vue:
+// outside-click and Escape both close the menu, and the document listeners
+// are only attached while the menu is actually open.
+
+const menuOpen = ref(false)
+const confirmingRegenerate = ref(false)
+const menuTriggerRef = ref<InstanceType<typeof IconButton> | null>(null)
+const menuRootRef = ref<HTMLElement | null>(null)
+
+function focusMenuTrigger() {
+  ;(menuTriggerRef.value?.$el as HTMLElement | undefined)?.focus()
+}
+
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+
+function closeMenu() {
+  menuOpen.value = false
+}
+
+function handleRegenerateMenuItem() {
+  closeMenu()
+  confirmingRegenerate.value = true
+}
+
+async function confirmRegenerate() {
+  confirmingRegenerate.value = false
+  await handleRegenerate()
+}
+
+function cancelRegenerate() {
+  confirmingRegenerate.value = false
+}
+
+function onDocumentKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && menuOpen.value) {
+    closeMenu()
+    focusMenuTrigger()
+  }
+}
+
+function onDocumentPointerdown(e: PointerEvent) {
+  if (!menuOpen.value) return
+  const root = menuRootRef.value
+  if (root && !root.contains(e.target as Node)) {
+    closeMenu()
+  }
+}
+
+watch(menuOpen, (isOpen) => {
+  if (isOpen) {
+    document.addEventListener('keydown', onDocumentKeydown)
+    document.addEventListener('pointerdown', onDocumentPointerdown)
+  } else {
+    document.removeEventListener('keydown', onDocumentKeydown)
+    document.removeEventListener('pointerdown', onDocumentPointerdown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onDocumentKeydown)
+  document.removeEventListener('pointerdown', onDocumentPointerdown)
+})
+
 // ── Add ad-hoc item ─────────────────────────────────────────────────────────
 
 const newItemName = ref('')
@@ -135,14 +204,42 @@ function cancelEditingQuantity() {
     <template v-else-if="store.list">
       <header class="shopping-header">
         <h1 class="plan-name">{{ store.list.name }}</h1>
-        <button
-          class="btn-regenerate"
-          :disabled="store.regenerating"
-          @click="handleRegenerate"
-        >
-          {{ store.regenerating ? 'Generating…' : 'Regenerate' }}
-        </button>
+
+        <div ref="menuRootRef" class="shopping-header__overflow">
+          <IconButton
+            ref="menuTriggerRef"
+            :icon="EllipsisVertical"
+            label="More actions"
+            variant="ghost"
+            aria-haspopup="menu"
+            :aria-expanded="menuOpen ? 'true' : 'false'"
+            @click="toggleMenu"
+          />
+          <ul v-if="menuOpen" role="menu" class="shopping-header__overflow-list">
+            <li role="none">
+              <button
+                type="button"
+                role="menuitem"
+                data-testid="regenerate-menu-item"
+                class="shopping-header__overflow-action"
+                :disabled="store.regenerating"
+                @click="handleRegenerateMenuItem"
+              >
+                {{ store.regenerating ? 'Generating…' : 'Regenerate' }}
+              </button>
+            </li>
+          </ul>
+        </div>
       </header>
+
+      <ConfirmDialog
+        :open="confirmingRegenerate"
+        title="Regenerate shopping list?"
+        message="This rebuilds the list from your meal plan's recipes. Manually added items, quantity edits, and checked-off progress may be lost."
+        confirm-label="Regenerate"
+        @confirm="confirmRegenerate"
+        @cancel="cancelRegenerate"
+      />
 
       <div v-if="store.list.items.length === 0 && !store.regenerating" class="empty-state">
         <p>No items yet. Click <strong>Regenerate</strong> to build your shopping list.</p>
@@ -269,18 +366,51 @@ function cancelEditingQuantity() {
   margin: 0;
 }
 
-.btn-regenerate {
-  background: #3498db;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 500;
+.shopping-header__overflow {
+  position: relative;
+  display: inline-flex;
 }
 
-.btn-regenerate:disabled {
+.shopping-header__overflow-list {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 200;
+  min-width: 10rem;
+  list-style: none;
+  margin: 0;
+  padding: var(--space-1) 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+
+.shopping-header__overflow-action {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  text-decoration: none;
+  white-space: nowrap;
+  text-align: left;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shopping-header__overflow-action:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+
+.shopping-header__overflow-action:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.shopping-header__overflow-action:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

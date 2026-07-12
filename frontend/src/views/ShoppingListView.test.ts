@@ -173,13 +173,142 @@ describe('ShoppingListView', () => {
     expect(toggleItem).toHaveBeenCalledWith('list-1', 'i3', false)
   })
 
-  it('regenerate button still works (no regression)', async () => {
-    mockStore({ list: makeList([makeItem()]) })
-    const wrapper = mount(ShoppingListView)
-    await flushPromises()
+  describe('regenerate overflow menu', () => {
+    it('does not show the regenerate menu item until the overflow trigger is opened', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
 
-    await wrapper.find('.btn-regenerate').trigger('click')
-    expect(regenerate).toHaveBeenCalledWith('list-1')
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(false)
+    })
+
+    it('opens the overflow menu and shows the Regenerate menu item', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      const trigger = wrapper.find('[aria-label="More actions"]')
+      expect(trigger.exists()).toBe(true)
+      await trigger.trigger('click')
+
+      const menuItem = wrapper.find('[data-testid="regenerate-menu-item"]')
+      expect(menuItem.exists()).toBe(true)
+      expect(menuItem.text()).toBe('Regenerate')
+    })
+
+    it('shows "Generating…" and disables the menu item while store.regenerating is true', async () => {
+      mockStore({ list: makeList([makeItem()]), regenerating: true })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      const menuItem = wrapper.find('[data-testid="regenerate-menu-item"]')
+      expect(menuItem.text()).toBe('Generating…')
+      expect(menuItem.attributes('disabled')).toBeDefined()
+    })
+
+    it('clicking the menu item closes the menu and opens the ConfirmDialog instead of calling store.regenerate directly', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="regenerate-menu-item"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      // Menu should be closed now.
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(false)
+
+      const dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.props('open')).toBe(true)
+
+      expect(regenerate).not.toHaveBeenCalled()
+    })
+
+    it('confirming the dialog calls store.regenerate(listId)', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="regenerate-menu-item"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      const dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      dialog.vm.$emit('confirm')
+      await flushPromises()
+
+      expect(regenerate).toHaveBeenCalledWith('list-1')
+    })
+
+    it('cancelling the dialog closes it without calling store.regenerate', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView)
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      await wrapper.find('[data-testid="regenerate-menu-item"]').trigger('click')
+      await wrapper.vm.$nextTick()
+
+      let dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.props('open')).toBe(true)
+
+      dialog.vm.$emit('cancel')
+      await wrapper.vm.$nextTick()
+
+      dialog = wrapper.findComponent({ name: 'ConfirmDialog' })
+      expect(dialog.props('open')).toBe(false)
+      expect(regenerate).not.toHaveBeenCalled()
+    })
+
+    it('Escape closes the overflow menu and returns focus to the trigger', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView, { attachTo: document.body })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(true)
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(false)
+      expect(document.activeElement?.getAttribute('aria-label')).toBe('More actions')
+
+      wrapper.unmount()
+    })
+
+    it('outside pointerdown closes the overflow menu', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView, { attachTo: document.body })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(true)
+
+      document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      await wrapper.vm.$nextTick()
+
+      expect(wrapper.find('[data-testid="regenerate-menu-item"]').exists()).toBe(false)
+
+      wrapper.unmount()
+    })
+
+    it('does not leak document listeners after unmount', async () => {
+      mockStore({ list: makeList([makeItem()]) })
+      const wrapper = mount(ShoppingListView, { attachTo: document.body })
+      await flushPromises()
+
+      await wrapper.find('[aria-label="More actions"]').trigger('click')
+      wrapper.unmount()
+
+      // Should not throw and should not affect anything now that the component is gone.
+      expect(() => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+        document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      }).not.toThrow()
+    })
   })
 
   it('item toggling still works (no regression)', async () => {
