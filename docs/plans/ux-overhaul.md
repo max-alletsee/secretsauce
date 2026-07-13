@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-13 — Phase 9 COMPLETE through Task 9.1; paused for consolidated Phase 9 user feedback before Phase 10)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-13 — ALL PHASES COMPLETE, Phase 11 through Task 11.3 + polish fix; plan finished, awaiting final sign-off then `superpowers:finishing-a-development-branch`)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -118,9 +118,11 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - ✅ **PHASE 7 COMPLETE — Tasks 7.1–7.2 done, reviewed, plus a whole-review fix.** Full verification GREEN at commit `c325457`: frontend type-check ✓, build ✓, **482/482 tests** ✓; backend 122/122. Card progress/count/plan (7.1) + swipe-to-delete with overflow fallback (7.2, includes sanctioned backend exception #2: `DELETE /shopping-lists/{id}`, no such route existed before). Whole-phase review caught one real Important cross-task bug (swipe's synthesized click was navigating away before the revealed delete button could be tapped) — fixed and re-reviewed clean. User signed off on Phase 7 (2026-07-12).
 - ✅ **PHASE 8 COMPLETE — Tasks 8.1–8.3 done, reviewed, plus 2 polish fixes.** Full verification GREEN at commit `7b6e1f3`: frontend type-check ✓, build ✓, **506/506 tests / 58 files** ✓; backend 244/245 (1 pre-existing unrelated failure). Sticky progress header + hide/clear (8.1, "Clear checked" = bulk-uncheck not delete, user-resolved) + add-item/inline-qty-edit (8.2, includes sanctioned backend exception #3: `POST /shopping-lists/{id}/items` + widened PATCH) + regenerate gated behind overflow confirm (8.3, one fix loop for a missing RefreshCw icon). Whole-phase review found no Critical/Important; user selected both Minor findings (quantity no-op guard rounding bug + stale regenerate empty-state copy) to fix immediately rather than defer — done in `7b6e1f3`. User signed off on Phase 8 (2026-07-12).
 - ✅ **PHASE 9 COMPLETE — Task 9.1 done, reviewed clean modulo Minor findings.** Full verification GREEN at commit `e644587`: type-check ✓, build ✓, **515/515 tests / 59 files** ✓. `ShoppingListNewView.vue`'s days×meals `<table>` replaced with day-grouped `ToggleChip` multi-select; day-level tri-state now a labeled ghost button (`ToggleChip`'s boolean fill can't honestly represent "partially selected" — design judgment call, reviewer verified correct); footer CTA made genuinely `position:sticky` (was not sticky before); no horizontal scroll at 375px (flex-wrap throughout, no fixed min-widths carried over from the old table cells). New `ShoppingListNewView.test.ts` (9 tests, no prior test file existed for this view). `DayMealPicker.vue` (an unrelated component) correctly left untouched despite the brief's stale file-list mention.
-- ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 9 feedback, do NOT auto-continue to Phase 10 without sign-off.**
-- ⏭️ **NEXT after sign-off: Phase 10 (Settings)** — Task 10.1 chip multi-selects (`dietary_restrictions`/`allergies`/`favorite_cuisines`) + disliked-ingredients token input on `ProfileSettingsView.vue`, wired into `UserUpdatePayload`. New BASE for 10.1 = `e644587`.
-- ⏳ **Phase 11** — not started.
+- ⏸️ Phase 9 sign-off: user approved, then instructed to continue Phase 10 and Phase 11 with no intermediate sign-off between them.
+- ✅ **PHASE 10 COMPLETE — Tasks 10.1–10.2 done, reviewed, Minor findings only.** Full verification GREEN at commit `e9e1ef8`: type-check ✓, build ✓, **518/518 tests / 59 files** ✓. Preference chip/tag-input fields (10.1 — `dietary_restrictions`/`favorite_cuisines` sourced from the app's real `PROTEIN_TAGS+DIET_TAGS`/`CUISINE_TAGS`; `allergies`/`disliked_ingredients` via a new dumb `TagInput.vue` free-text component since no pre-built allergy list exists anywhere in the codebase; careful scoping correction to avoid reusing `TagSelector.vue`'s all-5-category recipe-tag list) + sticky save bar/`useToast` confirmation/full primitive restyle of the Profile + Meal Planning sections (10.2, all remaining hardcoded hex retired). No sign-off pause between 10.1/10.2 or before Phase 11, per user instruction.
+- ✅ **PHASE 11 COMPLETE — Tasks 11.1–11.3 done, reviewed, plus a small polish fix and a final whole-branch review. THIS WAS THE LAST PHASE OF THE ENTIRE PLAN.** Full verification GREEN at commit `785dd6c`: type-check ✓, build ✓, **525/525 tests / 60 files** ✓. Dark palette via 15 new `[data-theme="dark"]` color-role tokens, all 7 admin files retokenized (11.1) — its own review flagged a real cross-task risk: `ConfirmDialog`'s `<Teleport to="body">` would escape the dark-scoped subtree. Task 11.2 (Run Cleanup confirm gate) solved it cleanly via a new local `dark` prop on `ConfirmDialog.vue` (stamps `data-theme="dark"` on the teleported nodes themselves, no global document mutation, 3 other call sites confirmed unaffected). Task 11.3 made the 4 CSS-grid "tables" responsive with a per-file strategy (stacked rows for Users, `BaseCard`-contained horizontal scroll for the 3 log views) — 2 Minor findings (an untokenized `32px`, a stale min-width comment) fixed immediately in `785dd6c`.
+- ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 11) done at commit `785dd6c`.** Re-ran verification independently (green). Checked 4 targeted cross-task composition questions (dark tokens vs. 11.3's restructuring, `BaseCard` vs. dark-theme cascade, `ConfirmDialog`'s `dark` prop vs. 11.3's later changes, badge-token collapse inheritance) — all composed cleanly, no new Critical/Important findings. One fragile-but-currently-working CSS specificity pattern noted (`BaseCard`'s own padding vs. a parent's `.table-card{padding:0}` override — same-specificity, source-order-dependent) but assessed as within Task 11.3's own already-approved scope, not a new phase-level defect. **Verdict: READY for sign-off.**
+- 🏁 **ALL 12 PHASES (0–11) OF THIS PLAN ARE NOW COMPLETE.** Awaiting final user sign-off, then use `superpowers:finishing-a-development-branch` per this plan's own "Phase 11 checkpoint — final" instruction.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch). **New this session:** also run `git status --short` after every dispatch, not just `git show --stat HEAD` — two separate implementers left stray uncommitted edits (an unrelated scratch `.md` file once swept into a commit and had to be surgically removed via soft-reset; a harmless lint-autofix on an unrelated test file) sitting in the working tree alongside otherwise-clean commits.
 
 ### Cross-task reminders for later phases
@@ -661,15 +663,15 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 10 — Settings
 
-#### Task 10.1: Chip multi-selects + disliked-ingredients token input
-**Files:** Modify `frontend/src/views/ProfileSettingsView.vue`
-- [ ] Add `ToggleChip` multi-selects for `dietary_restrictions`, `allergies`, `favorite_cuisines` (use pre-built tag lists from CLAUDE.md / constants where sensible). Add a token/tag input for `disliked_ingredients` (free text → array). Wire all four into `UserUpdatePayload` (fields already exist) so they persist.
-- [ ] **VERIFY** (existing `ProfileSettingsView.test.ts` passes/updated) + commit `feat(settings): preference chip selects and disliked tags`.
+#### Task 10.1: Chip multi-selects + disliked-ingredients token input ✅
+**Files:** Modify `frontend/src/views/ProfileSettingsView.vue`; Create `frontend/src/components/base/TagInput.vue`
+- [x] Add `ToggleChip` multi-selects for `dietary_restrictions` (PROTEIN_TAGS+DIET_TAGS), `favorite_cuisines` (CUISINE_TAGS). Add a new `TagInput` free-text token component for `allergies`/`disliked_ingredients` (no pre-built allergy list exists in this codebase). Wire all four into `UserUpdatePayload` so they persist.
+- [x] **VERIFY** (`ProfileSettingsView.test.ts` rewritten, 5 tests) + commit `feat(settings): preference chip selects and disliked tags` (ca53d0c).
 
-#### Task 10.2: Sticky save bar / autosave toast + restyle
+#### Task 10.2: Sticky save bar / autosave toast + restyle ✅
 **Files:** Modify `frontend/src/views/ProfileSettingsView.vue`
-- [ ] Sticky save bar with primary save (or autosave + `Toast` confirmation). Restyle existing profile + meal-planning fields with primitives. Keep all existing fields.
-- [ ] **VERIFY** + commit `feat(settings): sticky save bar and tokenized fields`.
+- [x] Sticky save bar (`BaseButton` + `position:sticky`) with `useToast` success confirmation (no autosave — explicit save retained). Restyled Profile + Meal Planning sections with `BaseInput`/`BaseTextarea`/`ToggleChip`; all remaining hardcoded hex retired. Kept all existing fields.
+- [x] **VERIFY** + commit `feat(settings): sticky save bar and tokenized fields` (e9e1ef8).
 
 **Phase 10 checkpoint.**
 
@@ -677,22 +679,22 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 11 — Admin
 
-#### Task 11.1: Dark palette via shared tokens
-**Files:** Modify `frontend/src/components/admin/AdminLayout.vue` (+ `main.css` for the `[data-theme="dark"]` scope)
-- [ ] Define a `[data-theme="dark"]` token scope mapping the same roles (bg/surface/text/primary/accent/semantic/border/muted) to dark-appropriate values. Apply `data-theme="dark"` on the admin layout root. Replace hardcoded dark hex in admin components with these tokens; reuse primitives.
-- [ ] **VERIFY** + commit `feat(admin): drive dark theme from shared tokens`.
+#### Task 11.1: Dark palette via shared tokens ✅
+**Files:** Modify `frontend/src/components/admin/AdminLayout.vue` (+ `main.css` for the `[data-theme="dark"]` scope); all 7 admin files retokenized
+- [x] Defined a `[data-theme="dark"]` token scope (15 color-role tokens) mapping bg/surface/surface-2/text/text-muted/border/primary/primary-ink/primary-soft/accent/accent-soft/success/warning/danger/danger-soft to dark values derived from the pre-existing admin hex. Applied `data-theme="dark"` on `.admin-layout` root. All 7 admin files retokenized — zero hex remains.
+- [x] **VERIFY** + commit `feat(admin): drive dark theme from shared tokens` (dfc4be5).
 
-#### Task 11.2: Confirm dialog on Run Cleanup
-**Files:** Modify the admin view hosting "Run Cleanup" (grep admin views for "Cleanup")
-- [ ] Wrap "Run Cleanup" in `ConfirmDialog` before executing.
-- [ ] **VERIFY** + commit `feat(admin): confirm before run cleanup`.
+#### Task 11.2: Confirm dialog on Run Cleanup ✅
+**Files:** Modify `AdminLayout.vue`; add `dark` prop to `ConfirmDialog.vue`
+- [x] Wrapped "Run Cleanup" in `ConfirmDialog`. Also solved the Task-11.1-flagged Teleport/dark-theme risk: new optional `dark?: boolean` prop on `ConfirmDialog.vue` stamps `data-theme="dark"` on the teleported dialog/backdrop nodes themselves (local fix, no global document mutation); 3 other existing `ConfirmDialog` call sites confirmed unaffected.
+- [x] **VERIFY** + commit `feat(admin): confirm before run cleanup` (ae0ab02).
 
-#### Task 11.3: Responsive admin tables
-**Files:** Modify `src/views/admin/*` table views, `components/admin/*`
-- [ ] Make data tables horizontally scrollable inside a contained `BaseCard`, or collapse to stacked rows at 375px. No viewport overflow on mobile.
-- [ ] **VERIFY** + commit `feat(admin): responsive contained data tables`.
+#### Task 11.3: Responsive admin tables ✅
+**Files:** Modify `src/views/admin/*` table views, `components/admin/AdminUserRow.vue`
+- [x] Per-file strategy by data shape: `AdminUsersView.vue`/`AdminUserRow.vue` → stacked rows at ≤767px; the 3 log views → `BaseCard`-contained horizontal scroll (inner `overflow-x:auto` + explicit `min-width`). No outer-page overflow at 375px in either case.
+- [x] **VERIFY** + commit `feat(admin): responsive contained data tables` (2489703) + polish fix `fix(admin): tokenize stray padding value and clarify min-width comment` (785dd6c).
 
-**Phase 11 checkpoint — final.** Run full suite + `npm run build`; then use `superpowers:finishing-a-development-branch`.
+**Phase 11 checkpoint — final.** Full suite ✓ (525/525 tests, 60 files), `npm run build` ✓, `npm run type-check` ✓. Final whole-branch review over the full Phase 11 diff: READY for sign-off, no new cross-task findings. **All phases of this plan (0–11) are now complete.**
 
 ---
 
