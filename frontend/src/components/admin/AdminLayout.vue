@@ -34,7 +34,7 @@ const navItems = [
 </script>
 
 <template>
-  <div class="admin-layout">
+  <div class="admin-layout" data-theme="dark">
     <aside class="admin-sidebar">
       <div class="sidebar-header">Admin</div>
       <nav>
@@ -75,7 +75,7 @@ const navItems = [
 .admin-sidebar {
   width: 200px;
   flex-shrink: 0;
-  background: #111827;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -83,16 +83,16 @@ const navItems = [
 
 .sidebar-header {
   padding: 16px;
-  color: #a78bfa;
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 14px;
-  border-bottom: 1px solid #1f2937;
+  border-bottom: 1px solid var(--color-surface-2);
 }
 
 .nav-item {
   display: block;
   padding: 10px 16px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   text-decoration: none;
   font-size: 13px;
   border-left: 3px solid transparent;
@@ -101,26 +101,26 @@ const navItems = [
 
 .nav-item.active,
 .nav-item:hover {
-  color: #e5e7eb;
+  color: var(--color-text);
 }
 
 .nav-item.active {
-  background: #1f2937;
-  border-left-color: #a78bfa;
+  background: var(--color-surface-2);
+  border-left-color: var(--color-primary);
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 16px;
-  border-top: 1px solid #1f2937;
+  border-top: 1px solid var(--color-surface-2);
 }
 
 .cleanup-btn {
   width: 100%;
-  background: #1f2937;
-  color: #9ca3af;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 7px 8px;
   font-size: 12px;
   cursor: pointer;
@@ -134,8 +134,8 @@ const navItems = [
 
 .admin-main {
   flex: 1;
-  background: #0f172a;
-  color: #e5e7eb;
+  background: var(--color-bg);
+  color: var(--color-text);
   overflow: auto;
   padding: 20px;
 }

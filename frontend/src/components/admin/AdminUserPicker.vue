@@ -65,21 +65,21 @@ function clear() {
 .user-picker { position: relative; }
 .selected-chip {
   display: inline-flex; align-items: center; gap: 6px;
-  background: #1a2744; border: 1px solid #a78bfa;
-  color: #a78bfa; border-radius: 4px; padding: 4px 8px; font-size: 12px;
+  background: var(--color-primary-soft); border: 1px solid var(--color-primary);
+  color: var(--color-primary); border-radius: var(--radius-sm); padding: 4px 8px; font-size: 12px;
 }
-.clear-btn { background: none; border: none; color: #a78bfa; cursor: pointer; font-size: 12px; }
+.clear-btn { background: none; border: none; color: var(--color-primary); cursor: pointer; font-size: 12px; }
 .search-input {
-  background: #1f2937; border: 1px solid #374151; border-radius: 4px;
-  padding: 5px 8px; color: #e5e7eb; font-size: 12px; width: 220px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 5px 8px; color: var(--color-text); font-size: 12px; width: 220px;
 }
 .dropdown {
-  position: absolute; top: 100%; left: 0; width: 100%; background: #1f2937;
-  border: 1px solid #374151; border-radius: 4px; list-style: none; margin: 2px 0; padding: 0;
+  position: absolute; top: 100%; left: 0; width: 100%; background: var(--color-surface-2);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); list-style: none; margin: 2px 0; padding: 0;
   z-index: 10;
 }
 .dropdown-item {
-  padding: 7px 10px; font-size: 12px; color: #e5e7eb; cursor: pointer;
+  padding: 7px 10px; font-size: 12px; color: var(--color-text); cursor: pointer;
 }
-.dropdown-item:hover { background: #374151; }
+.dropdown-item:hover { background: var(--color-border); }
 </style>

@@ -66,26 +66,26 @@ async function fetchLogs() {
 
 <style scoped>
 .filter-select {
-  background: #1f2937; border: 1px solid #374151; border-radius: 4px;
-  padding: 5px 8px; color: #9ca3af; font-size: 12px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 5px 8px; color: var(--color-text-muted); font-size: 12px;
 }
 .table-header {
   display: grid; grid-template-columns: 80px 100px 100px 70px 70px 80px;
-  gap: 8px; padding: 4px 10px; background: #1e293b; font-size: 11px;
-  color: #64748b; text-transform: uppercase;
+  gap: 8px; padding: 4px 10px; background: var(--color-surface); font-size: 11px;
+  color: var(--color-text-muted); text-transform: uppercase;
 }
 .log-row {
   display: grid; grid-template-columns: 80px 100px 100px 70px 70px 80px;
-  gap: 8px; padding: 5px 10px; border-bottom: 1px solid #1e293b; font-size: 12px; align-items: center;
+  gap: 8px; padding: 5px 10px; border-bottom: 1px solid var(--color-surface); font-size: 12px; align-items: center;
 }
-.ts { color: #4b5563; }
-.call-type { color: #a78bfa; }
-.model { color: #94a3b8; font-size: 11px; }
-.latency-ok  { color: #4ade80; }
-.latency-err { color: #f87171; }
-.loading, .empty { padding: 20px; color: #6b7280; text-align: center; }
+.ts { color: var(--color-text-muted); }
+.call-type { color: var(--color-primary); }
+.model { color: var(--color-text-muted); font-size: 11px; }
+.latency-ok  { color: var(--color-success); }
+.latency-err { color: var(--color-danger); }
+.loading, .empty { padding: 20px; color: var(--color-text-muted); text-align: center; }
 .load-more {
-  margin-top: 10px; background: #1f2937; color: #60a5fa; border: 1px solid #374151;
-  border-radius: 4px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  margin-top: 10px; background: var(--color-surface-2); color: var(--color-accent); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; cursor: pointer;
 }
 </style>

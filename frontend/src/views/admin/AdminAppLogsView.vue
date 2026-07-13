@@ -64,24 +64,24 @@ function levelClass(level: string) {
 
 <style scoped>
 .filter-select {
-  background: #1f2937; border: 1px solid #374151; border-radius: 4px;
-  padding: 5px 8px; color: #9ca3af; font-size: 12px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 5px 8px; color: var(--color-text-muted); font-size: 12px;
 }
 .log-table-header {
   display: grid; grid-template-columns: 80px 70px 1fr 60px 70px;
-  gap: 8px; padding: 4px 10px; background: #1e293b; font-size: 11px;
-  color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;
+  gap: 8px; padding: 4px 10px; background: var(--color-surface); font-size: 11px;
+  color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em;
 }
 .log-row {
   display: grid; grid-template-columns: 80px 70px 1fr 60px 70px;
-  gap: 8px; padding: 5px 10px; border-bottom: 1px solid #1e293b; font-size: 12px;
+  gap: 8px; padding: 5px 10px; border-bottom: 1px solid var(--color-surface); font-size: 12px;
 }
-.ts { color: #4b5563; }
+.ts { color: var(--color-text-muted); }
 .level-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
-.level-info  { color: #4ade80; background: #052e16; }
-.level-warn  { color: #fbbf24; background: #451a03; }
-.level-error { color: #f87171; background: #450a0a; }
-.path { color: #d1d5db; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.loading, .empty { padding: 20px; color: #6b7280; text-align: center; }
-.footnote { font-size: 11px; color: #4b5563; margin-top: 8px; }
+.level-info  { color: var(--color-success); background: var(--color-bg); }
+.level-warn  { color: var(--color-warning); background: var(--color-bg); }
+.level-error { color: var(--color-danger); background: var(--color-danger-soft); }
+.path { color: var(--color-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.loading, .empty { padding: 20px; color: var(--color-text-muted); text-align: center; }
+.footnote { font-size: 11px; color: var(--color-text-muted); margin-top: 8px; }
 </style>

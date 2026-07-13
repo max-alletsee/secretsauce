@@ -80,3 +80,29 @@ h1, h2, h3 {
     transition: none !important;
   }
 }
+
+/* Deliberate dark theme, scoped to the admin area (not a prefers-color-scheme
+   media query — the rest of the app stays on the light brand palette).
+   Same role names as :root, dark-appropriate values. Applied via
+   data-theme="dark" on AdminLayout.vue's root element; descendants pick
+   these up through normal custom-property cascade. Spacing/radius/shadow/
+   font tokens are intentionally NOT redeclared here — they're shape/type
+   tokens, not color, and inherit from :root unchanged. */
+[data-theme='dark'] {
+  --color-bg:            #0F172A;
+  --color-surface:       #111827;
+  --color-text:          #E5E7EB;
+  --color-primary:       #A78BFA;
+  --color-accent:        #60A5FA;
+  --color-success:       #4ADE80;
+  --color-warning:       #F59E0B;
+  --color-danger:        #F87171;
+
+  --color-surface-2:     #1F2937;
+  --color-border:        #374151;
+  --color-text-muted:    #94A3B8;
+  --color-primary-ink:   #1E1B2E;
+  --color-primary-soft:  #1A2744;
+  --color-accent-soft:   #172554;
+  --color-danger-soft:   #450A0A;
+}

@@ -72,28 +72,28 @@ async function fetchUsers() {
 <style scoped>
 .toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .search-input {
-  flex: 1; min-width: 180px; background: #1f2937; border: 1px solid #374151;
-  border-radius: 4px; padding: 6px 10px; color: #e5e7eb; font-size: 13px;
+  flex: 1; min-width: 180px; background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 6px 10px; color: var(--color-text); font-size: 13px;
 }
 .filter-select {
-  background: #1f2937; border: 1px solid #374151; border-radius: 4px;
-  padding: 6px 8px; color: #9ca3af; font-size: 12px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 6px 8px; color: var(--color-text-muted); font-size: 12px;
 }
 .search-btn {
-  background: #1d4ed8; color: #fff; border: none; border-radius: 4px;
+  background: var(--color-accent); color: var(--color-primary-ink); border: none; border-radius: var(--radius-sm);
   padding: 6px 14px; font-size: 13px; cursor: pointer;
 }
 .table-header {
   display: grid; grid-template-columns: 2fr 1fr 1fr 100px 50px;
-  gap: 8px; padding: 5px 12px; background: #1e3a5f;
-  border-radius: 4px 4px 0 0; font-size: 11px; color: #94a3b8;
+  gap: 8px; padding: 5px 12px; background: var(--color-surface);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 11px; color: var(--color-text-muted);
   text-transform: uppercase; letter-spacing: 0.05em;
 }
-.loading { padding: 20px; color: #6b7280; text-align: center; }
+.loading { padding: 20px; color: var(--color-text-muted); text-align: center; }
 .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
-.count { font-size: 12px; color: #6b7280; }
+.count { font-size: 12px; color: var(--color-text-muted); }
 .load-more {
-  background: #1f2937; color: #60a5fa; border: 1px solid #374151;
-  border-radius: 4px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+  background: var(--color-surface-2); color: var(--color-accent); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; cursor: pointer;
 }
 </style>

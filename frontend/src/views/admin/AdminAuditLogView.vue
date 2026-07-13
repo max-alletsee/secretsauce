@@ -63,30 +63,30 @@ const badgeClass: Record<AuditAction, string> = {
 
 <style scoped>
 .filter-select {
-  background: #1f2937; border: 1px solid #374151; border-radius: 4px;
-  padding: 5px 8px; color: #9ca3af; font-size: 12px;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 5px 8px; color: var(--color-text-muted); font-size: 12px;
 }
 .table-header {
   display: grid; grid-template-columns: 90px 100px 1fr 140px;
-  gap: 8px; padding: 4px 10px; background: #1e293b; font-size: 11px;
-  color: #64748b; text-transform: uppercase;
+  gap: 8px; padding: 4px 10px; background: var(--color-surface); font-size: 11px;
+  color: var(--color-text-muted); text-transform: uppercase;
 }
 .log-row {
   display: grid; grid-template-columns: 90px 100px 1fr 140px;
-  gap: 8px; padding: 6px 10px; border-bottom: 1px solid #1e293b; font-size: 12px; align-items: center;
+  gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--color-surface); font-size: 12px; align-items: center;
 }
-.ts { color: #4b5563; }
+.ts { color: var(--color-text-muted); }
 .badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
-.badge-blue  { color: #93c5fd; background: #172554; }
-.badge-green { color: #4ade80; background: #052e16; }
-.badge-amber { color: #fbbf24; background: #451a03; }
-.badge-red   { color: #f87171; background: #450a0a; }
-.badge-grey  { color: #9ca3af; background: #1f2937; }
-.description { color: #d1d5db; }
-.by { color: #a78bfa; font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
-.loading, .empty { padding: 20px; color: #6b7280; text-align: center; }
+.badge-blue  { color: var(--color-accent); background: var(--color-accent-soft); }
+.badge-green { color: var(--color-success); background: var(--color-bg); }
+.badge-amber { color: var(--color-warning); background: var(--color-bg); }
+.badge-red   { color: var(--color-danger); background: var(--color-danger-soft); }
+.badge-grey  { color: var(--color-text-muted); background: var(--color-surface-2); }
+.description { color: var(--color-text); }
+.by { color: var(--color-primary); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
+.loading, .empty { padding: 20px; color: var(--color-text-muted); text-align: center; }
 .load-more {
-  margin-top: 10px; background: #1f2937; color: #60a5fa; border: 1px solid #374151;
-  border-radius: 4px; padding: 6px 14px; font-size: 12px; cursor: pointer;
+  margin-top: 10px; background: var(--color-surface-2); color: var(--color-accent); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; cursor: pointer;
 }
 </style>

@@ -137,35 +137,35 @@ const joinedDate = computed(() =>
   grid-template-columns: 2fr 1fr 1fr 100px 50px;
   gap: 8px;
   padding: 8px 12px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--color-border);
   align-items: center;
   font-size: 13px;
 }
 .user-row.inactive { opacity: 0.55; }
-.display-name { font-size: 11px; color: #6b7280; }
-.badge-active  { color: #4ade80; }
-.badge-inactive { color: #f87171; }
-.badge-super   { color: #f59e0b; }
-.badge-user    { color: #6b7280; }
-.col-joined    { color: #6b7280; font-size: 12px; }
-.expand-btn    { background: none; border: none; color: #60a5fa; cursor: pointer; font-size: 13px; }
+.display-name { font-size: 11px; color: var(--color-text-muted); }
+.badge-active  { color: var(--color-success); }
+.badge-inactive { color: var(--color-danger); }
+.badge-super   { color: var(--color-warning); }
+.badge-user    { color: var(--color-text-muted); }
+.col-joined    { color: var(--color-text-muted); font-size: 12px; }
+.expand-btn    { background: none; border: none; color: var(--color-accent); cursor: pointer; font-size: 13px; }
 .expanded-panel {
-  background: #0c1a2e;
-  border-left: 3px solid #a78bfa;
+  background: var(--color-bg);
+  border-left: 3px solid var(--color-primary);
   padding: 12px 16px;
   font-size: 12px;
 }
-.stats { display: flex; gap: 16px; color: #94a3b8; margin-bottom: 10px; flex-wrap: wrap; }
-.stats-loading { color: #6b7280; margin-bottom: 10px; }
+.stats { display: flex; gap: 16px; color: var(--color-text-muted); margin-bottom: 10px; flex-wrap: wrap; }
+.stats-loading { color: var(--color-text-muted); margin-bottom: 10px; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-action {
-  border: none; border-radius: 4px; padding: 5px 10px; font-size: 11px;
+  border: none; border-radius: var(--radius-sm); padding: 5px 10px; font-size: 11px;
   cursor: pointer; font-family: inherit;
 }
-.btn-role    { background: #1d4ed8; color: #fff; }
-.btn-status  { background: #92400e; color: #fff; }
-.btn-delete  { background: #7f1d1d; color: #fff; }
-.btn-confirm { background: #dc2626; color: #fff; }
-.btn-cancel  { background: #374151; color: #e5e7eb; }
+.btn-role    { background: var(--color-accent); color: var(--color-primary-ink); }
+.btn-status  { background: var(--color-warning); color: var(--color-primary-ink); }
+.btn-delete  { background: var(--color-danger-soft); color: var(--color-text); }
+.btn-confirm { background: var(--color-danger); color: var(--color-primary-ink); }
+.btn-cancel  { background: var(--color-border); color: var(--color-text); }
 .btn-disabled { opacity: 0.6; cursor: not-allowed; }
 </style>
