@@ -168,7 +168,7 @@ const joinedDate = computed(() =>
   }
   .col-email {
     flex: 1 1 100%;
-    padding-right: 32px; /* keep clear of the absolutely-positioned expand button */
+    padding-right: var(--space-6); /* keep clear of the absolutely-positioned expand button */
   }
   .col-status, .col-role, .col-joined {
     display: flex;

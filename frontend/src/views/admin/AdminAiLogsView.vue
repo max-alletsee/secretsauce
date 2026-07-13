@@ -83,7 +83,7 @@ async function fetchLogs() {
   overflow-x: auto;
 }
 .table-grid {
-  /* Sum of fixed column widths (80+100+100+70+70+80) + 5 gaps of 8px + horizontal padding */
+  /* Sum of fixed column widths (80+100+100+70+70+80=500) + 5 gaps of 8px (40) + ~20px row padding */
   min-width: 560px;
 }
 .table-header {
