@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, watchEffect, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useUserStore } from '@/stores/useUserStore'
@@ -7,6 +7,8 @@ import { useImportPolling } from '@/composables/useImportPolling'
 import * as shoppingApi from '@/api/shoppingLists'
 import type { TimelineEntry } from '@/types/timeline'
 import PourLoader from '@/components/base/PourLoader.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import ToggleChip from '@/components/base/ToggleChip.vue'
 
 const router = useRouter()
 const timelineStore = useTimelineStore()
@@ -63,20 +65,33 @@ const days = computed(() => {
   return result
 })
 
+// Entries for a given day that are selectable (have a recipe attached),
+// ordered by meal type so chips group predictably within the day section.
+function selectableEntriesForDay(dateStr: string): TimelineEntry[] {
+  const dayEntries = entriesByDate.value[dateStr] ?? []
+  const result: TimelineEntry[] = []
+  for (const mt of mealTypes.value) {
+    for (const e of dayEntries.filter((en) => en.meal_type === mt)) {
+      if (e.recipe_id) result.push(e)
+    }
+  }
+  return result
+}
+
 function isDayChecked(dateStr: string): boolean {
-  const dayEntries = (entriesByDate.value[dateStr] ?? []).filter((e) => e.recipe_id)
+  const dayEntries = selectableEntriesForDay(dateStr)
   if (dayEntries.length === 0) return false
   return dayEntries.every((e) => checkedEntryIds.value.has(e.id))
 }
 
 function isDayIndeterminate(dateStr: string): boolean {
-  const dayEntries = (entriesByDate.value[dateStr] ?? []).filter((e) => e.recipe_id)
+  const dayEntries = selectableEntriesForDay(dateStr)
   const checked = dayEntries.filter((e) => checkedEntryIds.value.has(e.id))
   return checked.length > 0 && checked.length < dayEntries.length
 }
 
 function toggleDay(dateStr: string) {
-  const dayEntries = (entriesByDate.value[dateStr] ?? []).filter((e) => e.recipe_id)
+  const dayEntries = selectableEntriesForDay(dateStr)
   const allChecked = isDayChecked(dateStr)
   const next = new Set(checkedEntryIds.value)
   for (const e of dayEntries) {
@@ -161,17 +176,9 @@ function dayLabel(dateStr: string): string {
   return `${DAY_NAMES[d.getDay()]} ${dateStr}`
 }
 
-const dayCheckboxRefs = ref<Record<string, HTMLInputElement | null>>({})
-
-watchEffect(() => {
-  void checkedEntryIds.value  // track reactively
-  nextTick(() => {
-    for (const day of days.value) {
-      const el = dayCheckboxRefs.value[day]
-      if (el) el.indeterminate = isDayIndeterminate(day)
-    }
-  })
-})
+function dayToggleLabel(dateStr: string): string {
+  return isDayChecked(dateStr) ? 'Clear day' : 'Select day'
+}
 </script>
 
 <template>
@@ -181,61 +188,47 @@ watchEffect(() => {
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="toolbar-actions">
-        <button class="toolbar-btn" @click="selectAllUpcoming">Select all upcoming</button>
-        <button class="toolbar-btn" @click="clearAll">Clear</button>
+        <BaseButton variant="secondary" @click="selectAllUpcoming">Select all upcoming</BaseButton>
+        <BaseButton variant="ghost" @click="clearAll">Clear</BaseButton>
       </div>
       <span class="toolbar-summary">{{ selectedCount }} meals selected</span>
     </div>
 
-    <!-- Checkboard table -->
-    <div class="checkboard-wrap">
-      <div v-if="timelineStore.loading" class="loading-cells"><PourLoader /></div>
-      <table v-else class="checkboard">
-        <thead>
-          <tr>
-            <th class="col-check"></th>
-            <th class="col-day">Day</th>
-            <th v-for="mt in mealTypes" :key="mt" class="col-meal">{{ mt }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="day in days"
-            :key="day"
-            :class="{ 'row-today': day === todayStr }"
+    <!-- Day sections -->
+    <div v-if="timelineStore.loading" class="loading-state"><PourLoader label="Loading meals" /></div>
+    <div v-else class="day-list">
+      <section
+        v-for="day in days"
+        :key="day"
+        class="day-section"
+        :class="{ 'day-section--today': day === todayStr }"
+      >
+        <header class="day-header">
+          <h2 class="day-heading">{{ dayLabel(day) }}</h2>
+          <button
+            v-if="selectableEntriesForDay(day).length > 0"
+            type="button"
+            class="day-toggle"
+            :class="{ 'day-toggle--indeterminate': isDayIndeterminate(day) }"
+            @click="toggleDay(day)"
           >
-            <td class="col-check">
-              <input
-                type="checkbox"
-                :ref="(el) => { dayCheckboxRefs[day] = el as HTMLInputElement | null }"
-                :checked="isDayChecked(day)"
-                @change="toggleDay(day)"
-              />
-            </td>
-            <td class="col-day">{{ dayLabel(day) }}</td>
-            <td v-for="mt in mealTypes" :key="mt" class="col-meal">
-              <template v-if="entriesByDate[day]?.find((e) => e.meal_type === mt)">
-                <label
-                  v-for="entry in entriesByDate[day].filter((e) => e.meal_type === mt)"
-                  :key="entry.id"
-                  class="meal-label"
-                >
-                  <input
-                    v-if="entry.recipe_id"
-                    type="checkbox"
-                    :checked="checkedEntryIds.has(entry.id)"
-                    @change="toggleEntry(entry.id)"
-                  />
-                  <span :class="{ 'no-recipe': !entry.recipe_id }">
-                    {{ entryLabel(entry) }}
-                  </span>
-                </label>
-              </template>
-              <span v-else class="empty-slot">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            {{ dayToggleLabel(day) }}
+          </button>
+        </header>
+
+        <div v-if="selectableEntriesForDay(day).length > 0" class="chip-row">
+          <ToggleChip
+            v-for="entry in selectableEntriesForDay(day)"
+            :key="entry.id"
+            :model-value="checkedEntryIds.has(entry.id)"
+            @update:model-value="toggleEntry(entry.id)"
+          >
+            <span class="chip-meal-type">{{ entry.meal_type }}</span>
+            <span class="chip-label">{{ entryLabel(entry) }}</span>
+          </ToggleChip>
+        </div>
+        <p v-else class="day-empty">No meals planned</p>
+      </section>
     </div>
 
     <!-- Footer -->
@@ -245,13 +238,14 @@ watchEffect(() => {
       </span>
       <div class="footer-actions">
         <input v-model="listName" :placeholder="autoName" class="name-input" type="text" />
-        <button
-          :disabled="selectedCount === 0 || generating"
-          class="generate-btn"
+        <BaseButton
+          variant="primary"
+          :disabled="selectedCount === 0"
+          :loading="generating"
           @click="generate"
         >
-          {{ generating ? 'Generating…' : 'Generate shopping list →' }}
-        </button>
+          Generate shopping list →
+        </BaseButton>
       </div>
       <p v-if="error" class="error">{{ error }}</p>
     </div>
@@ -262,177 +256,168 @@ watchEffect(() => {
 .new-list-page {
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-8) * 2);
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 600;
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
 }
 
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.75rem;
-  background: #fafafa;
-  border: 1px solid #e5e7eb;
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-4);
 }
 
 .toolbar-actions {
   display: flex;
-  gap: 0.5rem;
-}
-
-.toolbar-btn {
-  font-size: 0.75rem;
-  padding: 3px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-}
-
-.toolbar-btn:hover {
-  background: #f3f4f6;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .toolbar-summary {
-  font-size: 0.75rem;
-  color: #6b7280;
-}
-
-.checkboard-wrap {
-  overflow-x: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 0 0 8px 8px;
-}
-
-.loading-cells {
-  padding: 2rem;
-  text-align: center;
-  color: #9ca3af;
-  font-size: 0.875rem;
-}
-
-.checkboard {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-}
-
-.checkboard th {
-  padding: 6px 10px;
-  background: #f3f4f6;
-  text-align: left;
-  font-weight: 600;
-  color: #374151;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.checkboard td {
-  padding: 6px 10px;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-}
-
-.col-check {
-  width: 2.5rem;
-  text-align: center;
-}
-
-.col-day {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   white-space: nowrap;
-  font-weight: 600;
-  min-width: 10rem;
 }
 
-.col-meal {
-  min-width: 8rem;
+.loading-state {
+  padding: var(--space-6);
+  text-align: center;
 }
 
-.row-today {
-  background: #fffbeb;
-}
-
-.meal-label {
+.day-list {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.day-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--color-surface);
+}
+
+.day-section--today {
+  background: var(--color-accent-soft);
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.day-heading {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.day-toggle {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
+  border-radius: var(--radius-sm);
 }
 
-.no-recipe {
-  color: #9ca3af;
+.day-toggle:hover {
+  background: var(--color-primary-soft);
+}
+
+.day-toggle--indeterminate {
+  color: var(--color-text-muted);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip-meal-type {
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-right: var(--space-1);
+}
+
+.chip-label {
+  font-weight: 500;
+}
+
+.day-empty {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   font-style: italic;
-}
-
-.empty-slot {
-  color: #d1d5db;
+  margin: 0;
 }
 
 .footer {
-  margin-top: 1rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 0.75rem;
+  position: sticky;
+  bottom: 0;
+  margin-top: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
 }
 
 .footer-summary {
-  font-size: 0.8rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .footer-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .name-input {
   flex: 1;
   min-width: 200px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.generate-btn {
-  padding: 0.5rem 1.25rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.generate-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.generate-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .error {
-  color: #dc2626;
-  font-size: 0.875rem;
+  color: var(--color-danger);
+  font-size: var(--text-sm);
   margin: 0;
 }
 
 @media (min-width: 768px) {
   .new-list-page {
-    padding: 1.5rem;
+    padding: var(--space-5);
   }
 
   .footer-actions {
