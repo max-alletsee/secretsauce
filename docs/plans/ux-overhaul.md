@@ -10,7 +10,7 @@
 
 ---
 
-## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-11 — Phase 7 COMPLETE through Task 7.2 + whole-review fix; paused for consolidated Phase 7 user feedback before Phase 8)*
+## 🔖 SESSION HANDOFF / RESUME HERE  *(updated 2026-07-13 — Phase 9 COMPLETE through Task 9.1; paused for consolidated Phase 9 user feedback before Phase 10)*
 
 > Read this section first when resuming in a new session. It captures live state that isn't obvious from the plan body.
 
@@ -86,6 +86,18 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - `bca9bcc` fix(timeline): make past meal slots viewable and loggable  *(Task 6.2)*
 - `d734e40` feat(timeline): recolor regen and replace emoji actions  *(Task 6.3, user-approved scope correction)*
 - `3e9e7ce` feat(timeline): date-range header and generate CTA  *(Task 6.4; a real `<details open>` default-state bug caught during pickup and fixed)*
+- `4b509d2` fix(timeline): replace RecipePicker emoji with Lucide icons  *(post-Phase-6 polish)*
+- `966d032` feat(shopping): list cards show progress, count, plan  *(Task 7.1)*
+- `f76ecfd` feat(shopping): swipe-to-delete with overflow fallback  *(Task 7.2; includes sanctioned backend exception #2, `DELETE /shopping-lists/{id}`)*
+- `c325457` fix(shopping): suppress navigation on swipe, close overflow menu on outside click/Escape  *(final whole-branch review finding, Phase 7)*
+- `14a39dd` docs: mark Phase 7 complete; update handoff snapshot
+- `36bb058` feat(shopping): sticky progress header with hide/clear  *(Task 8.1)*
+- `5740b45` feat(shopping): add create-item and quantity/unit update routes  *(Task 8.2 backend; sanctioned exception #3)*
+- `1bd3ed5` feat(shopping): add ad-hoc items and inline quantity edit  *(Task 8.2 frontend)*
+- `4dd2b39` feat(shopping): guard regenerate behind overflow confirm  *(Task 8.3)*
+- `b75fe43` fix(shopping): add RefreshCw icon to regenerate menu item  *(8.3 review fix)*
+- `7b6e1f3` fix(shopping): correct quantity no-op guard and stale regenerate copy  *(post-Phase-8 polish)*
+- `e644587` feat(shopping): chip multi-select builder grouped by day  *(Task 9.1)*
 
 **Integration:** after Task 0.5, `ui-shell-rework` was fast-forwarded (local only) to the worktree branch `worktree-ux-overhaul`, so both branches point at the same commit. That fast-forward has NOT been repeated since — `ui-shell-rework` is stale as of `bc90983`; re-sync it at the next checkpoint if desired. Nothing pushed to origin yet.
 
@@ -102,9 +114,13 @@ Before Phase 0, the branch's `type-check`/`build` were already RED (pre-existing
 - ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 5 feedback, do NOT auto-continue to Phase 6 without sign-off.**
 - ✅ **PHASE 6 COMPLETE — Tasks 6.1–6.4 done, reviewed, Minor findings only.** Full verification GREEN at commit `3e9e7ce`: type-check ✓, build ✓, **466 tests / 56 files** ✓. Vertical day sections + BaseCard wrapping + meal-type tint/icon (6.1) + past-day tappability verified/tested (6.2, no functional change needed — behavior already correct, just untested/undocumented before) + Regen recolor/emoji sweep/AI-wording cleanup (6.3, scope expanded to the files where violations actually lived — see Decisions §7) + date-range header/Generate CTA (6.4, one real `<details>` default-open bug caught during pickup and fixed — see Decisions §8 for the duplicate-CTA decision).
 - ✅ **FINAL WHOLE-BRANCH REVIEW (Phase 6) done at commit `3e9e7ce`.** Re-ran verification independently (green, after self-correcting an initial wrong-checkout mistake). All 6 acceptance criteria met. One genuine new cross-task Minor finding: `BaseCard` and `MealSlot`'s tint class both set `background`/`padding` at identical CSS specificity in separate stylesheet chunks — the tint currently wins only by chunk insertion order, which is fragile (a future build-order change could silently flip it); not a live defect today, rolled into the polish backlog. No Critical/Important findings. Full detail in `.superpowers/sdd/progress.md`.
-- ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 6 feedback, do NOT auto-continue to Phase 7 without sign-off.**
-- ⏭️ **NEXT after sign-off: Phase 7 (Shopping lists index)** — Task 7.1 card status (progress + count + plan) on `ShoppingListsView.vue`. New BASE for 7.1 = `3e9e7ce`.
-- ⏳ **Phases 7–11** — not started.
+- ⏸️ Phase 6 sign-off: user approved proceeding without a further pause.
+- ✅ **PHASE 7 COMPLETE — Tasks 7.1–7.2 done, reviewed, plus a whole-review fix.** Full verification GREEN at commit `c325457`: frontend type-check ✓, build ✓, **482/482 tests** ✓; backend 122/122. Card progress/count/plan (7.1) + swipe-to-delete with overflow fallback (7.2, includes sanctioned backend exception #2: `DELETE /shopping-lists/{id}`, no such route existed before). Whole-phase review caught one real Important cross-task bug (swipe's synthesized click was navigating away before the revealed delete button could be tapped) — fixed and re-reviewed clean. User signed off on Phase 7 (2026-07-12).
+- ✅ **PHASE 8 COMPLETE — Tasks 8.1–8.3 done, reviewed, plus 2 polish fixes.** Full verification GREEN at commit `7b6e1f3`: frontend type-check ✓, build ✓, **506/506 tests / 58 files** ✓; backend 244/245 (1 pre-existing unrelated failure). Sticky progress header + hide/clear (8.1, "Clear checked" = bulk-uncheck not delete, user-resolved) + add-item/inline-qty-edit (8.2, includes sanctioned backend exception #3: `POST /shopping-lists/{id}/items` + widened PATCH) + regenerate gated behind overflow confirm (8.3, one fix loop for a missing RefreshCw icon). Whole-phase review found no Critical/Important; user selected both Minor findings (quantity no-op guard rounding bug + stale regenerate empty-state copy) to fix immediately rather than defer — done in `7b6e1f3`. User signed off on Phase 8 (2026-07-12).
+- ✅ **PHASE 9 COMPLETE — Task 9.1 done, reviewed clean modulo Minor findings.** Full verification GREEN at commit `e644587`: type-check ✓, build ✓, **515/515 tests / 59 files** ✓. `ShoppingListNewView.vue`'s days×meals `<table>` replaced with day-grouped `ToggleChip` multi-select; day-level tri-state now a labeled ghost button (`ToggleChip`'s boolean fill can't honestly represent "partially selected" — design judgment call, reviewer verified correct); footer CTA made genuinely `position:sticky` (was not sticky before); no horizontal scroll at 375px (flex-wrap throughout, no fixed min-widths carried over from the old table cells). New `ShoppingListNewView.test.ts` (9 tests, no prior test file existed for this view). `DayMealPicker.vue` (an unrelated component) correctly left untouched despite the brief's stale file-list mention.
+- ⏸️ **Paused here per established checkpoint discipline: present consolidated Phase 9 feedback, do NOT auto-continue to Phase 10 without sign-off.**
+- ⏭️ **NEXT after sign-off: Phase 10 (Settings)** — Task 10.1 chip multi-selects (`dietary_restrictions`/`allergies`/`favorite_cuisines`) + disliked-ingredients token input on `ProfileSettingsView.vue`, wired into `UserUpdatePayload`. New BASE for 10.1 = `e644587`.
+- ⏳ **Phase 11** — not started.
 - **Per-task loop reminder:** every implementer/fix dispatch must prove completion via `git rev-parse HEAD` + `git show --stat HEAD` (an early 0.8 implementer fabricated a DONE with a fake hash). Fix dispatches must `git add` only source files (never the `.superpowers/` report — it's git-ignored scratch). **New this session:** also run `git status --short` after every dispatch, not just `git show --stat HEAD` — two separate implementers left stray uncommitted edits (an unrelated scratch `.md` file once swept into a commit and had to be surgically removed via soft-reset; a harmless lint-autofix on an unrelated test file) sitting in the working tree alongside otherwise-clean commits.
 
 ### Cross-task reminders for later phases
@@ -634,10 +650,10 @@ npm run type-check && npm run build && npm run test:unit
 
 ### Phase 9 — Shopping list builder
 
-#### Task 9.1: Chip multi-select grouped by day
-**Files:** Modify `frontend/src/views/ShoppingListNewView.vue` (and/or `components/DayMealPicker.vue`)
-- [ ] Replace days×meals table with `ToggleChip`s grouped under each day heading. Preserve select-all/clear at day or page level. Sticky footer CTA retained; list name optional/secondary. No horizontal scroll at 375px.
-- [ ] **VERIFY** (existing `DayMealPicker.test.ts` passes/updated) + commit `feat(shopping): chip multi-select builder grouped by day`.
+#### Task 9.1: Chip multi-select grouped by day ✅
+**Files:** Modify `frontend/src/views/ShoppingListNewView.vue` (`DayMealPicker.vue` is an unrelated component — not touched)
+- [x] Replace days×meals table with `ToggleChip`s grouped under each day heading. Preserve select-all/clear at day or page level. Sticky footer CTA retained; list name optional/secondary. No horizontal scroll at 375px.
+- [x] **VERIFY** (new `ShoppingListNewView.test.ts`, 9 tests — no prior test file existed for this view) + commit `feat(shopping): chip multi-select builder grouped by day` (e644587).
 
 **Phase 9 checkpoint.**
 
