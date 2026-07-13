@@ -207,4 +207,22 @@ describe('ConfirmDialog', () => {
       dialog.attributes('aria-labelledby') !== undefined
     expect(hasLabel).toBe(true)
   })
+
+  it('does not set data-theme on the dialog or backdrop when dark prop is false (default)', () => {
+    const wrapper = mount(ConfirmDialog, {
+      props: defaultProps,
+      global: { stubs: { teleport: true } },
+    })
+    expect(wrapper.find('[role="dialog"]').attributes('data-theme')).toBeUndefined()
+    expect(wrapper.find('[data-testid="dialog-backdrop"]').attributes('data-theme')).toBeUndefined()
+  })
+
+  it('sets data-theme="dark" on the teleported dialog and backdrop when dark prop is true', () => {
+    const wrapper = mount(ConfirmDialog, {
+      props: { ...defaultProps, dark: true },
+      global: { stubs: { teleport: true } },
+    })
+    expect(wrapper.find('[role="dialog"]').attributes('data-theme')).toBe('dark')
+    expect(wrapper.find('[data-testid="dialog-backdrop"]').attributes('data-theme')).toBe('dark')
+  })
 })

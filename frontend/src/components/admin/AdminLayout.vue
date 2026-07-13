@@ -3,12 +3,23 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import * as adminApi from '@/api/admin'
+import ConfirmDialog from '@/components/base/ConfirmDialog.vue'
 
 const route = useRoute()
 const cleanupStatus = ref<'idle' | 'loading' | 'done' | 'error'>('idle')
 const cleanupMessage = ref('')
+const confirmingCleanup = ref(false)
 
-async function runCleanup() {
+function requestCleanup() {
+  confirmingCleanup.value = true
+}
+
+function cancelCleanup() {
+  confirmingCleanup.value = false
+}
+
+async function confirmCleanup() {
+  confirmingCleanup.value = false
   cleanupStatus.value = 'loading'
   try {
     const { data } = await adminApi.triggerCleanup()
@@ -52,7 +63,7 @@ const navItems = [
         <button
           class="cleanup-btn"
           :disabled="cleanupStatus === 'loading'"
-          @click="runCleanup"
+          @click="requestCleanup"
         >
           <span v-if="cleanupStatus === 'loading'">Running…</span>
           <span v-else-if="cleanupStatus === 'done' || cleanupStatus === 'error'">{{ cleanupMessage }}</span>
@@ -63,6 +74,16 @@ const navItems = [
     <main class="admin-main">
       <RouterView />
     </main>
+
+    <ConfirmDialog
+      :open="confirmingCleanup"
+      dark
+      title="Run cleanup?"
+      message="Deletes expired temp upload files (from in-progress or abandoned recipe imports) that are past their retention window. This can't be undone."
+      confirm-label="Run cleanup"
+      @confirm="confirmCleanup"
+      @cancel="cancelCleanup"
+    />
   </div>
 </template>
 

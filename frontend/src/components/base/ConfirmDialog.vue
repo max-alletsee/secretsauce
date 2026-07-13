@@ -10,11 +10,24 @@ const props = withDefaults(
     confirmLabel?: string
     cancelLabel?: string
     danger?: boolean
+    /**
+     * Renders the teleported dialog (and its backdrop) with the dark color
+     * tokens instead of the light `:root` ones. `<Teleport to="body">` moves
+     * this component's DOM out of any ancestor that might carry
+     * `data-theme="dark"` (e.g. AdminLayout.vue's `.admin-layout`), so the
+     * dialog would otherwise always resolve light tokens even when opened
+     * from a dark-themed area. Setting the attribute directly on the
+     * teleported root(s) re-establishes the dark custom-property scope
+     * locally, without touching global document state or any other
+     * (non-dark) call site's default behavior.
+     */
+    dark?: boolean
   }>(),
   {
     confirmLabel: 'Confirm',
     cancelLabel: 'Cancel',
     danger: false,
+    dark: false,
   },
 )
 
@@ -108,6 +121,7 @@ onUnmounted(() => {
       <div
         class="dialog-backdrop"
         data-testid="dialog-backdrop"
+        :data-theme="dark ? 'dark' : undefined"
         @click="emit('cancel')"
       />
       <div
@@ -116,6 +130,7 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         :aria-labelledby="dialogTitleId"
+        :data-theme="dark ? 'dark' : undefined"
       >
         <header class="dialog-header">
           <h3 :id="dialogTitleId" class="dialog-title">{{ title }}</h3>
