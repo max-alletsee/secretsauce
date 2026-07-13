@@ -5,6 +5,7 @@ import LogFilterBar from '@/components/admin/LogFilterBar.vue'
 import { useAdminLogsStore } from '@/stores/useAdminLogsStore'
 import type { AuditAction } from '@/types/admin'
 import PourLoader from '@/components/base/PourLoader.vue'
+import BaseCard from '@/components/base/BaseCard.vue'
 
 const store = useAdminLogsStore()
 const actionFilter = ref<AuditAction | ''>('')
@@ -41,19 +42,24 @@ const badgeClass: Record<AuditAction, string> = {
       </select>
     </LogFilterBar>
 
-    <div class="table-header">
-      <span>Time</span><span>Action</span><span>Description</span><span>By</span>
-    </div>
+    <BaseCard class="table-card">
+      <div v-if="store.loading" class="loading"><PourLoader /></div>
+      <div v-else-if="!store.auditLogs.length" class="empty">No audit log entries found.</div>
+      <div v-else class="table-scroll">
+        <div class="table-grid">
+          <div class="table-header">
+            <span>Time</span><span>Action</span><span>Description</span><span>By</span>
+          </div>
 
-    <div v-if="store.loading" class="loading"><PourLoader /></div>
-    <div v-else-if="!store.auditLogs.length" class="empty">No audit log entries found.</div>
-
-    <div v-for="entry in store.auditLogs" :key="entry.id" class="log-row">
-      <span class="ts">{{ entry.created_at.slice(0, 10) }}</span>
-      <span class="badge" :class="badgeClass[entry.action]">{{ entry.action }}</span>
-      <span class="description">{{ entry.description }}</span>
-      <span class="by">{{ entry.admin_email }}</span>
-    </div>
+          <div v-for="entry in store.auditLogs" :key="entry.id" class="log-row">
+            <span class="ts">{{ entry.created_at.slice(0, 10) }}</span>
+            <span class="badge" :class="badgeClass[entry.action]">{{ entry.action }}</span>
+            <span class="description">{{ entry.description }}</span>
+            <span class="by">{{ entry.admin_email }}</span>
+          </div>
+        </div>
+      </div>
+    </BaseCard>
 
     <button v-if="store.auditLogsHasMore" class="load-more" @click="store.loadMoreAuditLogs">
       Load more
@@ -65,6 +71,17 @@ const badgeClass: Record<AuditAction, string> = {
 .filter-select {
   background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   padding: 5px 8px; color: var(--color-text-muted); font-size: 12px;
+}
+.table-card {
+  padding: 0;
+  overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.table-grid {
+  /* Fixed columns (90+100+140) + a livable width for the 1fr description column + 3 gaps of 8px */
+  min-width: 640px;
 }
 .table-header {
   display: grid; grid-template-columns: 90px 100px 1fr 140px;
@@ -84,7 +101,7 @@ const badgeClass: Record<AuditAction, string> = {
 .badge-grey  { color: var(--color-text-muted); background: var(--color-surface-2); }
 .description { color: var(--color-text); }
 .by { color: var(--color-primary); font-size: 11px; overflow: hidden; text-overflow: ellipsis; }
-.loading, .empty { padding: 20px; color: var(--color-text-muted); text-align: center; }
+.loading, .empty { padding: var(--space-5) var(--space-4); color: var(--color-text-muted); text-align: center; }
 .load-more {
   margin-top: 10px; background: var(--color-surface-2); color: var(--color-accent); border: 1px solid var(--color-border);
   border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; cursor: pointer;

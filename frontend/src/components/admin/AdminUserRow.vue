@@ -64,16 +64,21 @@ const joinedDate = computed(() =>
         <div v-if="user.display_name" class="display-name">{{ user.display_name }}</div>
       </div>
       <div class="col-status">
+        <span class="col-label">Status</span>
         <span :class="user.is_active ? 'badge-active' : 'badge-inactive'">
           {{ user.is_active ? 'Active' : 'Inactive' }}
         </span>
       </div>
       <div class="col-role">
+        <span class="col-label">Role</span>
         <span :class="user.is_superuser ? 'badge-super' : 'badge-user'">
           {{ user.is_superuser ? 'Superuser' : 'User' }}
         </span>
       </div>
-      <div class="col-joined">{{ joinedDate }}</div>
+      <div class="col-joined">
+        <span class="col-label">Joined</span>
+        <span>{{ joinedDate }}</span>
+      </div>
       <div class="col-expand">
         <button class="expand-btn" :aria-label="isExpanded ? 'Collapse user details' : 'Expand user details'" @click="emit('toggle')">
           <BaseIcon :icon="isExpanded ? ChevronUp : ChevronDown" />
@@ -149,6 +154,41 @@ const joinedDate = computed(() =>
 .badge-user    { color: var(--color-text-muted); }
 .col-joined    { color: var(--color-text-muted); font-size: 12px; }
 .expand-btn    { background: none; border: none; color: var(--color-accent); cursor: pointer; font-size: 13px; }
+.col-label { display: none; }
+
+/* Stacked card-per-row layout at narrow widths: no horizontal scroll needed. */
+@media (max-width: 767px) {
+  .user-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-3);
+    position: relative;
+  }
+  .col-email {
+    flex: 1 1 100%;
+    padding-right: 32px; /* keep clear of the absolutely-positioned expand button */
+  }
+  .col-status, .col-role, .col-joined {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+  }
+  .col-label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+  }
+  .col-expand {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+  }
+}
 .expanded-panel {
   background: var(--color-bg);
   border-left: 3px solid var(--color-primary);

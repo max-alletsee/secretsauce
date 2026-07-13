@@ -38,7 +38,7 @@ async function fetchUsers() {
       <button class="search-btn" @click="fetchUsers">Search</button>
     </div>
 
-    <div class="table-header">
+    <div class="table-header" aria-hidden="true">
       <span>Email / Name</span>
       <span>Status</span>
       <span>Role</span>
@@ -88,6 +88,11 @@ async function fetchUsers() {
   gap: 8px; padding: 5px 12px; background: var(--color-surface);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 11px; color: var(--color-text-muted);
   text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+@media (max-width: 767px) {
+  /* Rows collapse to stacked cards below; the grid header no longer applies. */
+  .table-header { display: none; }
 }
 .loading { padding: 20px; color: var(--color-text-muted); text-align: center; }
 .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
