@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
+import ToggleChip from '@/components/base/ToggleChip.vue'
+import TagInput from '@/components/base/TagInput.vue'
 
 const userStore = useUserStore()
 
@@ -11,26 +13,56 @@ const mealPlanSystemPrompt = ref('')
 const mealPlanMealTypes = ref<string[]>(['dinner'])
 const mealPlanDaysAhead = ref(7)
 
-function toList(s: string): string[] {
-  return s.split(',').map((x) => x.trim()).filter((x) => x.length > 0)
-}
-function toInput(list: string[] | undefined): string {
-  return (list ?? []).join(', ')
+// Pre-built tag lists (mirrors backend/app/core/constants.py). Only the
+// categories that actually describe a dietary restriction are combined here —
+// season/meal-type/cuisine tags do NOT belong in "dietary restrictions".
+const PROTEIN_TAGS = ['vegan', 'vegetarian', 'fish', 'poultry', 'meat', 'seafood']
+const DIET_TAGS = [
+  'low-calorie', 'high-calorie', 'low-carb', 'high-protein',
+  'gluten-free', 'dairy-free', 'keto', 'paleo', 'mediterranean',
+]
+const CUISINE_TAGS = [
+  'italian', 'mexican', 'japanese', 'chinese', 'indian',
+  'thai', 'french', 'greek', 'middle-eastern', 'american', 'korean',
+]
+
+const dietaryRestrictions = ref<string[]>([])
+const allergies = ref<string[]>([])
+const favoriteCuisines = ref<string[]>([])
+const dislikedIngredients = ref<string[]>([])
+
+function withToggledTag(list: string[], tag: string): string[] {
+  return list.includes(tag) ? list.filter((t) => t !== tag) : [...list, tag]
 }
 
-const dietaryRestrictions = ref('')
-const allergies = ref('')
-const favoriteCuisines = ref('')
-const dislikedIngredients = ref('')
+function toggleDietaryRestriction(tag: string) {
+  dietaryRestrictions.value = withToggledTag(dietaryRestrictions.value, tag)
+}
+
+function toggleFavoriteCuisine(tag: string) {
+  favoriteCuisines.value = withToggledTag(favoriteCuisines.value, tag)
+}
+
+function dedupeTrimmed(list: string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const raw of list) {
+    const trimmed = raw.trim()
+    if (!trimmed || seen.has(trimmed.toLowerCase())) continue
+    seen.add(trimmed.toLowerCase())
+    result.push(trimmed)
+  }
+  return result
+}
 
 watch(
   () => userStore.user,
   (u) => {
     if (!u) return
-    dietaryRestrictions.value = toInput(u.dietary_restrictions)
-    allergies.value = toInput(u.allergies)
-    favoriteCuisines.value = toInput(u.favorite_cuisines)
-    dislikedIngredients.value = toInput(u.disliked_ingredients)
+    dietaryRestrictions.value = [...(u.dietary_restrictions ?? [])]
+    allergies.value = [...(u.allergies ?? [])]
+    favoriteCuisines.value = [...(u.favorite_cuisines ?? [])]
+    dislikedIngredients.value = [...(u.disliked_ingredients ?? [])]
   },
   { immediate: true },
 )
@@ -72,10 +104,10 @@ async function save() {
       meal_plan_system_prompt: mealPlanSystemPrompt.value || null,
       meal_plan_meal_types: mealPlanMealTypes.value,
       meal_plan_days_ahead: mealPlanDaysAhead.value,
-      dietary_restrictions: toList(dietaryRestrictions.value),
-      allergies: toList(allergies.value),
-      favorite_cuisines: toList(favoriteCuisines.value),
-      disliked_ingredients: toList(dislikedIngredients.value),
+      dietary_restrictions: dedupeTrimmed(dietaryRestrictions.value),
+      allergies: dedupeTrimmed(allergies.value),
+      favorite_cuisines: dedupeTrimmed(favoriteCuisines.value),
+      disliked_ingredients: dedupeTrimmed(dislikedIngredients.value),
     })
     saved.value = true
   } catch {
@@ -155,46 +187,67 @@ async function save() {
 
     <section class="settings-section">
       <h2>Food preferences</h2>
-      <p class="section-hint">Comma-separated. These guide AI meal suggestions.</p>
+      <p class="section-hint">These guide AI meal suggestions.</p>
+
+      <div class="field-label" data-testid="pref-dietary_restrictions">
+        Dietary restrictions
+        <fieldset class="tag-group">
+          <legend class="tag-group__legend">Protein</legend>
+          <div class="tag-group__chips">
+            <ToggleChip
+              v-for="tag in PROTEIN_TAGS"
+              :key="tag"
+              :label="tag"
+              :model-value="dietaryRestrictions.includes(tag)"
+              @update:model-value="toggleDietaryRestriction(tag)"
+            />
+          </div>
+        </fieldset>
+        <fieldset class="tag-group">
+          <legend class="tag-group__legend">Diet</legend>
+          <div class="tag-group__chips">
+            <ToggleChip
+              v-for="tag in DIET_TAGS"
+              :key="tag"
+              :label="tag"
+              :model-value="dietaryRestrictions.includes(tag)"
+              @update:model-value="toggleDietaryRestriction(tag)"
+            />
+          </div>
+        </fieldset>
+      </div>
 
       <label class="field-label">
-        Dietary restrictions
-        <input
-          v-model="dietaryRestrictions"
-          type="text"
-          class="field-input"
-          data-testid="pref-dietary_restrictions"
-          placeholder="e.g. vegetarian, low-sodium"
-        />
-      </label>
-      <label class="field-label">
         Allergies
-        <input
+        <TagInput
           v-model="allergies"
-          type="text"
-          class="field-input"
           data-testid="pref-allergies"
-          placeholder="e.g. peanuts, shellfish"
+          placeholder="Type an allergy and press Enter"
         />
       </label>
-      <label class="field-label">
+
+      <div class="field-label" data-testid="pref-favorite_cuisines">
         Favorite cuisines
-        <input
-          v-model="favoriteCuisines"
-          type="text"
-          class="field-input"
-          data-testid="pref-favorite_cuisines"
-          placeholder="e.g. italian, thai"
-        />
-      </label>
+        <fieldset class="tag-group">
+          <legend class="sr-only">Cuisine</legend>
+          <div class="tag-group__chips">
+            <ToggleChip
+              v-for="tag in CUISINE_TAGS"
+              :key="tag"
+              :label="tag"
+              :model-value="favoriteCuisines.includes(tag)"
+              @update:model-value="toggleFavoriteCuisine(tag)"
+            />
+          </div>
+        </fieldset>
+      </div>
+
       <label class="field-label">
         Disliked ingredients
-        <input
+        <TagInput
           v-model="dislikedIngredients"
-          type="text"
-          class="field-input"
           data-testid="pref-disliked_ingredients"
-          placeholder="e.g. cilantro, olives"
+          placeholder="Type an ingredient and press Enter"
         />
       </label>
     </section>
@@ -267,4 +320,40 @@ h2 { font-size: 1rem; font-weight: 600; margin: 0 0 1rem; border-bottom: 1px sol
 .error-msg { color: #dc2626; font-size: 0.875rem; }
 .success-msg { color: #16a34a; font-size: 0.875rem; }
 .section-hint { font-size: 0.8125rem; color: #6b7280; margin: -0.5rem 0 1rem; }
+
+/* Food preferences: pre-built chip groups (dietary_restrictions, favorite_cuisines) */
+.tag-group {
+  border: none;
+  padding: 0;
+  margin: 0 0 var(--space-2);
+}
+.tag-group:last-child { margin-bottom: 0; }
+.tag-group__legend {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+  padding: 0;
+}
+.tag-group__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Visually-hidden utility for the Cuisine <legend> (heading above already
+   says "Favorite cuisines" — the legend is redundant visually but needed
+   for fieldset/legend semantics + screen readers). Matches BaseInput.vue's
+   .sr-only convention. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 </style>
