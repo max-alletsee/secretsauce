@@ -1,17 +1,31 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useUserStore } from '@/stores/useUserStore'
+import { useToast } from '@/composables/useToast'
 import ToggleChip from '@/components/base/ToggleChip.vue'
 import TagInput from '@/components/base/TagInput.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseTextarea from '@/components/base/BaseTextarea.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const userStore = useUserStore()
+const toast = useToast()
 
 const displayName = ref('')
 const preferredUnits = ref<'metric' | 'imperial'>('metric')
 const defaultServings = ref(2)
+const defaultServingsInput = ref('2')
 const mealPlanSystemPrompt = ref('')
 const mealPlanMealTypes = ref<string[]>(['dinner'])
 const mealPlanDaysAhead = ref(7)
+
+// BaseInput's modelValue is typed as string (matches the pattern already
+// used for numeric fields in ShoppingListView.vue), so we bridge it to the
+// numeric ref that the rest of this component (and the save payload) uses.
+watch(defaultServingsInput, (v) => {
+  const parsed = Number(v)
+  if (!Number.isNaN(parsed)) defaultServings.value = parsed
+})
 
 // Pre-built tag lists (mirrors backend/app/core/constants.py). Only the
 // categories that actually describe a dietary restriction are combined here —
@@ -68,7 +82,6 @@ watch(
 )
 
 const saving = ref(false)
-const saved = ref(false)
 const error = ref('')
 
 const ALL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -87,6 +100,7 @@ onMounted(() => {
   displayName.value = u.display_name ?? ''
   preferredUnits.value = u.preferred_units
   defaultServings.value = u.default_servings
+  defaultServingsInput.value = String(u.default_servings)
   mealPlanSystemPrompt.value = u.meal_plan_system_prompt ?? ''
   mealPlanMealTypes.value = u.meal_plan_meal_types ?? ['dinner']
   mealPlanDaysAhead.value = u.meal_plan_days_ahead ?? 7
@@ -94,7 +108,6 @@ onMounted(() => {
 
 async function save() {
   saving.value = true
-  saved.value = false
   error.value = ''
   try {
     await userStore.updateProfile({
@@ -109,7 +122,7 @@ async function save() {
       favorite_cuisines: dedupeTrimmed(favoriteCuisines.value),
       disliked_ingredients: dedupeTrimmed(dislikedIngredients.value),
     })
-    saved.value = true
+    toast.show({ message: 'Saved' })
   } catch {
     error.value = 'Failed to save. Please try again.'
   } finally {
@@ -124,10 +137,12 @@ async function save() {
 
     <section class="settings-section">
       <h2>Profile</h2>
-      <label class="field-label">
-        Display name
-        <input v-model="displayName" type="text" class="field-input" placeholder="Your name" />
-      </label>
+      <BaseInput
+        v-model="displayName"
+        label="Display name"
+        type="text"
+        placeholder="Your name"
+      />
       <label class="field-label">
         Preferred units
         <select v-model="preferredUnits" class="field-input">
@@ -135,10 +150,13 @@ async function save() {
           <option value="imperial">Imperial</option>
         </select>
       </label>
-      <label class="field-label">
-        Default servings
-        <input v-model.number="defaultServings" type="number" min="1" max="20" class="field-input" />
-      </label>
+      <BaseInput
+        v-model="defaultServingsInput"
+        label="Default servings"
+        type="number"
+        min="1"
+        max="20"
+      />
     </section>
 
     <section class="settings-section">
@@ -147,16 +165,13 @@ async function save() {
       <div class="field-label">
         Meal types to show
         <div class="chip-row">
-          <button
+          <ToggleChip
             v-for="mt in ALL_MEAL_TYPES"
             :key="mt"
-            type="button"
-            class="meal-type-chip"
-            :class="{ active: mealPlanMealTypes.includes(mt) }"
-            @click="toggleMealType(mt)"
-          >
-            {{ mt }}
-          </button>
+            :label="mt"
+            :model-value="mealPlanMealTypes.includes(mt)"
+            @update:model-value="toggleMealType(mt)"
+          />
         </div>
       </div>
 
@@ -174,15 +189,12 @@ async function save() {
         </div>
       </label>
 
-      <label class="field-label">
-        Family context &amp; AI instructions
-        <textarea
-          v-model="mealPlanSystemPrompt"
-          class="field-textarea"
-          rows="4"
-          placeholder="e.g. 2 adults, 1 toddler. We prefer low-spice meals on weekdays."
-        />
-      </label>
+      <BaseTextarea
+        v-model="mealPlanSystemPrompt"
+        label="Family context &amp; AI instructions"
+        :rows="4"
+        placeholder="e.g. 2 adults, 1 toddler. We prefer low-spice meals on weekdays."
+      />
     </section>
 
     <section class="settings-section">
@@ -253,11 +265,15 @@ async function save() {
     </section>
 
     <div class="actions">
-      <p v-if="error" class="error-msg">{{ error }}</p>
-      <p v-if="saved" class="success-msg">Saved!</p>
-      <button :disabled="saving" class="save-btn" data-testid="save-btn" @click="save">
-        {{ saving ? 'Saving…' : 'Save settings' }}
-      </button>
+      <p v-if="error" class="error-msg" role="alert">{{ error }}</p>
+      <BaseButton
+        variant="primary"
+        :loading="saving"
+        data-testid="save-btn"
+        @click="save"
+      >
+        Save settings
+      </BaseButton>
     </div>
   </main>
 </template>
@@ -266,60 +282,67 @@ async function save() {
 .settings-page {
   max-width: 600px;
   margin: 0 auto;
-  padding: 1rem;
+  padding: var(--space-4);
+  /* Reserve room so content isn't hidden behind the sticky save bar. */
+  padding-bottom: calc(var(--space-8) + var(--space-4));
 }
-h1 { font-size: 1.5rem; font-weight: 600; margin: 0 0 1.5rem; }
-.settings-section { margin-bottom: 2rem; }
-h2 { font-size: 1rem; font-weight: 600; margin: 0 0 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+h1 { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; margin: 0 0 var(--space-5); }
+.settings-section { margin-bottom: var(--space-6); }
+h2 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin: 0 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-2);
+}
 .field-label {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
+}
+/* Profile section BaseInput/BaseTextarea instances also need the same
+   bottom rhythm as the native .field-label fields around them. */
+.settings-section > :deep(.input-wrapper),
+.settings-section > :deep(.textarea-wrapper) {
+  margin-bottom: var(--space-4);
 }
 .field-input {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
 }
-.field-textarea {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  resize: vertical;
-}
-.chip-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; }
-.meal-type-chip {
-  padding: 0.25rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 1rem;
-  background: white;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-.meal-type-chip.active { background: #2563eb; color: white; border-color: #2563eb; }
-.slider-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem; }
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+.slider-row { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-1); }
 .slider { flex: 1; }
-.slider-value { font-size: 0.875rem; color: #6b7280; min-width: 4rem; }
-.actions { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
-.save-btn {
-  padding: 0.625rem 2rem;
-  background: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  cursor: pointer;
+.slider-value { font-size: var(--text-sm); color: var(--color-text-muted); min-width: 4rem; }
+.actions {
+  /* Sticky bottom save bar: stays reachable while scrolling a long form.
+     Matches the sticky-bar pattern used elsewhere in this codebase (e.g.
+     RecipeForm.vue's .recipe-form__actions, ShoppingListNewView.vue's
+     .footer), mirrored to the bottom edge. */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin: 0 calc(var(--space-4) * -1) calc(var(--space-4) * -1);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
-.save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.error-msg { color: #dc2626; font-size: 0.875rem; }
-.success-msg { color: #16a34a; font-size: 0.875rem; }
-.section-hint { font-size: 0.8125rem; color: #6b7280; margin: -0.5rem 0 1rem; }
+.error-msg { color: var(--color-danger); font-size: var(--text-sm); }
+.section-hint { font-size: var(--text-xs); color: var(--color-text-muted); margin: calc(var(--space-2) * -1) 0 var(--space-4); }
 
 /* Food preferences: pre-built chip groups (dietary_restrictions, favorite_cuisines) */
 .tag-group {
