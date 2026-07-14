@@ -585,6 +585,57 @@ async def test_delete_recipe_with_timeline_entry(client):
     assert get_entry.json()["note"] == "Linked Recipe"
 
 
+async def test_delete_recipe_with_import_task(client, db_engine):
+    """Deleting an imported recipe must not 500 on the import_tasks FK."""
+    from app.models.import_task import ImportTask, ImportTaskStatus
+
+    email = unique_email("importdel")
+    password = "SecurePass123!"
+    reg = await client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    assert reg.status_code == 201, reg.json()
+    user_id = uuid.UUID(reg.json()["id"])
+    login = await client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert login.status_code == 200, login.json()
+    token = login.json()["access_token"]
+
+    create = await client.post(
+        "/api/v1/recipes",
+        json={"title": "Imported Recipe"},
+        headers=_auth(token),
+    )
+    assert create.status_code == 201
+    recipe_id = uuid.UUID(create.json()["id"])
+
+    # Simulate a completed URL import pointing at the recipe
+    task_id = uuid.uuid4()
+    session_factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as session:
+        session.add(
+            ImportTask(
+                id=task_id,
+                user_id=user_id,
+                url="https://example.com/recipe",
+                status=ImportTaskStatus.COMPLETED,
+                recipe_id=recipe_id,
+            )
+        )
+        await session.commit()
+
+    # Delete the recipe — must succeed (no FK crash)
+    r = await client.delete(f"/api/v1/recipes/{recipe_id}", headers=_auth(token))
+    assert r.status_code == 204
+
+    # The import task must still exist but with recipe_id = null
+    async with session_factory() as session:
+        task = await session.get(ImportTask, task_id)
+        assert task is not None
+        assert task.recipe_id is None
+
+
 # ── Cook stats ────────────────────────────────────────────────────────────────
 
 async def _seed_cook_logs(

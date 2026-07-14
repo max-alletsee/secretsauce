@@ -10,6 +10,7 @@ from sqlalchemy.dialects.postgresql import ARRAY as SA_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import RecipeVisibility
+from app.models.import_task import ImportTask
 from app.models.meal_plan import MealPlanEntry, ShortlistEntry, RecipeCookLog, CarryoverMeal
 from app.models.recipe import Recipe, RecipeVersion
 from app.schemas.recipe import RecipeCreate, RecipeUpdate
@@ -389,6 +390,14 @@ async def delete_recipe(
         sa_update(ShortlistEntry)
         .where(ShortlistEntry.recipe_id == recipe_id)
         .values(recipe_id=None)
+        .execution_options(synchronize_session=False)
+    )
+
+    # Nullify ImportTask.recipe_id (the import history outlives the recipe)
+    await db.execute(
+        sa_update(ImportTask)
+        .where(ImportTask.recipe_id == recipe_id)
+        .values(recipe_id=None, updated_at=datetime.now(timezone.utc))
         .execution_options(synchronize_session=False)
     )
 
