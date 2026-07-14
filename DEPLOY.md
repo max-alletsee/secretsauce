@@ -275,25 +275,18 @@ nano /home/deploy/secretsauce/nginx/nginx.conf
 server_name secretsauce.food www.secretsauce.food;
 ```
 
-### 6. Build the frontend
+### 6. Build and start the stack
 
-The nginx service serves the pre-built frontend from `frontend/dist`. Build it before starting the stack:
-
-```bash
-cd frontend && npm install && npm run build && cd ..
-```
-
-Alternatively, let Podman build it — the `frontend` service Dockerfile builds `dist` internally, and the nginx volume mount `./frontend/dist` will be populated after the frontend container runs its build stage. The easiest approach is to let podman-compose handle it all:
+The `frontend` service builds the Vue app inside its image and, on container start, copies the built `dist/` into the shared `frontend_dist` volume that nginx serves from. Let podman-compose handle it all:
 
 ```bash
 podman-compose up -d --build
 ```
 
-If a container is already running, it may be necessary to first stop it altogether and restart it: 
-
-```bash
-podman-compose down && podman-compose up -d
-```
+> **Warning:** `up -d --build` is only sufficient the *first* time, when no
+> containers exist yet. podman-compose rebuilds images but does **not**
+> recreate existing containers from them — for updates, always use
+> `./deploy.sh` (see [Updating Production](#updating-production)).
 
 ### 7. Run database migrations
 
@@ -328,25 +321,31 @@ Set up a daily cron job to dump the database. Run this as the `deploy` user (`cr
 
 ```bash
 # Run as deploy user: crontab -e
-0 2 * * * BACKUP_DIR=/home/deploy/backups/secretsauce && mkdir -p $BACKUP_DIR && cd /home/deploy/secretsauce/prod && podman-compose exec -T postgres pg_dump -U secretsauce secretsauce | gzip > $BACKUP_DIR/$(date +\%Y\%m\%d).sql.gz && find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
+0 2 * * * BACKUP_DIR=/home/deploy/backups/secretsauce && mkdir -p $BACKUP_DIR && cd /home/deploy/secretsauce && podman-compose exec -T postgres pg_dump -U secretsauce secretsauce | gzip > $BACKUP_DIR/$(date +\%Y\%m\%d).sql.gz && find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
 ```
 
 ---
 
 ## Updating Production
 
-To deploy a new version:
+To deploy a new version, run the deploy script as the `deploy` user from the repo directory:
 
 ```bash
-# On the server, in the repo directory
-git pull
-
-# Rebuild and restart (downtime is brief — postgres data is persisted in the volume)
-podman-compose up -d --build
-
-# Apply any new migrations
-podman-compose exec backend uv run alembic upgrade head
+cd /home/deploy/secretsauce
+./deploy.sh
 ```
+
+The script pulls `main`, backs up the database, rebuilds the images, **recreates** the containers, applies migrations, and then verifies that the running stack actually serves the build it just produced (health check, served frontend bundle hash vs. built image, running backend image vs. built image).
+
+> **Never deploy with `podman-compose up -d --build` alone.** podman-compose
+> rebuilds the images but does **not** recreate existing containers — they keep
+> running the image they were created from, so the deploy silently ships
+> nothing. This bit us in July 2026: production served a two-month-old frontend
+> bundle (with a since-fixed 401-refresh deadlock that blanked the login
+> screen) while every deploy reported success. Containers must be recreated:
+> `podman-compose build && podman-compose down && podman-compose up -d`, which
+> is what `deploy.sh` does — plus the verification that catches this failure
+> class if it ever comes back.
 
 For zero-downtime deploys, see the CI/CD section below.
 
@@ -475,22 +474,11 @@ jobs:
           known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
           script: |
             set -e
-            cd /home/deploy/secretsauce/prod
+            cd /home/deploy/secretsauce
 
-            # Pull latest code
-            git pull origin main
-
-            # Rebuild and restart containers
-            podman-compose up -d --build
-
-            # Run any pending migrations
-            podman-compose exec -T backend uv run alembic upgrade head
-
-            # Confirm health
-            sleep 5
-            curl -f http://localhost:8000/api/v1/health || exit 1
-
-            echo "Deploy complete"
+            # deploy.sh pulls main, backs up the DB, rebuilds images,
+            # RECREATES containers, migrates, and verifies the deploy
+            ./deploy.sh
 ```
 
 ### What the pipeline does
@@ -590,8 +578,11 @@ cd /home/deploy/secretsauce/test
 # Pull the latest from the develop branch
 git pull origin develop
 
-# Rebuild and restart only the test stack
-podman-compose -f docker-compose.test.yml up -d --build
+# Rebuild and recreate only the test stack
+# (up -d --build alone would NOT swap running containers to the rebuilt images)
+podman-compose -f docker-compose.test.yml build
+podman-compose -f docker-compose.test.yml down
+podman-compose -f docker-compose.test.yml up -d
 
 # Apply any new migrations to the test database
 podman-compose -f docker-compose.test.yml exec backend uv run alembic upgrade head
@@ -636,7 +627,11 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
 
             git pull origin develop
 
-            podman-compose -f docker-compose.test.yml up -d --build
+            # build + down + up recreates containers from the rebuilt images
+            # (up -d --build alone would keep running the old containers)
+            podman-compose -f docker-compose.test.yml build
+            podman-compose -f docker-compose.test.yml down
+            podman-compose -f docker-compose.test.yml up -d
             podman-compose -f docker-compose.test.yml exec -T backend uv run alembic upgrade head
 
             sleep 5
@@ -662,15 +657,9 @@ Replace the `deploy` job in `.github/workflows/deploy.yml` with these two jobs:
             set -e
             cd /home/deploy/secretsauce/prod
 
-            git pull origin main
-
-            podman-compose up -d --build
-            podman-compose exec -T backend uv run alembic upgrade head
-
-            sleep 5
-            curl -f https://yourdomain.com:8443/api/v1/health || exit 1
-
-            echo "Production deploy complete"
+            # deploy.sh pulls main, backs up the DB, rebuilds images,
+            # RECREATES containers, migrates, and verifies the deploy
+            ./deploy.sh
 ```
 
 ### Recommended branch workflow
@@ -700,8 +689,9 @@ git log --oneline -5
 # Roll back to it
 git checkout <previous-commit-sha>
 
-# Rebuild with the old code
-podman-compose up -d --build
+# Rebuild with the old code and recreate the containers
+# (up -d --build alone would NOT swap running containers to the rebuilt images)
+podman-compose build && podman-compose down && podman-compose up -d
 
 # Downgrade the database if the migration was destructive
 podman-compose exec backend uv run alembic downgrade -1
