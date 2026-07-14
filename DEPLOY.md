@@ -263,17 +263,15 @@ EOF
 chmod +x /etc/letsencrypt/renewal-hooks/deploy/copy-certs.sh
 ```
 
-### 5. Update nginx.conf for your domain
+### 5. Check nginx.conf for your domain
 
-Edit `nginx/nginx.conf` (full path: `/home/deploy/secretsauce/nginx/nginx.conf`) and replace `server_name _;` with your actual domain:
-
-```bash
-nano /home/deploy/secretsauce/nginx/nginx.conf
-```
+`nginx/nginx.conf` is committed with the production domain already set:
 
 ```nginx
 server_name secretsauce.food www.secretsauce.food;
 ```
+
+If you deploy under a different domain, change it **in the repo and commit** — never edit the file directly on the server. A locally modified file blocks `git pull` and therefore every future deploy.
 
 ### 6. Build and start the stack
 
