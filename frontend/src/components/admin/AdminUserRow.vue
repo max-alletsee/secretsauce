@@ -54,6 +54,14 @@ watch(() => props.isExpanded, (v) => {
 const joinedDate = computed(() =>
   new Date(props.user.created_at).toISOString().slice(0, 10)
 )
+
+const aiCallsLabel = computed(() => {
+  if (!props.stats) return ''
+  const used = props.stats.ai_calls_used
+  return props.user.ai_call_budget === null
+    ? `AI calls: ${used} · unlimited`
+    : `AI calls: ${used} / ${props.user.ai_call_budget}`
+})
 </script>
 
 <template>
@@ -93,6 +101,7 @@ const joinedDate = computed(() =>
         <span>Meal plans: {{ stats.meal_plan_count }}</span>
         <span v-if="stats.last_active">Last active: {{ stats.last_active.slice(0, 10) }}</span>
         <span v-else>Never active</span>
+        <span data-testid="ai-calls">{{ aiCallsLabel }}</span>
       </div>
       <div class="actions">
         <button
@@ -106,6 +115,13 @@ const joinedDate = computed(() =>
           @click="emit('update', user.id, { is_active: !user.is_active })"
         >
           {{ user.is_active ? 'Deactivate' : 'Activate' }}
+        </button>
+        <button
+          class="btn-action btn-budget"
+          data-testid="budget-toggle"
+          @click="emit('update', user.id, { ai_budget_mode: user.ai_call_budget === null ? 'default' : 'unlimited' })"
+        >
+          {{ user.ai_call_budget === null ? 'Restore AI budget' : 'Remove AI budget' }}
         </button>
         <button
           v-if="deleteState === 'idle'"
@@ -204,6 +220,7 @@ const joinedDate = computed(() =>
 }
 .btn-role    { background: var(--color-accent); color: var(--color-primary-ink); }
 .btn-status  { background: var(--color-warning); color: var(--color-primary-ink); }
+.btn-budget  { background: var(--color-surface-2); color: var(--color-text); border: 1px solid var(--color-border); }
 .btn-delete  { background: var(--color-danger-soft); color: var(--color-text); }
 .btn-confirm { background: var(--color-danger); color: var(--color-primary-ink); }
 .btn-cancel  { background: var(--color-border); color: var(--color-text); }
