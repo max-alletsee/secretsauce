@@ -94,3 +94,9 @@ client.interceptors.response.use(
 )
 
 export default client
+
+/** Extract the backend's human-readable `detail` string from an axios error, if any. */
+export function getApiErrorDetail(err: unknown): string | null {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  return typeof detail === 'string' ? detail : null
+}

@@ -5,6 +5,7 @@ import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useUserStore } from '@/stores/useUserStore'
 import { useImportPolling } from '@/composables/useImportPolling'
 import * as shoppingApi from '@/api/shoppingLists'
+import { getApiErrorDetail } from '@/api/client'
 import type { TimelineEntry } from '@/types/timeline'
 import PourLoader from '@/components/base/PourLoader.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -160,8 +161,8 @@ async function generate() {
       listName.value || autoName.value,
     )
     startPolling(data.task_id)
-  } catch {
-    error.value = 'Failed to start. Please try again.'
+  } catch (err) {
+    error.value = getApiErrorDetail(err) ?? 'Failed to start. Please try again.'
     generating.value = false
   }
 }

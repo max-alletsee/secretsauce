@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as mealPlansApi from '@/api/mealPlans'
+import { getApiErrorDetail } from '@/api/client'
 import { useSuggestionsPolling } from '@/composables/useSuggestionsPolling'
 import type {
   MealPlan,
@@ -98,7 +99,8 @@ export const useMealPlanStore = defineStore('mealPlans', () => {
         meal_plan_id: planId,
       })
       startPolling(data.task_id)
-    } catch {
+    } catch (err) {
+      suggestionError.value = getApiErrorDetail(err) ?? 'Failed to start suggestions. Please try again.'
       suggestionLoading.value = false
     }
   }
