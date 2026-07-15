@@ -1,7 +1,7 @@
 # backend/app/schemas/admin.py
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -14,6 +14,7 @@ class AdminUserResponse(BaseModel):
     is_superuser: bool
     is_verified: bool
     preferred_units: str
+    ai_call_budget: int | None
     created_at: datetime
     updated_at: datetime
 
@@ -23,12 +24,14 @@ class AdminUserResponse(BaseModel):
 class AdminUserUpdate(BaseModel):
     is_active: bool | None = None
     is_superuser: bool | None = None
+    ai_budget_mode: Literal["unlimited", "default"] | None = None
 
 
 class UserStatsResponse(BaseModel):
     recipe_count: int
     meal_plan_count: int
     last_active: datetime | None  # max created_at across user's recipes and meal plans
+    ai_calls_used: int
 
 
 class PaginatedAdminUsersResponse(BaseModel):

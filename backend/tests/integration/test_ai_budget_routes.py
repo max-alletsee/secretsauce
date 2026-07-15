@@ -144,3 +144,92 @@ async def test_unlimited_user_never_blocked(client, db_engine):
             headers=_auth(creds["token"]),
         )
     assert r.status_code == 202, r.text
+
+
+# ── Admin budget management ───────────────────────────────────────────────────
+
+async def test_admin_removes_budget(client, superuser_token):
+    creds = await _register_and_login(client)
+    r = await client.patch(
+        f"/api/v1/admin/users/{creds['id']}",
+        json={"ai_budget_mode": "unlimited"},
+        headers=_auth(superuser_token),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["ai_call_budget"] is None
+
+
+async def test_admin_restores_budget(client, superuser_token):
+    creds = await _register_and_login(client)
+    await client.patch(
+        f"/api/v1/admin/users/{creds['id']}",
+        json={"ai_budget_mode": "unlimited"},
+        headers=_auth(superuser_token),
+    )
+    r = await client.patch(
+        f"/api/v1/admin/users/{creds['id']}",
+        json={"ai_budget_mode": "default"},
+        headers=_auth(superuser_token),
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["ai_call_budget"] == 300
+
+
+async def test_budget_actions_write_audit_logs(client, superuser_token):
+    creds = await _register_and_login(client)
+    await client.patch(
+        f"/api/v1/admin/users/{creds['id']}",
+        json={"ai_budget_mode": "unlimited"},
+        headers=_auth(superuser_token),
+    )
+    r = await client.get(
+        "/api/v1/admin/logs/audit",
+        params={"action": "BUDGET_REMOVE"},
+        headers=_auth(superuser_token),
+    )
+    assert r.status_code == 200
+    entries = [e for e in r.json()["items"] if e["target_user_id"] == creds["id"]]
+    assert entries, "expected a BUDGET_REMOVE audit entry"
+    assert entries[0]["description"] == f"Removed AI budget for {creds['email']}"
+
+
+async def test_remove_budget_twice_writes_single_audit_entry(client, superuser_token):
+    creds = await _register_and_login(client)
+    for _ in range(2):
+        r = await client.patch(
+            f"/api/v1/admin/users/{creds['id']}",
+            json={"ai_budget_mode": "unlimited"},
+            headers=_auth(superuser_token),
+        )
+        assert r.status_code == 200
+    r = await client.get(
+        "/api/v1/admin/logs/audit",
+        params={"action": "BUDGET_REMOVE"},
+        headers=_auth(superuser_token),
+    )
+    entries = [e for e in r.json()["items"] if e["target_user_id"] == creds["id"]]
+    assert len(entries) == 1  # second PATCH was a no-op
+
+
+async def test_user_stats_include_ai_calls_used(client, superuser_token, db_engine):
+    creds = await _register_and_login(client)
+    uid = uuid.UUID(creds["id"])
+    await _add_call_log(db_engine, uid)
+    await _add_call_log(db_engine, uid)
+    r = await client.get(
+        f"/api/v1/admin/users/{creds['id']}/stats", headers=_auth(superuser_token)
+    )
+    assert r.status_code == 200
+    assert r.json()["ai_calls_used"] == 2
+
+
+async def test_admin_user_list_includes_budget(client, superuser_token):
+    creds = await _register_and_login(client)
+    r = await client.get(
+        "/api/v1/admin/users",
+        params={"search": creds["email"]},
+        headers=_auth(superuser_token),
+    )
+    assert r.status_code == 200
+    match = [u for u in r.json()["items"] if u["email"] == creds["email"]]
+    assert match and match[0]["ai_call_budget"] == 300
