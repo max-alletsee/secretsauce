@@ -318,6 +318,7 @@ async function handleConvertToRecipe(title: string) {
           :suggestions="planStore.suggestions"
           :loading="planStore.suggestionLoading"
           :converting-title="convertingTitle"
+          :error="planStore.suggestionError"
           @regenerate="handleRegenerate"
           @convert-to-recipe="handleConvertToRecipe"
           @open-recipe="openRecipeDrawer"

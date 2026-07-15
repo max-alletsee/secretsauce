@@ -90,4 +90,24 @@ describe('MealSuggestionPanel', () => {
     })
     expect(wrapper.find('[data-testid="suggestions-loading"]').exists()).toBe(true)
   })
+
+  it('renders the error message when the error prop is set', () => {
+    const wrapper = mount(MealSuggestionPanel, {
+      props: {
+        suggestions: [],
+        loading: false,
+        error:
+          'Onboarding mode — AI features are temporarily limited. Contact the administrator to continue.',
+      },
+    })
+    expect(wrapper.text()).toContain('Onboarding mode')
+  })
+
+  it('renders no error element when the error prop is null', () => {
+    const wrapper = mount(MealSuggestionPanel, {
+      props: { suggestions: [], loading: false, error: null },
+    })
+    expect(wrapper.find('.suggestion-error').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Onboarding mode')
+  })
 })
