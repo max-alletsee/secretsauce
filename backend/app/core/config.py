@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gemini-3.1-pro-preview"
     AI_TIMEOUT_SECONDS: int = 60
     AI_MAX_RETRIES: int = 3
+    AI_CALL_BUDGET_DEFAULT: int = 300
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
     APP_LOG_FILE: str = "/tmp/secretsauce/app.log"
