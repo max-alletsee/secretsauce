@@ -93,6 +93,7 @@ export const useMealPlanStore = defineStore('mealPlans', () => {
   async function generateSuggestions(steerPrompt?: string, planId?: string) {
     suggestionLoading.value = true
     suggestions.value = []
+    suggestionError.value = null
     try {
       const { data } = await mealPlansApi.requestSuggestions({
         steer_prompt: steerPrompt || undefined,
