@@ -194,7 +194,10 @@ async def regenerate_shopping_list(
     if raw_lines:
         prompt = _build_ai_prompt(raw_lines)
         try:
-            ai_result = await ai_service.call_ai_structured(prompt, ShoppingListAIResult)
+            ai_result = await ai_service.call_ai_structured(
+                prompt, ShoppingListAIResult,
+                call_type="shopping_list", user_id=user_id, db=db,
+            )
         except ai_service.AIServiceError as exc:
             logger.error("Shopping list AI generation failed: %s", exc)
             raise HTTPException(status_code=503, detail="Shopping list generation failed — please try again")
@@ -286,7 +289,10 @@ async def generate_shopping_list_from_entries(
     if raw_lines:
         from app.services import ai_service
         try:
-            ai_result = await ai_service.call_ai_structured(_build_ai_prompt(raw_lines), ShoppingListAIResult)
+            ai_result = await ai_service.call_ai_structured(
+                _build_ai_prompt(raw_lines), ShoppingListAIResult,
+                call_type="shopping_list", user_id=user_id, db=db,
+            )
         except ai_service.AIServiceError as exc:
             logger.error("Shopping list AI generation failed: %s", exc)
             # Return list without items rather than failing the whole task

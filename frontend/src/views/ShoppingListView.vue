@@ -4,6 +4,7 @@ import { onMounted, onUnmounted, computed, ref, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { EllipsisVertical, RefreshCw } from '@lucide/vue'
 import { useShoppingListStore } from '@/stores/useShoppingListStore'
+import { getApiErrorDetail } from '@/api/client'
 import PourLoader from '@/components/base/PourLoader.vue'
 import ProgressBar from '@/components/base/ProgressBar.vue'
 import ToggleChip from '@/components/base/ToggleChip.vue'
@@ -36,6 +37,7 @@ const listId = String(route.params.id)
 onMounted(() => store.fetchList(listId))
 
 const hideChecked = ref(false)
+const regenerateError = ref<string | null>(null)
 
 const checkedCount = computed(
   () => store.list?.items.filter((item) => item.checked).length ?? 0,
@@ -77,7 +79,12 @@ function formatQty(n: number): string {
 }
 
 async function handleRegenerate() {
-  await store.regenerate(listId)
+  regenerateError.value = null
+  try {
+    await store.regenerate(listId)
+  } catch (err) {
+    regenerateError.value = getApiErrorDetail(err) ?? 'Failed to regenerate. Please try again.'
+  }
 }
 
 // ── Overflow menu (Regenerate) ──────────────────────────────────────────────
@@ -233,6 +240,8 @@ function cancelEditingQuantity() {
           </ul>
         </div>
       </header>
+
+      <p v-if="regenerateError" class="regenerate-error">{{ regenerateError }}</p>
 
       <ConfirmDialog
         :open="confirmingRegenerate"
@@ -417,6 +426,12 @@ function cancelEditingQuantity() {
 .shopping-header__overflow-action:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.regenerate-error {
+  color: var(--color-danger);
+  font-size: 13px;
+  margin: 8px 0;
 }
 
 .progress-header {

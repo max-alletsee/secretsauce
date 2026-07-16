@@ -3,9 +3,11 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from sqlalchemy import Column, DateTime, String, text
+from sqlalchemy import Column, DateTime, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
+
+from app.core.config import settings
 
 
 class User(SQLModel, table=True):
@@ -48,6 +50,12 @@ class User(SQLModel, table=True):
         sa_column=Column(JSONB, nullable=False, server_default=text("'[\"dinner\"]'::jsonb")),
     )
     meal_plan_days_ahead: int = Field(default=7)
+    # AI spending guard: number of AI calls the user may make in total.
+    # NULL = unlimited (pre-feature users are grandfathered; admins can lift the cap).
+    ai_call_budget: int | None = Field(
+        default_factory=lambda: settings.AI_CALL_BUDGET_DEFAULT,
+        sa_column=Column(Integer, nullable=True),
+    )
     auth_providers: list[dict[str, Any]] = Field(
         default_factory=list,
         sa_column=Column(JSONB, nullable=False, server_default=text("'[]'::jsonb")),

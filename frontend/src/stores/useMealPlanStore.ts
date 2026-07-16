@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as mealPlansApi from '@/api/mealPlans'
+import { getApiErrorDetail } from '@/api/client'
 import { useSuggestionsPolling } from '@/composables/useSuggestionsPolling'
 import type {
   MealPlan,
@@ -92,13 +93,15 @@ export const useMealPlanStore = defineStore('mealPlans', () => {
   async function generateSuggestions(steerPrompt?: string, planId?: string) {
     suggestionLoading.value = true
     suggestions.value = []
+    suggestionError.value = null
     try {
       const { data } = await mealPlansApi.requestSuggestions({
         steer_prompt: steerPrompt || undefined,
         meal_plan_id: planId,
       })
       startPolling(data.task_id)
-    } catch {
+    } catch (err) {
+      suggestionError.value = getApiErrorDetail(err) ?? 'Failed to start suggestions. Please try again.'
       suggestionLoading.value = false
     }
   }

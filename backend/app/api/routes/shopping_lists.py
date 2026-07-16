@@ -20,6 +20,7 @@ from app.schemas.shopping_list import (
     ShoppingListSummaryResponse,
 )
 from app.services import shopping as shopping_service
+from app.services.ai_budget import ensure_ai_budget
 from app.services.shopping import process_shopping_generate
 
 router = APIRouter()
@@ -53,6 +54,7 @@ async def generate_shopping_list_endpoint(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
+    await ensure_ai_budget(db, user)
     task = ImportTask(user_id=user.id, task_type="shopping_generate")
     db.add(task)
     await db.commit()
@@ -98,6 +100,7 @@ async def regenerate_shopping_list(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ShoppingListResponse:
+    await ensure_ai_budget(db, user)
     shopping_list = await shopping_service.regenerate_shopping_list(db, user.id, meal_plan_id)
     items = await _load_items(db, shopping_list.id)
     return _to_response(shopping_list, items)

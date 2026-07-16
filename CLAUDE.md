@@ -185,7 +185,7 @@ Both backend and frontend must follow these conventions. See `backend/CLAUDE.md`
 ## Data Model
 
 ### User
-`id`, `email`, `hashed_password`, `display_name`, `is_active`, `is_superuser`, `dietary_restrictions` (JSONB), `allergies` (JSONB), `preferred_units` (metric|imperial), `favorite_cuisines` (JSONB), `disliked_ingredients` (JSONB), `default_servings` (int), `meal_plan_system_prompt` (text, user's custom AI instructions), `auth_providers` (JSONB), `created_at`, `updated_at`
+`id`, `email`, `hashed_password`, `display_name`, `is_active`, `is_superuser`, `dietary_restrictions` (JSONB), `allergies` (JSONB), `preferred_units` (metric|imperial), `favorite_cuisines` (JSONB), `disliked_ingredients` (JSONB), `default_servings` (int), `meal_plan_system_prompt` (text, user's custom AI instructions), `auth_providers` (JSONB), `ai_call_budget` (int, nullable — AI call allowance, NULL = unlimited), `created_at`, `updated_at`
 
 Managed by fastapi-users. The `dietary_restrictions`, `allergies`, `favorite_cuisines`, and `disliked_ingredients` fields are injected into the AI system prompt for meal plan generation.
 
@@ -251,6 +251,7 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 AI_MODEL=gemini-3.1-pro-preview
 AI_TIMEOUT_SECONDS=60
 AI_MAX_RETRIES=3
+AI_CALL_BUDGET_DEFAULT=300
 DB_POOL_SIZE=10
 DB_MAX_OVERFLOW=20
 ```

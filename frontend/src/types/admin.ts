@@ -8,6 +8,7 @@ export interface AdminUser {
   is_superuser: boolean
   is_verified: boolean
   preferred_units: 'metric' | 'imperial'
+  ai_call_budget: number | null
   created_at: string
   updated_at: string
 }
@@ -16,6 +17,7 @@ export interface UserStats {
   recipe_count: number
   meal_plan_count: number
   last_active: string | null
+  ai_calls_used: number
 }
 
 export interface PaginatedAdminUsersResponse {
@@ -44,7 +46,9 @@ export interface PaginatedAICallLogResponse {
   has_more: boolean
 }
 
-export type AuditAction = 'PROMOTE' | 'DEMOTE' | 'ACTIVATE' | 'DEACTIVATE' | 'DELETE' | 'CLEANUP'
+export type AuditAction =
+  | 'PROMOTE' | 'DEMOTE' | 'ACTIVATE' | 'DEACTIVATE' | 'DELETE' | 'CLEANUP'
+  | 'BUDGET_REMOVE' | 'BUDGET_RESTORE'
 
 export interface AdminAuditLog {
   id: string
@@ -81,4 +85,5 @@ export interface AppLogsResponse {
 export interface AdminUserUpdate {
   is_active?: boolean
   is_superuser?: boolean
+  ai_budget_mode?: 'unlimited' | 'default'
 }

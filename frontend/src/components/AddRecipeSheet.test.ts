@@ -249,4 +249,27 @@ describe('AddRecipeSheet', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
     wrapper.unmount()
   })
+
+  it('shows the backend detail message when the import request is rejected', async () => {
+    vi.mocked(importTasksApi.importRecipeFromUrl).mockRejectedValueOnce({
+      response: {
+        status: 403,
+        data: {
+          detail:
+            'Onboarding mode — AI features are temporarily limited. Contact the administrator to continue.',
+        },
+      },
+    })
+
+    const wrapper = mount(AddRecipeSheet, { attachTo: document.body })
+    const input = qs<HTMLInputElement>('[data-testid="import-url-input"]')
+    input.value = 'https://example.com/recipe'
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+    qs<HTMLButtonElement>('[data-testid="import-submit-btn"]').click()
+    await flushPromises()
+
+    expect(document.body.textContent).toContain('Onboarding mode')
+    wrapper.unmount()
+  })
 })

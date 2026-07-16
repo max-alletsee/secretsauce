@@ -6,7 +6,12 @@ import PourLoader from '@/components/base/PourLoader.vue'
 import { Pencil, RefreshCw } from '@lucide/vue'
 import type { MealSuggestion } from '@/types/mealPlan'
 
-defineProps<{ suggestions: MealSuggestion[]; loading: boolean; convertingTitle?: string | null }>()
+defineProps<{
+  suggestions: MealSuggestion[]
+  loading: boolean
+  convertingTitle?: string | null
+  error?: string | null
+}>()
 const emit = defineEmits<{
   (e: 'regenerate', steerPrompt?: string): void
   (e: 'convert-to-recipe', title: string): void
@@ -53,6 +58,8 @@ function handleConvertToRecipe(title: string) {
         </button>
       </div>
     </div>
+
+    <p v-if="error" class="suggestion-error">{{ error }}</p>
 
     <div v-if="steerVisible" class="steer-field">
       <input
@@ -129,6 +136,11 @@ function handleConvertToRecipe(title: string) {
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
   cursor: pointer;
+}
+.suggestion-error {
+  color: var(--color-danger);
+  font-size: 13px;
+  margin: 8px 0;
 }
 .steer-field {
   display: flex;

@@ -13,6 +13,7 @@ from app.core.security import current_active_user
 from app.models.import_task import ImportTask, ImportTaskStatus
 from app.models.user import User
 from app.schemas.import_task import ImportTaskCreated, ImportTaskRead, RecipeGenerateRequest, RecipeImportURLRequest
+from app.services.ai_budget import ensure_ai_budget
 from app.services.recipe_import_service import process_generate_task, process_image_import, process_url_import
 
 # Mounted at /api/v1/recipes in main.py
@@ -30,6 +31,7 @@ async def import_recipe_from_url(
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
     check_import_rate_limit(str(user.id))
+    await ensure_ai_budget(db, user)
     task = ImportTask(user_id=user.id, url=str(payload.url))
     db.add(task)
     await db.commit()
@@ -47,6 +49,7 @@ async def generate_recipe(
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
     check_import_rate_limit(str(user.id))
+    await ensure_ai_budget(db, user)
     task = ImportTask(user_id=user.id, task_type="recipe_generate")
     db.add(task)
     await db.commit()
@@ -82,6 +85,7 @@ async def import_recipe_from_image(
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
     check_import_rate_limit(str(user.id))
+    await ensure_ai_budget(db, user)
 
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=422, detail="File must be an image")

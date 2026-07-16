@@ -3,6 +3,7 @@
 import { computed, ref } from 'vue'
 import { useRouter, type HistoryState } from 'vue-router'
 import * as importTasksApi from '@/api/importTasks'
+import { getApiErrorDetail } from '@/api/client'
 import BottomSheet from '@/components/BottomSheet.vue'
 import SegmentedTabs from '@/components/base/SegmentedTabs.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
@@ -46,9 +47,9 @@ async function submitUrlImport() {
   try {
     const { data } = await importTasksApi.importRecipeFromUrl(importUrl.value)
     startPolling(data.task_id)
-  } catch {
+  } catch (err) {
     importStatus.value = 'failed'
-    importError.value = 'Failed to start import. Please try again.'
+    importError.value = getApiErrorDetail(err) ?? 'Failed to start import. Please try again.'
   }
 }
 
@@ -60,9 +61,9 @@ async function handleImageChange(event: Event) {
   try {
     const { data } = await importTasksApi.importRecipeFromImage(file)
     startPolling(data.task_id)
-  } catch {
+  } catch (err) {
     importStatus.value = 'failed'
-    importError.value = 'Failed to start image import. Please try again.'
+    importError.value = getApiErrorDetail(err) ?? 'Failed to start image import. Please try again.'
   }
 }
 

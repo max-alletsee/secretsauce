@@ -59,6 +59,7 @@ async def update_user(
         db, user_id, admin,
         is_active=payload.is_active,
         is_superuser=payload.is_superuser,
+        ai_budget_mode=payload.ai_budget_mode,
     )
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")

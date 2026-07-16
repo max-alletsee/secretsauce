@@ -9,7 +9,8 @@ vi.mock('@/api/admin')
 const mockUser = (overrides?: Partial<AdminUser>): AdminUser => ({
   id: '1', email: 'a@b.com', display_name: null,
   is_active: true, is_superuser: false, is_verified: true,
-  preferred_units: 'metric', created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+  preferred_units: 'metric', ai_call_budget: 300,
+  created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
   ...overrides,
 })
 

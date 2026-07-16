@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.admin import AdminAuditLog, AICallLog
 from app.models.meal_plan import MealPlan
 from app.models.recipe import Recipe
@@ -17,6 +18,7 @@ from app.schemas.admin import (
     AppLogEntry,
     UserStatsResponse,
 )
+from app.services import ai_budget
 
 
 # ── User management ──────────────────────────────────────────────────────────
@@ -82,11 +84,14 @@ async def get_user_stats(db: AsyncSession, user_id: uuid.UUID) -> UserStatsRespo
         await db.execute(select(func.max(MealPlan.created_at)).where(MealPlan.user_id == user_id))
     ).scalar_one_or_none()
 
+    ai_calls_used = await ai_budget.count_ai_calls(db, user_id)
+
     candidates = [t for t in [recipe_max, meal_max] if t is not None]
     return UserStatsResponse(
         recipe_count=recipe_count,
         meal_plan_count=meal_count,
         last_active=max(candidates) if candidates else None,
+        ai_calls_used=ai_calls_used,
     )
 
 
@@ -97,6 +102,7 @@ async def update_user(
     *,
     is_active: bool | None = None,
     is_superuser: bool | None = None,
+    ai_budget_mode: str | None = None,
 ) -> User | None:
     user = await db.get(User, user_id)
     if user is None:
@@ -116,6 +122,21 @@ async def update_user(
             db, admin_id=admin.id,
             action="PROMOTE" if is_superuser else "DEMOTE",
             target_user_id=user_id, details={"email": user.email},
+        )
+        changed = True
+    if ai_budget_mode == "unlimited" and user.ai_call_budget is not None:
+        user.ai_call_budget = None
+        await write_audit_log(
+            db, admin_id=admin.id, action="BUDGET_REMOVE",
+            target_user_id=user_id, details={"email": user.email},
+        )
+        changed = True
+    elif ai_budget_mode == "default" and user.ai_call_budget != settings.AI_CALL_BUDGET_DEFAULT:
+        user.ai_call_budget = settings.AI_CALL_BUDGET_DEFAULT
+        await write_audit_log(
+            db, admin_id=admin.id, action="BUDGET_RESTORE",
+            target_user_id=user_id,
+            details={"email": user.email, "budget": settings.AI_CALL_BUDGET_DEFAULT},
         )
         changed = True
     if changed:
@@ -299,6 +320,10 @@ def _format_audit_description(action: str, target_email: str | None, details: di
             return f"Deactivated {email}"
         case "DELETE":
             return f"Deleted user {details.get('email', 'unknown')}"
+        case "BUDGET_REMOVE":
+            return f"Removed AI budget for {email}"
+        case "BUDGET_RESTORE":
+            return f"Restored AI budget for {email}"
         case "CLEANUP":
             return f"Ran cleanup — {details.get('deleted_count', 0)} files deleted"
         case _:

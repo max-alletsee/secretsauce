@@ -26,6 +26,7 @@ from app.schemas.meal_plan import (
 from app.services import meal_log_service
 from app.services import meal_plan_service
 from app.services import shortlist_service
+from app.services.ai_budget import ensure_ai_budget
 from app.services.meal_suggestion_service import process_suggestions_task
 
 router = APIRouter()
@@ -95,6 +96,7 @@ async def generate_suggestions(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ImportTaskCreated:
+    await ensure_ai_budget(db, user)
     task = ImportTask(user_id=user.id, task_type="meal_suggestions")
     db.add(task)
     await db.commit()

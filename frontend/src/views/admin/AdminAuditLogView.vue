@@ -19,12 +19,14 @@ async function fetchLogs() {
 }
 
 const badgeClass: Record<AuditAction, string> = {
-  PROMOTE:    'badge-blue',
-  DEMOTE:     'badge-blue',
-  ACTIVATE:   'badge-green',
-  DEACTIVATE: 'badge-amber',
-  DELETE:     'badge-red',
-  CLEANUP:    'badge-grey',
+  PROMOTE:        'badge-blue',
+  DEMOTE:         'badge-blue',
+  ACTIVATE:       'badge-green',
+  DEACTIVATE:     'badge-amber',
+  DELETE:         'badge-red',
+  CLEANUP:        'badge-grey',
+  BUDGET_REMOVE:  'badge-amber',
+  BUDGET_RESTORE: 'badge-green',
 }
 </script>
 
@@ -39,6 +41,8 @@ const badgeClass: Record<AuditAction, string> = {
         <option>DEACTIVATE</option>
         <option>DELETE</option>
         <option>CLEANUP</option>
+        <option>BUDGET_REMOVE</option>
+        <option>BUDGET_RESTORE</option>
       </select>
     </LogFilterBar>
 
