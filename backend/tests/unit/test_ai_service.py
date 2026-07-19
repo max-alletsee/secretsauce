@@ -88,3 +88,14 @@ async def test_import_recipe_from_url_passes_url_in_prompt():
     call_kwargs = mock_client.aio.models.generate_content.call_args
     contents = call_kwargs.kwargs.get("contents") or call_kwargs.args[1]
     assert url in contents
+
+
+@pytest.mark.asyncio
+async def test_import_recipe_from_url_uses_pro_model():
+    from app.core.ai_config import MODEL_PRO
+
+    mock_client = _make_mock_client(_VALID_RESULT.model_dump_json())
+    with patch("app.services.ai_service._client", mock_client):
+        await import_recipe_from_url("https://example.com/pasta")
+    call_kwargs = mock_client.aio.models.generate_content.call_args
+    assert call_kwargs.kwargs.get("model") == MODEL_PRO
