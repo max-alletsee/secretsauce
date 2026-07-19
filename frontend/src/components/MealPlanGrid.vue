@@ -15,7 +15,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'open-recipe', recipeId: string): void
   (e: 'move-to-slot', entry: TimelineEntry): void
-  (e: 'move-to-shortlist', entry: TimelineEntry): void
   (e: 'save-to-shortlist', entry: TimelineEntry): void
   (e: 'remove', entry: TimelineEntry): void
 }>()
@@ -67,7 +66,6 @@ function dayLabel(dateStr: string): string {
           :disabled="false"
           @open-recipe="(id) => emit('open-recipe', id)"
           @move-to-slot="(e) => emit('move-to-slot', e)"
-          @move-to-shortlist="(e) => emit('move-to-shortlist', e)"
           @save-to-shortlist="(e) => emit('save-to-shortlist', e)"
           @remove="(e) => emit('remove', e)"
         />
