@@ -68,7 +68,9 @@
       "Bash(podman machine *)",
       "Skill(superpowers:finishing-a-development-branch)",
       "Bash(gh --version)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "Bash(echo \"curl exit: $?\")",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

@@ -132,6 +132,7 @@ describe('MealSlot', () => {
         recipeTitles: { r1: 'Pasta' },
       },
       attachTo: document.body,
+      global: { stubs: { teleport: true } },
     })
     await wrapper.find('[data-testid="entry-menu-btn-e1"]').trigger('click')
     expect(wrapper.find('[data-testid="entry-actions-menu"]').exists()).toBe(true)

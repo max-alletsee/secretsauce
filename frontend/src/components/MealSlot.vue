@@ -19,12 +19,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'open-recipe', recipeId: string): void
   (e: 'move-to-slot', entry: TimelineEntry): void
-  (e: 'move-to-shortlist', entry: TimelineEntry): void
   (e: 'save-to-shortlist', entry: TimelineEntry): void
   (e: 'remove', entry: TimelineEntry): void
 }>()
 
 const openMenuId = ref<string | null>(null)
+const menuAnchor = ref({ top: 0, right: 0 })
 const pickerOpen = ref(false)
 
 const MEAL_TYPE_ICONS: Record<string, Component> = {
@@ -43,8 +43,15 @@ const mealTypeTintClass = computed(() => {
 
 const mealTypeIcon = computed<Component>(() => MEAL_TYPE_ICONS[props.mealType] ?? Utensils)
 
-function toggleMenu(entryId: string) {
-  openMenuId.value = openMenuId.value === entryId ? null : entryId
+function toggleMenu(entryId: string, event: MouseEvent) {
+  if (openMenuId.value === entryId) {
+    openMenuId.value = null
+    return
+  }
+  const btn = event.currentTarget as HTMLElement
+  const rect = btn.getBoundingClientRect()
+  menuAnchor.value = { top: rect.bottom, right: window.innerWidth - rect.right }
+  openMenuId.value = entryId
 }
 
 function closeMenu() {
@@ -116,17 +123,17 @@ function onEntryClick(entry: TimelineEntry) {
             class="entry-menu-btn"
             aria-label="Entry actions"
             :data-testid="`entry-menu-btn-${entry.id}`"
-            @click.stop="toggleMenu(entry.id)"
+            @click.stop="toggleMenu(entry.id, $event)"
           >
             ⋮
           </button>
           <EntryActionsMenu
             v-if="openMenuId === entry.id"
             :entry="entry"
+            :anchor="menuAnchor"
             :recipe-title="entry.recipe_id ? recipeTitles[entry.recipe_id] : undefined"
             @open-recipe="(id) => emit('open-recipe', id)"
             @move-to-slot="emit('move-to-slot', entry)"
-            @move-to-shortlist="emit('move-to-shortlist', entry)"
             @save-to-shortlist="emit('save-to-shortlist', entry)"
             @remove="emit('remove', entry)"
             @close="closeMenu"

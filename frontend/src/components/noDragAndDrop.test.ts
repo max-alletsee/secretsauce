@@ -23,7 +23,7 @@ function walk(dir: string): string[] {
     const full = join(dir, name)
     if (statSync(full).isDirectory()) {
       out.push(...walk(full))
-    } else if (/\.(vue|ts)$/.test(name) && !/\.test\.ts$/.test(name)) {
+    } else if (/\.(vue|ts)$/.test(name) && !name.endsWith('.test.ts')) {
       out.push(full)
     }
   }
