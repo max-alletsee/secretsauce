@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ToggleChip from '@/components/base/ToggleChip.vue'
+import BaseIcon from '@/components/base/BaseIcon.vue'
+import { ChevronUp, ChevronDown } from '@lucide/vue'
 
 const model = defineModel<string[]>({ default: () => [] })
+
+const expanded = ref(false)
+
+function toggleExpanded() {
+  expanded.value = !expanded.value
+}
 
 const TAG_GROUPS: { label: string; tags: string[] }[] = [
   { label: 'Protein', tags: ['vegan', 'vegetarian', 'fish', 'poultry', 'meat', 'seafood'] },
@@ -43,10 +51,19 @@ function clearAll() {
 <template>
   <div class="tag-filter">
     <div class="tag-filter__header">
-      <span class="tag-filter__count">
-        <span v-if="activeCount > 0">Filters ({{ activeCount }})</span>
-        <span v-else>Filters</span>
-      </span>
+      <button
+        type="button"
+        class="tag-filter__toggle"
+        data-testid="tag-filter-toggle"
+        :aria-expanded="expanded"
+        @click="toggleExpanded"
+      >
+        <span class="tag-filter__count">
+          <span v-if="activeCount > 0">Filters ({{ activeCount }})</span>
+          <span v-else>Filters</span>
+        </span>
+        <BaseIcon :icon="expanded ? ChevronUp : ChevronDown" />
+      </button>
       <button
         v-if="activeCount > 0"
         type="button"
@@ -58,7 +75,7 @@ function clearAll() {
       </button>
     </div>
 
-    <div class="tag-filter__groups">
+    <div v-if="expanded" class="tag-filter__groups">
       <fieldset
         v-for="group in TAG_GROUPS"
         :key="group.label"
@@ -96,6 +113,17 @@ function clearAll() {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+}
+
+.tag-filter__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text);
 }
 
 .tag-filter__count {
