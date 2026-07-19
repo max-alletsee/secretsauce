@@ -238,7 +238,7 @@ Use a strong, unique `POSTGRES_PASSWORD` — it must match the password in `DATA
 
 ### 4. Obtain TLS certificates
 
-Use certbot with the standalone plugin (run as root — certbot requires root).
+Certbot needs to be able to answer an ACME HTTP-01 challenge on port 80. Since nginx (once running) permanently occupies port 80/443 on this stack, use the **webroot** plugin — nginx serves the challenge file itself via a location block (already configured in `nginx/nginx.conf`), so certbot never needs port 80 freed up. This works for both the first certificate and all renewals, with zero downtime.
 
 **Install certbot via snap, not apt.** The apt version (2.9.0) shipped with Ubuntu 24.04 has a bug where it fails with "No such authorization" when fetching ACME authorizations from Let's Encrypt's Boulder server. The snap version (3.x) fixes this.
 
@@ -246,10 +246,16 @@ Use certbot with the standalone plugin (run as root — certbot requires root).
 snap install --classic certbot
 ln -sf /snap/bin/certbot /usr/bin/certbot
 apt install acl
+```
+
+**First certificate (before nginx is running):** create the webroot directory and use `--standalone` once, since nginx doesn't exist yet to serve the challenge:
+
+```bash
+mkdir -p /home/deploy/secretsauce/certbot-webroot/.well-known/acme-challenge
 certbot certonly --standalone -d secretsauce.food -d www.secretsauce.food
 ```
 
-> `--standalone` needs port 80 free to complete the ACME challenge. Run this **before** the stack is started (Step 6), or stop nginx first (`podman-compose down`) if it's already running — otherwise certbot fails to bind 80.
+> **Do not rely on `--standalone` again after this.** It needs port 80 free, which conflicts with nginx once the stack is up — this exact conflict caused every renewal to silently fail for days and the production cert to expire (2026-07-18) before anyone noticed. All renewals must use `--webroot` (below), and the systemd timer will do so automatically once the renewal config is set correctly.
 
 Certificates will be written to `/etc/letsencrypt/live/secretsauce.food/`.
 
@@ -264,9 +270,19 @@ chmod 644 /home/deploy/secretsauce/certs/cert.pem
 chmod 600 /home/deploy/secretsauce/certs/key.pem
 ```
 
-Update the renewal hook to copy instead of reload, so renewed certs are picked up automatically (run as root):
+**After the stack is up (Step 6), switch certbot to webroot** so future renewals don't need port 80 freed:
 
 ```bash
+certbot certonly --webroot -w /home/deploy/secretsauce/certbot-webroot \
+  -d secretsauce.food -d www.secretsauce.food --cert-name secretsauce.food
+```
+
+This rewrites `/etc/letsencrypt/renewal/secretsauce.food.conf` to use `authenticator = webroot` — verify with `certbot certificates` or by checking that file. All subsequent renewals (including the automatic systemd timer) will use webroot from then on.
+
+**Set up the deploy hook** so renewed certs are copied into the repo and nginx reloads automatically (run as root — this step is easy to forget, and a missing hook means a successful certbot renewal still never reaches nginx):
+
+```bash
+mkdir -p /etc/letsencrypt/renewal-hooks/deploy
 cat > /etc/letsencrypt/renewal-hooks/deploy/copy-certs.sh << 'EOF'
 #!/bin/bash
 cp /etc/letsencrypt/live/secretsauce.food/fullchain.pem /home/deploy/secretsauce/certs/cert.pem
@@ -274,9 +290,16 @@ cp /etc/letsencrypt/live/secretsauce.food/privkey.pem /home/deploy/secretsauce/c
 chown deploy:deploy /home/deploy/secretsauce/certs/*.pem
 chmod 644 /home/deploy/secretsauce/certs/cert.pem
 chmod 600 /home/deploy/secretsauce/certs/key.pem
-su - deploy -c "cd /home/deploy/secretsauce && podman-compose exec nginx nginx -s reload"
+su - deploy -c "export PATH=\$HOME/.local/bin:\$PATH && cd /home/deploy/secretsauce && podman-compose exec nginx nginx -s reload"
 EOF
 chmod +x /etc/letsencrypt/renewal-hooks/deploy/copy-certs.sh
+```
+
+Verify the timer that drives auto-renewal is actually enabled and check its recent runs periodically:
+
+```bash
+systemctl list-timers snap.certbot.renew.timer
+journalctl -u snap.certbot.renew.service --no-pager -n 20
 ```
 
 ### 5. Check nginx.conf for your domain
