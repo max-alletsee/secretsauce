@@ -163,7 +163,7 @@ apt install podman
 
 #### Rootless setup (recommended)
 
-Running Podman rootless means container processes run as an unprivileged user. A container breakout yields only that user account, not root on the host. The ports used by this stack (8080, 8443, 8000) are all above 1024, so rootless binding works without any special kernel configuration.
+Running Podman rootless means container processes run as an unprivileged user. A container breakout yields only that user account, not root on the host. The test stack's port (8000) is above 1024 and binds with no special configuration. Production nginx binds 80/443 directly (see the `CAP_NET_BIND_SERVICE` step below), so browsers reach the site at `https://secretsauce.food` with no port suffix.
 
 **Create a dedicated deploy user and enable linger** (linger allows containers to keep running after you log out):
 
@@ -175,6 +175,21 @@ chown -R deploy:deploy /home/deploy/.ssh
 chmod 700 /home/deploy/.ssh && chmod 600 /home/deploy/.ssh/authorized_keys
 loginctl enable-linger deploy
 ```
+
+**Allow rootless Podman to bind privileged ports (80/443).** Unprivileged processes normally can't bind ports below 1024. Rootless Podman forwards host ports into the container via two binaries — `rootlessport` and, on Ubuntu 24.04's default `pasta` network backend, `pasta` itself — both need `CAP_NET_BIND_SERVICE` to forward host ports 80/443. Grant it once, as root:
+
+```bash
+setcap cap_net_bind_service=+ep /usr/libexec/podman/rootlessport   # Ubuntu 24.04 path
+setcap cap_net_bind_service=+ep "$(command -v pasta)"              # usually /usr/bin/pasta
+```
+
+Verify the capability stuck:
+
+```bash
+getcap /usr/libexec/podman/rootlessport "$(command -v pasta)"
+```
+
+> If `/usr/libexec/podman/rootlessport` doesn't exist on your distro, find it with `find / -iname '*rootlessport*' 2>/dev/null` and apply `setcap` to whatever path it reports. This is a one-time, host-level step — it survives Podman upgrades unless the binary path changes, in which case re-run `setcap` after upgrading.
 
 **Install uv and podman-compose as the deploy user:**
 
@@ -233,6 +248,8 @@ ln -sf /snap/bin/certbot /usr/bin/certbot
 apt install acl
 certbot certonly --standalone -d secretsauce.food -d www.secretsauce.food
 ```
+
+> `--standalone` needs port 80 free to complete the ACME challenge. Run this **before** the stack is started (Step 6), or stop nginx first (`podman-compose down`) if it's already running — otherwise certbot fails to bind 80.
 
 Certificates will be written to `/etc/letsencrypt/live/secretsauce.food/`.
 
@@ -294,15 +311,15 @@ podman-compose exec backend uv run alembic upgrade head
 ### 8. Verify
 
 ```bash
-curl https://secretsauce.food:8443/api/v1/health
+curl https://secretsauce.food/api/v1/health
 # Expected: {"status": "ok", "db": "connected"}
 ```
 
-Visit `https://secretsauce.food:8443` in a browser to confirm the frontend loads.
+Visit `https://secretsauce.food` in a browser to confirm the frontend loads.
 
 ### 9. Create the first superuser
 
-Register an account via the registration page (`https://yourdomain.com:8443/register`), then promote it to superuser via the database. Run from the repo directory:
+Register an account via the registration page (`https://yourdomain.com/register`), then promote it to superuser via the database. Run from the repo directory:
 
 ```bash
 podman-compose exec postgres psql -U secretsauce -d secretsauce -c "UPDATE users SET is_superuser = true WHERE email = 'you@example.com';"
@@ -501,8 +518,8 @@ You can run both a test/staging environment and a production environment concurr
 
 | Environment | Service | Port |
 |---|---|---|
-| Production | Nginx (HTTPS) | 8443 |
-| Production | Nginx (HTTP → redirect) | 8080 |
+| Production | Nginx (HTTPS) | 443 |
+| Production | Nginx (HTTP → redirect) | 80 |
 | Production | Postgres | 5432 (internal only) |
 | Test | Backend (HTTP, no TLS) | 8000 |
 | Test | Postgres | 5433 (internal only) |
@@ -562,7 +579,7 @@ Port `8000` (the test backend) should not be open to the internet. Use the Hetzn
 
 1. In the Hetzner Cloud console, go to **Firewalls → your server's firewall**
 2. Add an inbound rule: **TCP port 8000**, source = your IP address only
-3. Add inbound rules for **TCP port 8080** and **TCP port 8443** open to all (nginx listens on these ports in rootless Podman mode)
+3. Add inbound rules for **TCP port 80** and **TCP port 443** open to all (nginx listens on these ports directly, via the `CAP_NET_BIND_SERVICE` grant on rootless Podman's port-forwarder)
 
 ### Deploying to test only (manual)
 

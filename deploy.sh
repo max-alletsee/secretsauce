@@ -40,13 +40,13 @@ podman-compose exec -T backend uv run alembic upgrade head
 
 echo "==> Verifying deploy"
 sleep 5
-curl -skf https://localhost:8443/api/v1/health | grep -q '"status":"ok"' ||
+curl -skf https://localhost/api/v1/health | grep -q '"status":"ok"' ||
     { echo "DEPLOY FAILED: health check" >&2; exit 1; }
 
 # The bundle nginx serves must be the one inside the image we just built —
 # this is exactly the check that catches a stale-container/stale-volume deploy.
 built=$(podman run --rm "localhost/${PROJECT}_frontend:latest" grep -o 'index-[^"]*\.js' /dist/index.html)
-served=$(curl -sk https://localhost:8443/ | grep -o 'index-[^"]*\.js')
+served=$(curl -sk https://localhost/ | grep -o 'index-[^"]*\.js')
 if [ "$built" != "$served" ]; then
     echo "DEPLOY FAILED: nginx serves stale frontend bundle (built $built, serving $served)" >&2
     exit 1

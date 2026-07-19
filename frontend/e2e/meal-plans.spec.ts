@@ -147,7 +147,7 @@ test('stacking: a slot can hold multiple entries', async ({ page, request }) => 
 // Regression guard for the served UI. Drag-and-drop assignment was removed in
 // commit 48e2fc5 and replaced with explicit selection. Because this runs against
 // `BASE_URL`, it can be pointed at a deployed environment (e.g.
-//   BASE_URL=https://secretsauce.food:8443 npx playwright test -g "no drag-and-drop"
+//   BASE_URL=https://secretsauce.food npx playwright test -g "no drag-and-drop"
 // ) to catch a stale build serving the old drag-and-drop bundle — the exact
 // failure mode where source is fixed but the deployed artifact is outdated.
 test('meal plan UI exposes no drag-and-drop affordances, only selection', async ({ page, request }) => {
