@@ -176,20 +176,20 @@ chmod 700 /home/deploy/.ssh && chmod 600 /home/deploy/.ssh/authorized_keys
 loginctl enable-linger deploy
 ```
 
-**Allow rootless Podman to bind privileged ports (80/443).** Unprivileged processes normally can't bind ports below 1024. Rootless Podman forwards host ports into the container via two binaries — `rootlessport` and, on Ubuntu 24.04's default `pasta` network backend, `pasta` itself — both need `CAP_NET_BIND_SERVICE` to forward host ports 80/443. Grant it once, as root:
+**Allow rootless Podman to bind privileged ports (80/443).** Unprivileged processes normally can't bind ports below 1024. Lower the kernel's unprivileged port floor so any process owned by `deploy` can bind 80/443 — this is the setting rootless Podman's own error message recommends, and it's what actually works on Ubuntu 24.04 (Podman 4.9.3):
 
 ```bash
-setcap cap_net_bind_service=+ep /usr/libexec/podman/rootlessport   # Ubuntu 24.04 path
-setcap cap_net_bind_service=+ep "$(command -v pasta)"              # usually /usr/bin/pasta
+echo 'net.ipv4.ip_unprivileged_port_start=80' >> /etc/sysctl.conf
+sysctl -p
 ```
 
-Verify the capability stuck:
+Verify:
 
 ```bash
-getcap /usr/libexec/podman/rootlessport "$(command -v pasta)"
+sysctl net.ipv4.ip_unprivileged_port_start   # should print 80
 ```
 
-> If `/usr/libexec/podman/rootlessport` doesn't exist on your distro, find it with `find / -iname '*rootlessport*' 2>/dev/null` and apply `setcap` to whatever path it reports. This is a one-time, host-level step — it survives Podman upgrades unless the binary path changes, in which case re-run `setcap` after upgrading.
+> `setcap cap_net_bind_service=+ep` on `rootlessport`/`pasta` looks like the more targeted fix and is worth trying first, but on this stack it did not resolve `bind: permission denied` on port 80 — the port-forwarder still failed even with the capability set. The sysctl approach is coarser (any unprivileged process on the host can now bind ports ≥ 80, not just Podman's) but is the one that reliably works. This is a one-time, host-level, kernel-wide step — it persists across reboots via `/etc/sysctl.conf` and Podman upgrades.
 
 **Install uv and podman-compose as the deploy user:**
 
