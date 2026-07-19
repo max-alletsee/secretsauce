@@ -5,12 +5,20 @@ import type { TimelineEntry } from '@/types/timeline'
 const props = defineProps<{
   entry: TimelineEntry
   recipeTitle?: string
+  /**
+   * Viewport-relative coordinates of the menu's top-right corner, taken from
+   * the trigger button's getBoundingClientRect(). Required because the menu
+   * is teleported to <body> (see template) so it can never be trapped behind
+   * a sibling meal slot's stacking context (e.g. past-day rows apply
+   * `filter`, which promotes each slot into its own stacking context and
+   * defeats ancestor-relative `position: absolute` + z-index).
+   */
+  anchor: { top: number; right: number }
 }>()
 
 const emit = defineEmits<{
   (e: 'open-recipe', recipeId: string): void
   (e: 'move-to-slot'): void
-  (e: 'move-to-shortlist'): void
   (e: 'save-to-shortlist'): void
   (e: 'remove'): void
   (e: 'close'): void
@@ -46,7 +54,14 @@ function openRecipe() {
 </script>
 
 <template>
-  <div ref="menuRef" class="entry-actions-menu" role="menu" data-testid="entry-actions-menu">
+  <Teleport to="body">
+  <div
+    ref="menuRef"
+    class="entry-actions-menu"
+    role="menu"
+    data-testid="entry-actions-menu"
+    :style="{ top: `${anchor.top}px`, right: `${anchor.right}px` }"
+  >
     <button
       v-if="entry.entry_type === 'recipe' && entry.recipe_id"
       type="button"
@@ -70,15 +85,6 @@ function openRecipe() {
       type="button"
       role="menuitem"
       class="menu-item"
-      data-testid="entry-action-move-shortlist"
-      @click="emit('move-to-shortlist'); emit('close')"
-    >
-      Move to shortlist
-    </button>
-    <button
-      type="button"
-      role="menuitem"
-      class="menu-item"
       data-testid="entry-action-save-shortlist"
       @click="emit('save-to-shortlist'); emit('close')"
     >
@@ -94,19 +100,18 @@ function openRecipe() {
       Remove from plan
     </button>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .entry-actions-menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
+  position: fixed;
   min-width: 11rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   box-shadow: var(--shadow);
-  z-index: 50;
+  z-index: 120;
   padding: 0.25rem 0;
   display: flex;
   flex-direction: column;
