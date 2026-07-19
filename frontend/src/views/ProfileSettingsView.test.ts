@@ -1,22 +1,23 @@
 import { mount, flushPromises } from '@vue/test-utils'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 const updateProfile = vi.fn().mockResolvedValue(undefined)
+const mockUser = {
+  display_name: 'Sam',
+  preferred_units: 'metric',
+  default_servings: 2,
+  meal_plan_system_prompt: '',
+  meal_plan_meal_types: ['dinner'],
+  meal_plan_days_ahead: 7,
+  dietary_restrictions: ['vegan'],
+  allergies: ['peanuts'],
+  favorite_cuisines: ['italian'],
+  disliked_ingredients: ['cilantro'],
+}
 vi.mock('@/stores/useUserStore', () => ({
   useUserStore: () => ({
-    user: {
-      display_name: 'Sam',
-      preferred_units: 'metric',
-      default_servings: 2,
-      meal_plan_system_prompt: '',
-      meal_plan_meal_types: ['dinner'],
-      meal_plan_days_ahead: 7,
-      dietary_restrictions: ['vegan'],
-      allergies: ['peanuts'],
-      favorite_cuisines: ['italian'],
-      disliked_ingredients: ['cilantro'],
-    },
+    user: mockUser,
     updateProfile,
   }),
 }))
@@ -124,5 +125,47 @@ describe('ProfileSettingsView food preferences', () => {
     await flushPromises()
     const payload = updateProfile.mock.calls[0]![0]
     expect(payload.allergies).toEqual([])
+  })
+})
+
+describe('ProfileSettingsView meal type ordering', () => {
+  const originalMealTypes = [...mockUser.meal_plan_meal_types]
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    updateProfile.mockClear()
+  })
+
+  afterEach(() => {
+    mockUser.meal_plan_meal_types = [...originalMealTypes]
+  })
+
+  it('saves meal types in canonical order (breakfast, lunch, dinner, snack) regardless of click order', async () => {
+    const wrapper = mount(ProfileSettingsView)
+    const mealTypeGroup = wrapper.get('[data-testid="pref-meal_plan_meal_types"]').element
+
+    // Click dinner off first (it starts enabled), then click lunch and breakfast on,
+    // in an order that does not match the canonical order.
+    await findChip(mealTypeGroup, 'dinner').dispatchEvent(new Event('click'))
+    await findChip(mealTypeGroup, 'dinner').dispatchEvent(new Event('click'))
+    await findChip(mealTypeGroup, 'lunch').dispatchEvent(new Event('click'))
+    await findChip(mealTypeGroup, 'breakfast').dispatchEvent(new Event('click'))
+
+    await wrapper.get('[data-testid="save-btn"]').trigger('click')
+    await flushPromises()
+
+    const payload = updateProfile.mock.calls[0]![0]
+    expect(payload.meal_plan_meal_types).toEqual(['breakfast', 'lunch', 'dinner'])
+  })
+
+  it('re-sorts an already out-of-order saved preference on load', async () => {
+    mockUser.meal_plan_meal_types = ['dinner', 'lunch', 'breakfast']
+
+    const wrapper = mount(ProfileSettingsView)
+    await wrapper.get('[data-testid="save-btn"]').trigger('click')
+    await flushPromises()
+
+    const payload = updateProfile.mock.calls[0]![0]
+    expect(payload.meal_plan_meal_types).toEqual(['breakfast', 'lunch', 'dinner'])
   })
 })

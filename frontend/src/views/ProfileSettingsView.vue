@@ -86,11 +86,15 @@ const error = ref('')
 
 const ALL_MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 
+function sortByMealTypeOrder(types: string[]): string[] {
+  return [...types].sort((a, b) => ALL_MEAL_TYPES.indexOf(a) - ALL_MEAL_TYPES.indexOf(b))
+}
+
 function toggleMealType(mt: string) {
   if (mealPlanMealTypes.value.includes(mt)) {
     mealPlanMealTypes.value = mealPlanMealTypes.value.filter((t) => t !== mt)
   } else {
-    mealPlanMealTypes.value = [...mealPlanMealTypes.value, mt]
+    mealPlanMealTypes.value = sortByMealTypeOrder([...mealPlanMealTypes.value, mt])
   }
 }
 
@@ -102,7 +106,7 @@ onMounted(() => {
   defaultServings.value = u.default_servings
   defaultServingsInput.value = String(u.default_servings)
   mealPlanSystemPrompt.value = u.meal_plan_system_prompt ?? ''
-  mealPlanMealTypes.value = u.meal_plan_meal_types ?? ['dinner']
+  mealPlanMealTypes.value = sortByMealTypeOrder(u.meal_plan_meal_types ?? ['dinner'])
   mealPlanDaysAhead.value = u.meal_plan_days_ahead ?? 7
 })
 
@@ -162,7 +166,7 @@ async function save() {
     <section class="settings-section">
       <h2>Meal Planning</h2>
 
-      <div class="field-label">
+      <div class="field-label" data-testid="pref-meal_plan_meal_types">
         Meal types to show
         <div class="chip-row">
           <ToggleChip
