@@ -210,36 +210,6 @@ async function handleSaveToShortlist(entry: TimelineEntry) {
   }
 }
 
-async function handleMoveToShortlist(entry: TimelineEntry) {
-  actionError.value = null
-  const payload = entry.recipe_id
-    ? { recipe_id: entry.recipe_id, entry_type: 'recipe' as const, note: entry.note ?? entryLabel(entry) }
-    : { recipe_id: null, entry_type: 'suggestion' as const, note: entry.note ?? '' }
-  try {
-    const created = await shortlistStore.addEntry(payload)
-    try {
-      await timelineStore.removeEntry(entry.id)
-    } catch {
-      actionError.value = 'Saved to shortlist but failed to remove from plan.'
-      return
-    }
-    toast.show({
-      message: `Moved "${entryLabel(entry)}" to shortlist`,
-      undoLabel: 'Undo',
-      onUndo: async () => {
-        try {
-          await shortlistStore.removeEntry(created.id)
-          await timelineStore.addEntry(payloadForCopy(entry, entry.date, entry.meal_type))
-        } catch {
-          /* swallow */
-        }
-      },
-    })
-  } catch {
-    actionError.value = 'Failed to move to shortlist.'
-  }
-}
-
 // Move-to-slot: open the DayMealPicker in a sheet.
 const moveSheetOpen = ref(false)
 const movingEntry = ref<TimelineEntry | null>(null)
@@ -358,7 +328,6 @@ async function handleConvertToRecipe(title: string) {
         :today-str="todayStr"
         @open-recipe="openRecipeDrawer"
         @move-to-slot="handleMoveToSlot"
-        @move-to-shortlist="handleMoveToShortlist"
         @save-to-shortlist="handleSaveToShortlist"
         @remove="handleRemoveEntry"
       />
