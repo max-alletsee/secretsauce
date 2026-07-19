@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     # Optional with defaults
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    AI_MODEL: str = "gemini-3.1-pro-preview"
     AI_TIMEOUT_SECONDS: int = 60
     AI_MAX_RETRIES: int = 3
     AI_CALL_BUDGET_DEFAULT: int = 300

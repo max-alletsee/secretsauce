@@ -8,6 +8,7 @@ from typing import TypeVar
 from google import genai
 from google.genai import types
 
+from app.core import ai_config
 from app.core.config import settings
 from app.schemas.ai_responses import MealSuggestionResult, RecipeImportResult
 
@@ -16,50 +17,6 @@ _T = TypeVar("_T")
 logger = logging.getLogger(__name__)
 
 _client: genai.Client | None = None
-
-_IMPORT_PROMPT_TEMPLATE = (
-    "Extract the complete recipe from this URL: {url}\n\n"
-    "Return all recipe details: title, description, ingredients with quantities and units, "
-    "numbered steps, servings, prep/cook/waiting times in minutes. "
-    "For tags, only use values from this exact list: "
-    "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
-    "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
-    "spring, summer, autumn, winter, breakfast, lunch, dinner, snack, dessert, "
-    "italian, mexican, japanese, chinese, indian, thai, french, greek, "
-    "middle-eastern, american, korean."
-)
-
-_GENERATE_PROMPT_TEMPLATE = (
-    "Create a complete, detailed recipe for: {title}\n\n"
-    "Return all fields including ingredients with quantities and units, numbered steps, "
-    "prep/cook/waiting times in minutes, servings, a short description, and appropriate tags. "
-    "For tags, only use values from this exact list: "
-    "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
-    "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
-    "spring, summer, autumn, winter, breakfast, lunch, dinner, snack, dessert, "
-    "italian, mexican, japanese, chinese, indian, thai, french, greek, "
-    "middle-eastern, american, korean."
-)
-
-_IMAGE_IMPORT_PROMPT_TEMPLATE = """Extract the recipe from the provided image into structured JSON.
-
-The image may be:
-- A photograph of a cookbook page
-- A handwritten recipe card
-- A screenshot of a recipe website
-- A partial or blurry image (do your best to extract what is visible)
-
-Extract all visible recipe information: title, description, ingredients with quantities and units, \
-numbered steps, servings, prep/cook/waiting times in minutes. \
-For tags, only use values from this exact list: \
-vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, \
-low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, \
-spring, summer, autumn, winter, breakfast, lunch, dinner, snack, dessert, \
-italian, mexican, japanese, chinese, indian, thai, french, greek, \
-middle-eastern, american, korean.
-
-If some fields are unclear or missing, omit them or use null. \
-Return only the structured recipe data, nothing else."""
 
 
 class AIServiceError(Exception):
@@ -117,7 +74,7 @@ async def import_recipe_from_url(
     Raises AIServiceError on permanent failure.
     """
     client = _get_client()
-    prompt = _IMPORT_PROMPT_TEMPLATE.format(url=url)
+    prompt = ai_config.IMPORT_PROMPT_TEMPLATE.format(url=url)
     last_error: Exception | None = None
     elapsed: float = 0.0
 
@@ -126,7 +83,7 @@ async def import_recipe_from_url(
         try:
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model=settings.AI_MODEL,
+                    model=ai_config.get_model("url_import"),
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         tools=[types.Tool(url_context=types.UrlContext())],
@@ -140,14 +97,14 @@ async def import_recipe_from_url(
             usage = response.usage_metadata
             logger.info(
                 "AI import success | model=%s url=%s latency=%.2fs tokens_in=%d tokens_out=%d",
-                settings.AI_MODEL,
+                ai_config.get_model("url_import"),
                 url,
                 elapsed,
                 usage.prompt_token_count if usage else 0,
                 usage.candidates_token_count if usage else 0,
             )
             await _write_ai_log(
-                db, user_id=user_id, call_type="url_import", model=settings.AI_MODEL,
+                db, user_id=user_id, call_type="url_import", model=ai_config.get_model("url_import"),
                 prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
                 input_tokens=usage.prompt_token_count if usage else 0,
                 output_tokens=usage.candidates_token_count if usage else 0,
@@ -169,7 +126,7 @@ async def import_recipe_from_url(
                 await asyncio.sleep(2**attempt)
 
     await _write_ai_log(
-        db, user_id=user_id, call_type="url_import", model=settings.AI_MODEL,
+        db, user_id=user_id, call_type="url_import", model=ai_config.get_model("url_import"),
         prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
         input_tokens=0, output_tokens=0,
         success=False, error_message=str(last_error),
@@ -202,8 +159,8 @@ async def import_recipe_from_image(
         try:
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model=settings.AI_MODEL,
-                    contents=[_IMAGE_IMPORT_PROMPT_TEMPLATE, image_part],
+                    model=ai_config.get_model("image_import"),
+                    contents=[ai_config.IMAGE_IMPORT_PROMPT_TEMPLATE, image_part],
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
                         response_schema=RecipeImportResult,
@@ -215,13 +172,13 @@ async def import_recipe_from_image(
             usage = response.usage_metadata
             logger.info(
                 "AI image import success | model=%s latency=%.2fs tokens_in=%d tokens_out=%d",
-                settings.AI_MODEL,
+                ai_config.get_model("image_import"),
                 elapsed,
                 usage.prompt_token_count if usage else 0,
                 usage.candidates_token_count if usage else 0,
             )
             await _write_ai_log(
-                db, user_id=user_id, call_type="image_import", model=settings.AI_MODEL,
+                db, user_id=user_id, call_type="image_import", model=ai_config.get_model("image_import"),
                 prompt_summary="[image import]", latency_ms=int(elapsed * 1000),
                 input_tokens=usage.prompt_token_count if usage else 0,
                 output_tokens=usage.candidates_token_count if usage else 0,
@@ -242,7 +199,7 @@ async def import_recipe_from_image(
                 await asyncio.sleep(2**attempt)
 
     await _write_ai_log(
-        db, user_id=user_id, call_type="image_import", model=settings.AI_MODEL,
+        db, user_id=user_id, call_type="image_import", model=ai_config.get_model("image_import"),
         prompt_summary="[image import]", latency_ms=int(elapsed * 1000),
         input_tokens=0, output_tokens=0,
         success=False, error_message=str(last_error),
@@ -263,7 +220,7 @@ async def generate_recipe_from_title(
     Raises AIServiceError on permanent failure.
     """
     client = _get_client()
-    prompt = _GENERATE_PROMPT_TEMPLATE.format(title=title)
+    prompt = ai_config.GENERATE_PROMPT_TEMPLATE.format(title=title)
     last_error: Exception | None = None
     elapsed: float = 0.0
 
@@ -272,7 +229,7 @@ async def generate_recipe_from_title(
         try:
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model=settings.AI_MODEL,
+                    model=ai_config.get_model("recipe_generate"),
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -285,14 +242,14 @@ async def generate_recipe_from_title(
             usage = response.usage_metadata
             logger.info(
                 "AI generate success | model=%s title=%r latency=%.2fs tokens_in=%d tokens_out=%d",
-                settings.AI_MODEL,
+                ai_config.get_model("recipe_generate"),
                 title,
                 elapsed,
                 usage.prompt_token_count if usage else 0,
                 usage.candidates_token_count if usage else 0,
             )
             await _write_ai_log(
-                db, user_id=user_id, call_type="recipe_generate", model=settings.AI_MODEL,
+                db, user_id=user_id, call_type="recipe_generate", model=ai_config.get_model("recipe_generate"),
                 prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
                 input_tokens=usage.prompt_token_count if usage else 0,
                 output_tokens=usage.candidates_token_count if usage else 0,
@@ -314,7 +271,7 @@ async def generate_recipe_from_title(
                 await asyncio.sleep(2**attempt)
 
     await _write_ai_log(
-        db, user_id=user_id, call_type="recipe_generate", model=settings.AI_MODEL,
+        db, user_id=user_id, call_type="recipe_generate", model=ai_config.get_model("recipe_generate"),
         prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
         input_tokens=0, output_tokens=0,
         success=False, error_message=str(last_error),
@@ -345,7 +302,7 @@ async def call_ai_structured(
         try:
             response = await asyncio.wait_for(
                 client.aio.models.generate_content(
-                    model=settings.AI_MODEL,
+                    model=ai_config.get_model(call_type),
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -358,11 +315,11 @@ async def call_ai_structured(
             usage = response.usage_metadata
             logger.info(
                 "AI structured call success | model=%s latency=%.2fs",
-                settings.AI_MODEL,
+                ai_config.get_model(call_type),
                 elapsed,
             )
             await _write_ai_log(
-                db, user_id=user_id, call_type=call_type, model=settings.AI_MODEL,
+                db, user_id=user_id, call_type=call_type, model=ai_config.get_model(call_type),
                 prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
                 input_tokens=usage.prompt_token_count if usage else 0,
                 output_tokens=usage.candidates_token_count if usage else 0,
@@ -383,7 +340,7 @@ async def call_ai_structured(
                 await asyncio.sleep(2**attempt)
 
     await _write_ai_log(
-        db, user_id=user_id, call_type=call_type, model=settings.AI_MODEL,
+        db, user_id=user_id, call_type=call_type, model=ai_config.get_model(call_type),
         prompt_summary=prompt[:200], latency_ms=int(elapsed * 1000),
         input_tokens=0, output_tokens=0,
         success=False, error_message=str(last_error),
@@ -391,15 +348,6 @@ async def call_ai_structured(
     raise AIServiceError(
         f"AI call failed after {settings.AI_MAX_RETRIES} attempts: {last_error}"
     ) from last_error
-
-
-_SUGGESTIONS_SYSTEM_PROMPT = """You are a meal planning assistant. Suggest meals based on the user's preferences.
-Return a JSON object with a "suggestions" array. Each suggestion must have:
-- "title": the meal name (string)
-- "matched_recipe_id": UUID string if the meal matches a recipe in the user's collection, or null
-
-IMPORTANT: For collection recipes, use the EXACT title from the provided list and include the exact recipe ID.
-For new ideas not in the collection, set matched_recipe_id to null."""
 
 
 def _build_suggestions_prompt(
@@ -476,7 +424,7 @@ async def generate_meal_suggestions(
         steer_prompt=steer_prompt,
         carryover_titles=carryover_titles,
     )
-    full_prompt = f"{_SUGGESTIONS_SYSTEM_PROMPT}\n\n{prompt}"
+    full_prompt = f"{ai_config.SUGGESTIONS_SYSTEM_PROMPT}\n\n{prompt}"
     result = await call_ai_structured(
         full_prompt, MealSuggestionResult, call_type="meal_suggestions",
         user_id=user_id, db=db,

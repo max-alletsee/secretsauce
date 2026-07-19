@@ -41,12 +41,21 @@ client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
 The shared client lives in `app/services/ai_service.py` as a module-level singleton (`_client`). Use `client.aio` for all async calls.
 
+### Model & Prompt Config
+Which Gemini model handles each AI task, and the prompt template sent for that task, are
+defined in `app/core/ai_config.py` — review or edit that file, not `ai_service.py`, when
+changing model choice or prompt wording. Call sites resolve their model via
+`ai_config.get_model(call_type)`; a `call_type` not registered in `ai_config.TASK_MODELS`
+falls back to the cheaper default model.
+
 ### Structured Outputs
 All AI calls use Gemini's native `response_schema` parameter with Pydantic models. Define expected output schemas in `app/schemas/ai_responses.py`.
 
 ```python
+from app.core import ai_config
+
 response = await client.aio.models.generate_content(
-    model=settings.AI_MODEL,
+    model=ai_config.get_model("url_import"),
     contents=prompt,
     config=types.GenerateContentConfig(
         response_mime_type="application/json",
