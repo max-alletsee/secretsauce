@@ -55,7 +55,7 @@ All AI calls use Gemini's native `response_schema` parameter with Pydantic model
 from app.core import ai_config
 
 response = await client.aio.models.generate_content(
-    model=ai_config.get_model(ai_config.CallType.RECIPE_IMPORT_URL),
+    model=ai_config.get_model("url_import"),
     contents=prompt,
     config=types.GenerateContentConfig(
         response_mime_type="application/json",
