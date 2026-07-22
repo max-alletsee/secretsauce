@@ -47,7 +47,7 @@ IMPORT_PROMPT_TEMPLATE = (
     "If you find the recipe in a language other than English, translate it to English first. "
     "Return all recipe details: title, description, ingredients with quantities and units, "
     "numbered steps, servings, prep/cook/waiting times in minutes. "
-    "Convert imperial units to metric units. "
+    "Convert imperial units to metric units. Temperatures should be converted to Celsius, not Fahrenheit. "
     "For tags, only use values from this exact list: "
     "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
     "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
@@ -60,7 +60,7 @@ GENERATE_PROMPT_TEMPLATE = (
     "Create a complete, detailed recipe for: {title}\n\n"
     "Return all fields including ingredients with quantities and units, numbered steps, "
     "prep/cook/waiting times in minutes, servings, a short description, and appropriate tags. "
-    "You must use metric units, not imperial units."
+    "You must use metric units, not imperial units.Temperatures should be converted to Celsius, not Fahrenheit. "
     "For tags, only use values from this exact list: "
     "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
     "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
@@ -82,7 +82,8 @@ If you find the recipe in a language other than English, translate it to English
 Extract all visible recipe information: title, description, ingredients with quantities and units, \
 numbered steps, servings, prep/cook/waiting times in minutes. \
 
-If necessary, convert imperial units to metric units.
+If necessary, convert imperial units to metric units. \
+Temperatures should be converted to Celsius, not Fahrenheit.
 
 For tags, only use values from this exact list: \
 vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, \
