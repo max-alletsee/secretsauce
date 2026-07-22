@@ -13,8 +13,8 @@ class AITask(str, Enum):
     MEAL_SUGGESTIONS = "meal_suggestions"
 
 
-MODEL_PRO = "gemini-3.1-pro-preview"
-MODEL_FLASH_LITE = "gemini-3.1-flash-lite"
+MODEL_PRO = "gemini-3.6-flash"
+MODEL_FLASH_LITE = "gemini-3.5-flash-lite"
 
 # Fallback model for any call_type not listed in TASK_MODELS below
 # (e.g. a future call_ai_structured() caller that hasn't been registered yet).
@@ -44,8 +44,10 @@ def get_model(call_type: str) -> str:
 
 IMPORT_PROMPT_TEMPLATE = (
     "Extract the complete recipe from this URL: {url}\n\n"
+    "If you find the recipe in a language other than English, translate it to English first. "
     "Return all recipe details: title, description, ingredients with quantities and units, "
     "numbered steps, servings, prep/cook/waiting times in minutes. "
+    "Convert imperial units to metric units. "
     "For tags, only use values from this exact list: "
     "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
     "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
@@ -58,6 +60,7 @@ GENERATE_PROMPT_TEMPLATE = (
     "Create a complete, detailed recipe for: {title}\n\n"
     "Return all fields including ingredients with quantities and units, numbered steps, "
     "prep/cook/waiting times in minutes, servings, a short description, and appropriate tags. "
+    "You must use metric units, not imperial units."
     "For tags, only use values from this exact list: "
     "vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, "
     "low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, "
@@ -74,8 +77,13 @@ The image may be:
 - A screenshot of a recipe website
 - A partial or blurry image (do your best to extract what is visible)
 
+If you find the recipe in a language other than English, translate it to English first. \
+
 Extract all visible recipe information: title, description, ingredients with quantities and units, \
 numbered steps, servings, prep/cook/waiting times in minutes. \
+
+If necessary, convert imperial units to metric units.
+
 For tags, only use values from this exact list: \
 vegan, vegetarian, fish, poultry, meat, seafood, low-calorie, high-calorie, \
 low-carb, high-protein, gluten-free, dairy-free, keto, paleo, mediterranean, \
