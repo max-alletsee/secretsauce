@@ -23,6 +23,17 @@ vi.mock('@/api/shoppingLists', () => ({
   deleteShoppingList: vi.fn(),
 }))
 
+vi.mock('@/api/recipes', () => ({
+  getRecipes: vi.fn(),
+  getRecipe: vi.fn(),
+  createRecipe: vi.fn(),
+  updateRecipe: vi.fn(),
+  deleteRecipe: vi.fn(),
+  getVersions: vi.fn(),
+  restoreVersion: vi.fn(),
+  generateRecipe: vi.fn(),
+}))
+
 const mockStartPolling = vi.fn()
 vi.mock('@/composables/useImportPolling', () => ({
   useImportPolling: () => ({
@@ -34,6 +45,7 @@ vi.mock('@/composables/useImportPolling', () => ({
 
 import * as timelineApi from '@/api/timeline'
 import * as shoppingApi from '@/api/shoppingLists'
+import * as recipesApi from '@/api/recipes'
 import { useUserStore } from '@/stores/useUserStore'
 import ShoppingListNewView from './ShoppingListNewView.vue'
 
@@ -88,6 +100,16 @@ describe('ShoppingListNewView', () => {
 
   async function mountView(entries: TimelineEntry[]) {
     vi.mocked(timelineApi.listEntries).mockResolvedValue({ data: { entries } } as never)
+    vi.mocked(recipesApi.getRecipes).mockResolvedValue({
+      data: {
+        items: [
+          { id: 'r1', current_version: { title: 'Spaghetti Carbonara' } },
+          { id: 'r2', current_version: { title: 'Overnight Oats' } },
+        ],
+        next_cursor: null,
+        has_more: false,
+      },
+    } as never)
     const wrapper = mount(ShoppingListNewView)
     await flushPromises()
     return wrapper
@@ -96,17 +118,17 @@ describe('ShoppingListNewView', () => {
   it('renders day sections grouped correctly from mocked timeline entries', async () => {
     const tomorrow = '2026-07-14'
     const entries = [
-      makeEntry({ id: 'e1', date: TODAY, meal_type: 'dinner', note: 'Tacos' }),
-      makeEntry({ id: 'e2', date: tomorrow, meal_type: 'breakfast', note: 'Oatmeal' }),
+      makeEntry({ id: 'e1', date: TODAY, meal_type: 'dinner', recipe_id: 'r1', note: null }),
+      makeEntry({ id: 'e2', date: tomorrow, meal_type: 'breakfast', recipe_id: 'r2', note: null }),
     ]
     const wrapper = await mountView(entries)
 
     const sections = wrapper.findAll('.day-section')
     expect(sections.length).toBe(2)
     expect(sections[0]!.text()).toContain(TODAY)
-    expect(sections[0]!.text()).toContain('Tacos')
+    expect(sections[0]!.text()).toContain('Spaghetti Carbonara')
     expect(sections[1]!.text()).toContain(tomorrow)
-    expect(sections[1]!.text()).toContain('Oatmeal')
+    expect(sections[1]!.text()).toContain('Overnight Oats')
   })
 
   it('clicking a meal chip toggles its entry in the selection, reflected in the summary count', async () => {
@@ -150,6 +172,20 @@ describe('ShoppingListNewView', () => {
 
     await dayToggleAfterClear.trigger('click')
     expect(wrapper.text()).toContain('2 meals selected')
+  })
+
+  it('shows the recipe title for recipe entries that have no note', async () => {
+    // Regression: entryLabel fell through to entry.recipe_id and rendered a raw
+    // UUID. Real recipe entries carry note=null, so the title must be resolved
+    // from the recipe store, as TimelineView/MealSlot do.
+    const entries = [
+      makeEntry({ id: 'e1', date: TODAY, meal_type: 'dinner', recipe_id: 'r1', note: null }),
+    ]
+    const wrapper = await mountView(entries)
+
+    const chipText = wrapper.find('.day-section button.toggle-chip').text()
+    expect(chipText).toContain('Spaghetti Carbonara')
+    expect(chipText).not.toContain('r1')
   })
 
   it('entries without recipe_id are not rendered as interactive chips', async () => {

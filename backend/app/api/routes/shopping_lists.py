@@ -83,13 +83,13 @@ async def list_shopping_lists_endpoint(
     return [ShoppingListSummaryResponse.model_validate(sl) for sl in lists]
 
 
-@router.get("/{meal_plan_id}", response_model=ShoppingListResponse)
+@router.get("/{list_id}", response_model=ShoppingListResponse)
 async def get_shopping_list(
-    meal_plan_id: uuid.UUID,
+    list_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user),
 ) -> ShoppingListResponse:
-    shopping_list = await shopping_service.get_or_create_shopping_list(db, user.id, meal_plan_id)
+    shopping_list = await shopping_service.resolve_shopping_list(db, user.id, list_id)
     items = await _load_items(db, shopping_list.id)
     return _to_response(shopping_list, items)
 

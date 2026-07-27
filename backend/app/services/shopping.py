@@ -106,6 +106,27 @@ def _smart_merge_items(
     return result
 
 
+async def resolve_shopping_list(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    list_or_plan_id: uuid.UUID,
+) -> ShoppingList:
+    """Resolve a shopping list from a path parameter that may be either ID.
+
+    Entry-based lists (created from timeline entries) have meal_plan_id=NULL and
+    can only be addressed by their own primary key, so try that first. Fall back
+    to the legacy get-or-create-by-meal-plan behaviour so existing plan-based
+    links keep working.
+    """
+    shopping_list = await db.get(ShoppingList, list_or_plan_id)
+    if shopping_list is not None:
+        if shopping_list.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Shopping list not found")
+        return shopping_list
+
+    return await get_or_create_shopping_list(db, user_id, list_or_plan_id)
+
+
 async def get_or_create_shopping_list(
     db: AsyncSession,
     user_id: uuid.UUID,
@@ -402,12 +423,7 @@ async def update_item(
     partial update, not a full replace. `checked=False` and `quantity=0` are
     valid, meaningful values, so callers pass None to mean "leave unchanged".
     """
-    result = await db.execute(
-        select(ShoppingList).where(ShoppingList.meal_plan_id == meal_plan_id)
-    )
-    shopping_list = result.scalar_one_or_none()
-    if shopping_list is None or shopping_list.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Shopping list not found")
+    shopping_list = await resolve_shopping_list(db, user_id, meal_plan_id)
 
     item = await db.get(ShoppingListItem, item_id)
     if item is None or item.shopping_list_id != shopping_list.id:
@@ -441,7 +457,7 @@ async def create_ad_hoc_item(
     blank. Creates the list shell first if it doesn't exist yet (same
     get-or-create semantics as GET).
     """
-    shopping_list = await get_or_create_shopping_list(db, user_id, meal_plan_id)
+    shopping_list = await resolve_shopping_list(db, user_id, meal_plan_id)
 
     item = ShoppingListItem(
         shopping_list_id=shopping_list.id,

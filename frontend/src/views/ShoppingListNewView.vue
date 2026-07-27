@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTimelineStore } from '@/stores/useTimelineStore'
 import { useUserStore } from '@/stores/useUserStore'
+import { useRecipeStore } from '@/stores/useRecipeStore'
 import { useImportPolling } from '@/composables/useImportPolling'
 import * as shoppingApi from '@/api/shoppingLists'
 import { getApiErrorDetail } from '@/api/client'
@@ -14,6 +15,17 @@ import ToggleChip from '@/components/base/ToggleChip.vue'
 const router = useRouter()
 const timelineStore = useTimelineStore()
 const userStore = useUserStore()
+const recipeStore = useRecipeStore()
+
+const recipeTitles = computed(() => {
+  const map: Record<string, string> = {}
+  for (const recipe of recipeStore.recipes) {
+    if (recipe.current_version?.title) {
+      map[recipe.id] = recipe.current_version.title
+    }
+  }
+  return map
+})
 
 const todayStr = new Date().toISOString().slice(0, 10)
 const mealTypes = computed(() => userStore.user?.meal_plan_meal_types ?? ['dinner'])
@@ -146,7 +158,10 @@ const autoName = computed(() => {
 })
 
 onMounted(async () => {
-  await timelineStore.fetchEntries(todayStr, toDate.value)
+  await Promise.all([
+    timelineStore.fetchEntries(todayStr, toDate.value),
+    recipeStore.fetchRecipes(),
+  ])
   selectAllUpcoming()
   listName.value = autoName.value
 })
@@ -167,8 +182,13 @@ async function generate() {
   }
 }
 
+// Mirrors TimelineView/MealSlot: recipe entries resolve their title from the
+// recipe store — never fall back to the raw recipe_id, which renders as a UUID.
 function entryLabel(entry: TimelineEntry): string {
-  return entry.note ?? entry.recipe_id ?? '(empty)'
+  if (entry.recipe_id) {
+    return recipeTitles.value[entry.recipe_id] ?? 'Recipe'
+  }
+  return entry.note ?? '(empty)'
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -186,50 +206,55 @@ function dayToggleLabel(dateStr: string): string {
   <main class="new-list-page">
     <h1>New Shopping List</h1>
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <div class="toolbar-actions">
-        <BaseButton variant="secondary" @click="selectAllUpcoming">Select all upcoming</BaseButton>
-        <BaseButton variant="ghost" @click="clearAll">Clear</BaseButton>
-      </div>
-      <span class="toolbar-summary">{{ selectedCount }} meals selected</span>
-    </div>
-
-    <!-- Day sections -->
-    <div v-if="timelineStore.loading" class="loading-state"><PourLoader label="Loading meals" /></div>
-    <div v-else class="day-list">
-      <section
-        v-for="day in days"
-        :key="day"
-        class="day-section"
-        :class="{ 'day-section--today': day === todayStr }"
-      >
-        <header class="day-header">
-          <h2 class="day-heading">{{ dayLabel(day) }}</h2>
-          <button
-            v-if="selectableEntriesForDay(day).length > 0"
-            type="button"
-            class="day-toggle"
-            :class="{ 'day-toggle--indeterminate': isDayIndeterminate(day) }"
-            @click="toggleDay(day)"
-          >
-            {{ dayToggleLabel(day) }}
-          </button>
-        </header>
-
-        <div v-if="selectableEntriesForDay(day).length > 0" class="chip-row">
-          <ToggleChip
-            v-for="entry in selectableEntriesForDay(day)"
-            :key="entry.id"
-            :model-value="checkedEntryIds.has(entry.id)"
-            @update:model-value="toggleEntry(entry.id)"
-          >
-            <span class="chip-meal-type">{{ entry.meal_type }}</span>
-            <span class="chip-label">{{ entryLabel(entry) }}</span>
-          </ToggleChip>
+    <!-- Day sections, grouped in a surface like TimelineView's .grid-section -->
+    <div class="grid-section">
+      <div class="grid-header">
+        <div class="grid-heading">
+          <span class="grid-title">Select meals</span>
+          <span class="grid-date-range">{{ selectedCount }} meals selected</span>
         </div>
-        <p v-else class="day-empty">No meals planned</p>
-      </section>
+        <div class="toolbar-actions">
+          <BaseButton variant="secondary" @click="selectAllUpcoming">Select all upcoming</BaseButton>
+          <BaseButton variant="ghost" @click="clearAll">Clear</BaseButton>
+        </div>
+      </div>
+
+      <div v-if="timelineStore.loading" class="loading-state"><PourLoader label="Loading meals" /></div>
+      <div v-else class="day-list">
+        <section
+          v-for="day in days"
+          :key="day"
+          class="day-section"
+          :class="{ 'day-section--today': day === todayStr }"
+        >
+          <header class="day-header">
+            <h2 class="day-heading">{{ dayLabel(day) }}</h2>
+            <button
+              v-if="selectableEntriesForDay(day).length > 0"
+              type="button"
+              class="day-toggle"
+              :class="{ 'day-toggle--indeterminate': isDayIndeterminate(day) }"
+              :aria-pressed="isDayChecked(day)"
+              @click="toggleDay(day)"
+            >
+              {{ dayToggleLabel(day) }}
+            </button>
+          </header>
+
+          <div v-if="selectableEntriesForDay(day).length > 0" class="chip-row">
+            <ToggleChip
+              v-for="entry in selectableEntriesForDay(day)"
+              :key="entry.id"
+              :model-value="checkedEntryIds.has(entry.id)"
+              @update:model-value="toggleEntry(entry.id)"
+            >
+              <span class="chip-meal-type">{{ entry.meal_type }}</span>
+              <span class="chip-label">{{ entryLabel(entry) }}</span>
+            </ToggleChip>
+          </div>
+          <p v-else class="day-empty">No meals planned</p>
+        </section>
+      </div>
     </div>
 
     <!-- Footer -->
@@ -267,29 +292,42 @@ h1 {
   margin: 0 0 var(--space-4);
 }
 
-.toolbar {
+/* Mirrors TimelineView's .grid-section/.grid-header so the two planning
+   surfaces read as the same component family. */
+.grid-section {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+}
+
+.grid-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
   flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-4);
+}
+
+.grid-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.grid-title {
+  font-weight: 600;
+}
+
+.grid-date-range {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .toolbar-actions {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
-}
-
-.toolbar-summary {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
 .loading-state {
@@ -344,6 +382,23 @@ h1 {
 
 .day-toggle:hover {
   background: var(--color-primary-soft);
+}
+
+/* Pressed + focus states matched to ToggleChip/.clear-checked-button, which
+   were the only controls here that had them. */
+.day-toggle[aria-pressed='true'] {
+  background: var(--color-primary);
+  color: var(--color-primary-ink);
+}
+
+.day-toggle[aria-pressed='true']:hover {
+  filter: brightness(0.92);
+  background: var(--color-primary);
+}
+
+.day-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .day-toggle--indeterminate {

@@ -238,6 +238,129 @@ async def test_toggle_item_checked(client):
     assert uncheck_r.json()["checked"] is False
 
 
+# ── Entry-based lists: resolve by the list's own ID ───────────────────────────
+
+async def _create_entry_based_list(
+    client, db_engine, token: str, user_id: str, name: str = "Week list"
+) -> tuple[str, str]:
+    """Build a timeline entry, generate an entry-based list from it.
+
+    Returns (list_id, recipe_id). Entry-based lists have meal_plan_id=NULL, so
+    they can only be addressed by their own primary key.
+    """
+    from app.services.shopping import generate_shopping_list_from_entries
+
+    recipe_id = await _create_recipe(client, token)
+
+    # Create via the timeline route — that is what the New List view reads from,
+    # and unlike the meal-plan route it stamps entry.user_id, which
+    # generate_shopping_list_from_entries filters on.
+    entry_r = await client.post(
+        "/api/v1/timeline/entries",
+        json={
+            "date": "2026-05-05",
+            "meal_type": "dinner",
+            "recipe_id": recipe_id,
+            "entry_type": "recipe",
+            "servings": 2,
+            "source": "manual",
+            "position": 0,
+        },
+        headers=_auth(token),
+    )
+    assert entry_r.status_code == 201, entry_r.json()
+    entry_id = entry_r.json()["id"]
+
+    mock_ai_result = ShoppingListAIResult(items=[
+        ShoppingItemAIResult(
+            ingredient_name="flour",
+            total_quantity=200.0,
+            unit="g",
+            detail="200 g for Shopping Test Recipe",
+            category="Basic Ingredients for Cooking and Baking",
+            recipe_names=["Shopping Test Recipe"],
+        ),
+    ])
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+    session_factory = async_sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+    async with session_factory() as db:
+        with patch(
+            "app.services.ai_service.call_ai_structured",
+            new=AsyncMock(return_value=mock_ai_result),
+        ):
+            shopping_list = await generate_shopping_list_from_entries(
+                db, uuid.UUID(user_id), [uuid.UUID(entry_id)], name
+            )
+        return str(shopping_list.id), recipe_id
+
+
+async def test_get_entry_based_list_by_its_own_id(client, db_engine):
+    """An entry-based list (meal_plan_id=NULL) is retrievable by its own ID.
+
+    Regression: the route resolved the path param only as a meal_plan_id, so
+    freshly generated lists 404'd and the detail page rendered empty.
+    """
+    user_id, token = await _auth_token(client)
+    list_id, _ = await _create_entry_based_list(
+        client, db_engine, token, user_id, name="Week list"
+    )
+
+    r = await client.get(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token))
+    assert r.status_code == 200, r.json()
+    data = r.json()
+    assert data["id"] == list_id
+    assert data["name"] == "Week list"
+    assert data["meal_plan_id"] is None
+    assert [i["ingredient_name"] for i in data["items"]] == ["flour"]
+
+
+async def test_get_entry_based_list_404_for_other_user(client, db_engine):
+    """Ownership is still enforced when resolving by list ID."""
+    user_a, token_a = await _auth_token(client)
+    _, token_b = await _auth_token(client)
+
+    list_id, _ = await _create_entry_based_list(client, db_engine, token_a, user_a)
+
+    r = await client.get(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token_b))
+    assert r.status_code == 404
+
+
+async def test_patch_item_on_entry_based_list(client, db_engine):
+    """Item PATCH resolves entry-based lists by list ID too."""
+    user_id, token = await _auth_token(client)
+    list_id, _ = await _create_entry_based_list(client, db_engine, token, user_id)
+
+    get_r = await client.get(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token))
+    item_id = get_r.json()["items"][0]["id"]
+
+    patch_r = await client.patch(
+        f"/api/v1/shopping-lists/{list_id}/items/{item_id}",
+        json={"checked": True},
+        headers=_auth(token),
+    )
+    assert patch_r.status_code == 200, patch_r.json()
+    assert patch_r.json()["checked"] is True
+
+
+async def test_create_item_on_entry_based_list(client, db_engine):
+    """Ad-hoc item POST resolves entry-based lists by list ID too."""
+    user_id, token = await _auth_token(client)
+    list_id, _ = await _create_entry_based_list(client, db_engine, token, user_id)
+
+    create_r = await client.post(
+        f"/api/v1/shopping-lists/{list_id}/items",
+        json={"ingredient_name": "napkins", "quantity": 1, "unit": ""},
+        headers=_auth(token),
+    )
+    assert create_r.status_code == 201, create_r.json()
+
+    get_r = await client.get(f"/api/v1/shopping-lists/{list_id}", headers=_auth(token))
+    names = [i["ingredient_name"] for i in get_r.json()["items"]]
+    assert "napkins" in names
+
+
 # ── DELETE /api/v1/shopping-lists/{id} ────────────────────────────────────────
 
 async def test_delete_shopping_list_requires_auth(client):
