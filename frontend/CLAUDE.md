@@ -11,6 +11,29 @@ This file covers frontend-specific implementation conventions. For project overv
 - **Vue Router** for routing with auth guards.
 - **axios** for HTTP requests.
 
+### Package Manager — pnpm only
+
+**Use `pnpm`, never `npm` or `yarn`.** The version is pinned via `packageManager` in `package.json` (`pnpm@9.15.9`); run it through `corepack` so the pinned version is what executes.
+
+```bash
+pnpm install          # not: npm install
+pnpm run lint
+pnpm run test:unit
+pnpm run build
+```
+
+Why this matters:
+
+- `.npmrc` holds `node-linker=hoisted`, a pnpm-only setting. npm doesn't recognize it and warns on every command.
+- `pnpm-lock.yaml` is the single source of truth. `package-lock.json` and `yarn.lock` are gitignored — running `npm install` creates a competing lockfile that silently drifts from the one the Docker build actually uses.
+- `Dockerfile` builds with `pnpm install --frozen-lockfile`. If `pnpm-lock.yaml` is out of sync with `package.json`, **the production build fails loudly** rather than silently resolving the difference.
+
+After changing dependencies, commit the updated `pnpm-lock.yaml` in the same commit as the `package.json` change, and verify with:
+
+```bash
+pnpm install --frozen-lockfile   # must exit 0, or the Docker build will break
+```
+
 ## Directory Responsibilities
 
 - **`views/`** — Page-level components, one per route. These compose smaller components and connect to stores. Examples: `RecipeListView.vue`, `RecipeDetailView.vue`, `MealPlanView.vue`, `ShoppingListView.vue`, `LoginView.vue`, `AdminView.vue`.
