@@ -87,8 +87,8 @@ describe('useImportPolling', () => {
 
   it('sets error and failed status when task fails', async () => {
     const scope = effectScope()
-    let capturedError: any
-    let capturedStatus: any
+    let capturedError: ReturnType<typeof useImportPolling>['error'] | null = null
+    let capturedStatus: ReturnType<typeof useImportPolling>['status'] | null = null
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockResolvedValue(
         axiosOk(makeTask({ status: 'failed', error_message: 'Gemini timed out' })),
@@ -99,14 +99,14 @@ describe('useImportPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(capturedError.value).toBe('Gemini timed out')
-    expect(capturedStatus.value).toBe('failed')
+    expect(capturedError!.value).toBe('Gemini timed out')
+    expect(capturedStatus!.value).toBe('failed')
     scope.stop()
   })
 
   it('uses default error message when task.error_message is null', async () => {
     const scope = effectScope()
-    let capturedError: any
+    let capturedError: ReturnType<typeof useImportPolling>['error'] | null = null
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockResolvedValue(
         axiosOk(makeTask({ status: 'failed', error_message: null })),
@@ -116,14 +116,14 @@ describe('useImportPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(capturedError.value).toBe('Import failed')
+    expect(capturedError!.value).toBe('Import failed')
     scope.stop()
   })
 
   it('sets error when polling API call throws', async () => {
     const scope = effectScope()
-    let capturedError: any
-    let capturedStatus: any
+    let capturedError: ReturnType<typeof useImportPolling>['error'] | null = null
+    let capturedStatus: ReturnType<typeof useImportPolling>['status'] | null = null
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockRejectedValue(new Error('network'))
       const { status, error, startPolling } = useImportPolling(() => {})
@@ -132,8 +132,8 @@ describe('useImportPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(capturedError.value).toBe('Failed to check import status')
-    expect(capturedStatus.value).toBe('failed')
+    expect(capturedError!.value).toBe('Failed to check import status')
+    expect(capturedStatus!.value).toBe('failed')
     scope.stop()
   })
 })

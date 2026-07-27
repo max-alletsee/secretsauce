@@ -17,7 +17,6 @@ import DayMealPicker from '@/components/DayMealPicker.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { generateRecipe } from '@/api/recipes'
 import type { DraftRecipeData } from '@/types/importTask'
-import type { Recipe } from '@/types/recipe'
 import type { TimelineEntry, TimelineEntryCreate } from '@/types/timeline'
 
 const timelineStore = useTimelineStore()
@@ -50,7 +49,7 @@ function closeDrawer() {
   drawerDraftRecipe.value = null
 }
 
-async function handleDrawerSaved(_recipe: Recipe) {
+async function handleDrawerSaved() {
   closeDrawer()
   await recipeStore.fetchRecipes()
 }

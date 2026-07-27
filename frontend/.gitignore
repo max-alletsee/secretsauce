@@ -37,3 +37,9 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# This project uses pnpm (see packageManager in package.json).
+# Ignore npm/yarn lockfiles so a stray `npm install` cannot reintroduce a
+# second, competing lockfile.
+package-lock.json
+yarn.lock

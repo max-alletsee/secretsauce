@@ -93,8 +93,8 @@ describe('useSuggestionsPolling', () => {
 
   it('sets error and status to failed on task failure', async () => {
     const scope = effectScope()
-    let capturedError: any
-    let capturedStatus: any
+    let capturedError: ReturnType<typeof useSuggestionsPolling>['error'] | null = null
+    let capturedStatus: ReturnType<typeof useSuggestionsPolling>['status'] | null = null
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockResolvedValue(
         axiosOk(makeTask({ status: 'failed', error_message: 'AI timed out' })),
@@ -105,15 +105,15 @@ describe('useSuggestionsPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(capturedStatus.value).toBe('failed')
-    expect(capturedError.value).toBe('AI timed out')
+    expect(capturedStatus!.value).toBe('failed')
+    expect(capturedError!.value).toBe('AI timed out')
     scope.stop()
   })
 
   it('sets error on network failure', async () => {
     const scope = effectScope()
-    let capturedError: any
-    let capturedStatus: any
+    let capturedError: ReturnType<typeof useSuggestionsPolling>['error'] | null = null
+    let capturedStatus: ReturnType<typeof useSuggestionsPolling>['status'] | null = null
     scope.run(() => {
       vi.mocked(importTasksApi.getImportTask).mockRejectedValue(new Error('Network error'))
       const { error, status, startPolling } = useSuggestionsPolling(() => {})
@@ -122,8 +122,8 @@ describe('useSuggestionsPolling', () => {
       startPolling('task-1')
     })
     await vi.runAllTimersAsync()
-    expect(capturedError.value).toBe('Failed to check suggestion status')
-    expect(capturedStatus.value).toBe('failed')
+    expect(capturedError!.value).toBe('Failed to check suggestion status')
+    expect(capturedStatus!.value).toBe('failed')
     scope.stop()
   })
 

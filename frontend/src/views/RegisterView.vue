@@ -1,6 +1,7 @@
 <!-- frontend/src/views/RegisterView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
+import { isAxiosError } from 'axios'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -27,8 +28,9 @@ async function submit() {
       display_name: displayName.value || undefined,
     })
     router.push('/recipes')
-  } catch (err: any) {
-    error.value = err?.response?.data?.detail ?? 'Registration failed. Please try again.'
+  } catch (err: unknown) {
+    const detail = isAxiosError<{ detail?: string }>(err) ? err.response?.data?.detail : undefined
+    error.value = detail ?? 'Registration failed. Please try again.'
   } finally {
     loading.value = false
   }

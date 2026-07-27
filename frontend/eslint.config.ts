@@ -26,6 +26,16 @@ export default defineConfigWithVueTs(
     files: ['src/**/__tests__/*'],
   },
 
+  {
+    // Base components are intentionally single-word (Chip, Stepper, Wordmark).
+    // See frontend/CLAUDE.md: "No prefix for generic/base components".
+    name: 'app/base-components-single-word',
+    files: ['src/components/base/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

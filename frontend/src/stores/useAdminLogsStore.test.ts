@@ -1,9 +1,15 @@
 // frontend/src/stores/useAdminLogsStore.test.ts
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AxiosResponse } from 'axios'
 import * as adminApi from '@/api/admin'
 
 vi.mock('@/api/admin')
+
+// Mocked axios calls only need `data`; this keeps them typed without `any`.
+function axiosOk<T>(data: T): AxiosResponse<T> {
+  return { data } as unknown as AxiosResponse<T>
+}
 
 describe('useAdminLogsStore', () => {
   beforeEach(() => {
@@ -13,9 +19,7 @@ describe('useAdminLogsStore', () => {
 
   it('fetchAppLogs populates appLogs', async () => {
     const { useAdminLogsStore } = await import('./useAdminLogsStore')
-    vi.mocked(adminApi.getAppLogs).mockResolvedValue({
-      data: { items: [{ timestamp: 't', level: 'INFO', method: 'GET', path: '/x', status_code: 200, latency_ms: 1, user_id: null }] },
-    } as any)
+    vi.mocked(adminApi.getAppLogs).mockResolvedValue(axiosOk({ items: [{ timestamp: 't', level: 'INFO', method: 'GET', path: '/x', status_code: 200, latency_ms: 1, user_id: null }] }))
     const store = useAdminLogsStore()
     await store.fetchAppLogs()
     expect(store.appLogs).toHaveLength(1)
@@ -23,9 +27,7 @@ describe('useAdminLogsStore', () => {
 
   it('fetchAiLogs populates aiLogs', async () => {
     const { useAdminLogsStore } = await import('./useAdminLogsStore')
-    vi.mocked(adminApi.getAiLogs).mockResolvedValue({
-      data: { items: [], next_cursor: null, has_more: false },
-    } as any)
+    vi.mocked(adminApi.getAiLogs).mockResolvedValue(axiosOk({ items: [], next_cursor: null, has_more: false }))
     const store = useAdminLogsStore()
     await store.fetchAiLogs()
     expect(store.aiLogs).toEqual([])
@@ -34,9 +36,7 @@ describe('useAdminLogsStore', () => {
 
   it('fetchAuditLogs populates auditLogs', async () => {
     const { useAdminLogsStore } = await import('./useAdminLogsStore')
-    vi.mocked(adminApi.getAuditLogs).mockResolvedValue({
-      data: { items: [], next_cursor: null, has_more: false },
-    } as any)
+    vi.mocked(adminApi.getAuditLogs).mockResolvedValue(axiosOk({ items: [], next_cursor: null, has_more: false }))
     const store = useAdminLogsStore()
     await store.fetchAuditLogs()
     expect(store.auditLogs).toEqual([])

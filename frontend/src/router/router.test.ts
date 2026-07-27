@@ -12,6 +12,10 @@ vi.mock('@/stores/useUserStore', () => ({
 }))
 
 import { useUserStore } from '@/stores/useUserStore'
+
+// The guard only reads these three members, so mocks supply a partial store.
+type UserStoreMock = ReturnType<typeof useUserStore>
+const asStore = (partial: Partial<UserStoreMock>) => partial as UserStoreMock
 import router from './index'
 
 describe('Router auth guard', () => {
@@ -21,33 +25,33 @@ describe('Router auth guard', () => {
   })
 
   it('redirects unauthenticated users from /recipes to /login', async () => {
-    vi.mocked(useUserStore).mockReturnValue({
+    vi.mocked(useUserStore).mockReturnValue(asStore({
       isAuthenticated: false,
       isSuperuser: false,
       initFromStorage: vi.fn(),
-    } as any)
+    }))
 
     await router.push('/recipes')
     expect(router.currentRoute.value.name).toBe('login')
   })
 
   it('redirects authenticated users away from /login to /recipes', async () => {
-    vi.mocked(useUserStore).mockReturnValue({
+    vi.mocked(useUserStore).mockReturnValue(asStore({
       isAuthenticated: true,
       isSuperuser: false,
       initFromStorage: vi.fn(),
-    } as any)
+    }))
 
     await router.push('/login')
     expect(router.currentRoute.value.name).toBe('recipes')
   })
 
   it('redirects non-superuser away from /admin', async () => {
-    vi.mocked(useUserStore).mockReturnValue({
+    vi.mocked(useUserStore).mockReturnValue(asStore({
       isAuthenticated: true,
       isSuperuser: false,
       initFromStorage: vi.fn(),
-    } as any)
+    }))
 
     await router.push('/admin')
     expect(router.currentRoute.value.name).toBe('recipes')

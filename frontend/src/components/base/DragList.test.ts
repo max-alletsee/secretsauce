@@ -33,7 +33,6 @@ describe('DragList', () => {
 
     const emitted = wrapper.emitted('update:items')
     expect(emitted).toBeTruthy()
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const reordered = emitted![0]![0] as Item[]
     expect(reordered[0]).toEqual({ id: 2, label: 'Second' })
     expect(reordered[1]).toEqual({ id: 1, label: 'First' })
@@ -49,12 +48,10 @@ describe('DragList', () => {
     // Second row's "Move up" button (aria-label="Move up")
     const allMoveUpBtns = wrapper.findAll('[aria-label="Move up"]')
     // allMoveUpBtns[0] is row 0 (disabled), allMoveUpBtns[1] is row 1 (second row)
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     await allMoveUpBtns[1]!.trigger('click')
 
     const emitted = wrapper.emitted('update:items')
     expect(emitted).toBeTruthy()
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const reordered = emitted![0]![0] as Item[]
     expect(reordered[0]).toEqual({ id: 2, label: 'Second' })
     expect(reordered[1]).toEqual({ id: 1, label: 'First' })
@@ -67,7 +64,6 @@ describe('DragList', () => {
       slots: { default: '<span>item</span>' },
     })
     const rows = wrapper.findAll('[data-drag-row]')
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const firstRowMoveUp = rows[0]!.find('[aria-label="Move up"]')
     expect(firstRowMoveUp.exists()).toBe(true)
     expect(firstRowMoveUp.attributes('disabled')).toBeDefined()
@@ -81,7 +77,6 @@ describe('DragList', () => {
     const rows = wrapper.findAll('[data-drag-row]')
     const lastRow = rows[rows.length - 1]
     expect(lastRow).toBeDefined()
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const lastRowMoveDown = lastRow!.find('[aria-label="Move down"]')
     expect(lastRowMoveDown.exists()).toBe(true)
     expect(lastRowMoveDown.attributes('disabled')).toBeDefined()
@@ -107,13 +102,11 @@ describe('DragList', () => {
     })
 
     const rows = wrapper.findAll('[data-drag-row]')
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const secondRowMoveDown = rows[1]!.find('[aria-label="Move down"]')
     await secondRowMoveDown.trigger('click')
 
     const emitted = wrapper.emitted('update:items')
     expect(emitted).toBeTruthy()
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const reordered = emitted![0]![0] as Item[]
     expect(reordered[0]).toEqual({ id: 1, label: 'First' })
     expect(reordered[1]).toEqual({ id: 3, label: 'Third' })

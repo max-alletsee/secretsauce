@@ -1,6 +1,7 @@
 // frontend/src/stores/useAdminUsersStore.test.ts
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AxiosResponse } from 'axios'
 import * as adminApi from '@/api/admin'
 import type { AdminUser } from '@/types/admin'
 
@@ -14,6 +15,11 @@ const mockUser = (overrides?: Partial<AdminUser>): AdminUser => ({
   ...overrides,
 })
 
+// Mocked axios calls only need `data`; this keeps them typed without `any`.
+function axiosOk<T>(data: T): AxiosResponse<T> {
+  return { data } as unknown as AxiosResponse<T>
+}
+
 describe('useAdminUsersStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -22,9 +28,7 @@ describe('useAdminUsersStore', () => {
 
   it('fetchUsers populates users and pagination state', async () => {
     const { useAdminUsersStore } = await import('./useAdminUsersStore')
-    vi.mocked(adminApi.listUsers).mockResolvedValue({
-      data: { items: [mockUser()], next_cursor: null, has_more: false },
-    } as any)
+    vi.mocked(adminApi.listUsers).mockResolvedValue(axiosOk({ items: [mockUser()], next_cursor: null, has_more: false }))
 
     const store = useAdminUsersStore()
     await store.fetchUsers()
@@ -36,9 +40,9 @@ describe('useAdminUsersStore', () => {
 
   it('expandUser sets expandedUserId and loads stats', async () => {
     const { useAdminUsersStore } = await import('./useAdminUsersStore')
-    vi.mocked(adminApi.getUserStats).mockResolvedValue({
-      data: { recipe_count: 3, meal_plan_count: 1, last_active: null },
-    } as any)
+    vi.mocked(adminApi.getUserStats).mockResolvedValue(
+      axiosOk({ recipe_count: 3, meal_plan_count: 1, last_active: null, ai_calls_used: 0 }),
+    )
 
     const store = useAdminUsersStore()
     store.users = [mockUser({ id: 'u1' })]
@@ -59,7 +63,7 @@ describe('useAdminUsersStore', () => {
   it('updateUser patches user via API and updates local list', async () => {
     const { useAdminUsersStore } = await import('./useAdminUsersStore')
     const updated = mockUser({ id: 'u1', is_active: false })
-    vi.mocked(adminApi.updateUser).mockResolvedValue({ data: updated } as any)
+    vi.mocked(adminApi.updateUser).mockResolvedValue(axiosOk(updated))
 
     const store = useAdminUsersStore()
     store.users = [mockUser({ id: 'u1', is_active: true })]
@@ -70,7 +74,7 @@ describe('useAdminUsersStore', () => {
 
   it('deleteUser removes user from local list', async () => {
     const { useAdminUsersStore } = await import('./useAdminUsersStore')
-    vi.mocked(adminApi.deleteUser).mockResolvedValue({ data: undefined } as any)
+    vi.mocked(adminApi.deleteUser).mockResolvedValue(axiosOk(undefined))
 
     const store = useAdminUsersStore()
     store.users = [mockUser({ id: 'u1' }), mockUser({ id: 'u2' })]

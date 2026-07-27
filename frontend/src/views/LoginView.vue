@@ -1,6 +1,7 @@
 <!-- frontend/src/views/LoginView.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
+import { isAxiosError } from 'axios'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
 import BaseCard from '@/components/base/BaseCard.vue'
@@ -26,8 +27,8 @@ async function submit() {
     await userStore.login({ email: email.value, password: password.value })
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/recipes'
     router.push(redirect)
-  } catch (err: any) {
-    if (err?.response?.status === 429) {
+  } catch (err: unknown) {
+    if (isAxiosError(err) && err.response?.status === 429) {
       rateLimitError.value = 'Too many login attempts. Please wait a minute and try again.'
     } else {
       credentialsError.value = 'Invalid email or password.'

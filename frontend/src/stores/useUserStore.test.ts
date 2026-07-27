@@ -11,6 +11,7 @@ vi.mock('@/api/auth', () => ({
   logout: vi.fn(),
 }))
 
+import type { AxiosResponse } from 'axios'
 import * as authApi from '@/api/auth'
 import { useUserStore } from './useUserStore'
 
@@ -34,6 +35,11 @@ const mockUser = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
+// Mocked axios calls only need `data`; this keeps them typed without `any`.
+function axiosOk<T>(data: T): AxiosResponse<T> {
+  return { data } as unknown as AxiosResponse<T>
+}
+
 describe('useUserStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -49,10 +55,8 @@ describe('useUserStore', () => {
   })
 
   it('login stores tokens in localStorage and loads user', async () => {
-    vi.mocked(authApi.login).mockResolvedValueOnce({
-      data: { access_token: 'at123', refresh_token: 'rt456', token_type: 'bearer' },
-    } as any)
-    vi.mocked(authApi.getMe).mockResolvedValueOnce({ data: mockUser } as any)
+    vi.mocked(authApi.login).mockResolvedValueOnce(axiosOk({ access_token: 'at123', refresh_token: 'rt456', token_type: 'bearer' }))
+    vi.mocked(authApi.getMe).mockResolvedValueOnce(axiosOk(mockUser))
 
     const store = useUserStore()
     await store.login({ email: 'test@example.com', password: 'pass' })
@@ -64,7 +68,7 @@ describe('useUserStore', () => {
   })
 
   it('logout clears state and localStorage', async () => {
-    vi.mocked(authApi.logout).mockResolvedValueOnce({} as any)
+    vi.mocked(authApi.logout).mockResolvedValueOnce(axiosOk(undefined))
     const store = useUserStore()
     localStorage.setItem('access_token', 'at123')
     localStorage.setItem('refresh_token', 'rt456')
@@ -87,7 +91,7 @@ describe('useUserStore', () => {
 
   it('initFromStorage restores session if access token present', async () => {
     localStorage.setItem('access_token', 'at123')
-    vi.mocked(authApi.getMe).mockResolvedValueOnce({ data: mockUser } as any)
+    vi.mocked(authApi.getMe).mockResolvedValueOnce(axiosOk(mockUser))
 
     const store = useUserStore()
     await store.initFromStorage()
@@ -110,9 +114,7 @@ describe('useUserStore', () => {
 
   it('refreshAccessToken returns true and updates tokens on success', async () => {
     localStorage.setItem('refresh_token', 'rt123')
-    vi.mocked(authApi.refreshToken).mockResolvedValueOnce({
-      data: { access_token: 'new_at', refresh_token: 'new_rt', token_type: 'bearer' },
-    } as any)
+    vi.mocked(authApi.refreshToken).mockResolvedValueOnce(axiosOk({ access_token: 'new_at', refresh_token: 'new_rt', token_type: 'bearer' }))
 
     const store = useUserStore()
     const result = await store.refreshAccessToken()

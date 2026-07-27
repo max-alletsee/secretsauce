@@ -8,7 +8,9 @@ WORKDIR /app
 
 # Copy dependency files first (layer cache)
 COPY package.json pnpm-lock.yaml .npmrc ./
-RUN pnpm install --no-frozen-lockfile
+# --frozen-lockfile: fail loudly if pnpm-lock.yaml is out of sync with
+# package.json instead of silently resolving the difference at build time.
+RUN pnpm install --frozen-lockfile
 
 # Copy source and build
 COPY . .
