@@ -1,5 +1,5 @@
 // frontend/src/api/client.test.ts
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { AxiosAdapter, AxiosResponse } from 'axios'
 
 import client from './client'

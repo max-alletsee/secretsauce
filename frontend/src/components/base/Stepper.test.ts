@@ -83,37 +83,41 @@ describe('Stepper', () => {
     expect(wrapper.find('[aria-label="Increase"]').attributes('disabled')).toBeUndefined()
   })
 
-  it('never emits a value below min — modelValue out of range is clamped on decrement', async () => {
-    // Start with modelValue already below min to exercise the clamp path
+  it('never emits a value below min — modelValue out of range is clamped', async () => {
+    // modelValue starts below min. Decrease is disabled in this state, so the
+    // clamp path is reached via Increase: -5 + 1 = -4, clamped up to min (0).
     const wrapper = mount(Stepper, { props: { modelValue: -5, min: 0 } })
-    await wrapper.find('[aria-label="Decrease"]').trigger('click')
+    expect(wrapper.find('[aria-label="Decrease"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('[aria-label="Increase"]').trigger('click')
     const emitted = wrapper.emitted('update:modelValue')
-    if (emitted && emitted.length > 0) {
-      const emittedValue = (emitted[0] as [number])[0]
-      expect(emittedValue).toBeGreaterThanOrEqual(0)
-    }
+    // Assert emission happened before inspecting values, so a silent no-op
+    // fails here instead of passing vacuously.
+    expect(emitted).toBeTruthy()
+    const values = emitted!.map((call) => (call as [number])[0])
+    expect(values.length).toBeGreaterThan(0)
     // No value below min should ever be emitted
-    if (emitted) {
-      for (const call of emitted) {
-        expect((call as [number])[0]).toBeGreaterThanOrEqual(0)
-      }
+    for (const value of values) {
+      expect(value).toBeGreaterThanOrEqual(0)
     }
   })
 
-  it('never emits a value above max — modelValue out of range is clamped on increment', async () => {
-    // Start with modelValue already above max to exercise the clamp path
+  it('never emits a value above max — modelValue out of range is clamped', async () => {
+    // modelValue starts above max. Increase is disabled in this state, so the
+    // clamp path is reached via Decrease: 15 - 1 = 14, clamped down to max (10).
     const wrapper = mount(Stepper, { props: { modelValue: 15, max: 10 } })
-    await wrapper.find('[aria-label="Increase"]').trigger('click')
+    expect(wrapper.find('[aria-label="Increase"]').attributes('disabled')).toBeDefined()
+
+    await wrapper.find('[aria-label="Decrease"]').trigger('click')
     const emitted = wrapper.emitted('update:modelValue')
-    if (emitted && emitted.length > 0) {
-      const emittedValue = (emitted[0] as [number])[0]
-      expect(emittedValue).toBeLessThanOrEqual(10)
-    }
+    // Assert emission happened before inspecting values, so a silent no-op
+    // fails here instead of passing vacuously.
+    expect(emitted).toBeTruthy()
+    const values = emitted!.map((call) => (call as [number])[0])
+    expect(values.length).toBeGreaterThan(0)
     // No value above max should ever be emitted
-    if (emitted) {
-      for (const call of emitted) {
-        expect((call as [number])[0]).toBeLessThanOrEqual(10)
-      }
+    for (const value of values) {
+      expect(value).toBeLessThanOrEqual(10)
     }
   })
 

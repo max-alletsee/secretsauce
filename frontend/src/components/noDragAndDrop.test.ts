@@ -60,7 +60,9 @@ describe('meal-plan assignment uses selection, not drag & drop', () => {
         }
       }
     }
-    expect(offenders, `drag-and-drop code found:\n${offenders.join('\n')}`).toEqual([])
+    // The offender list is the assertion subject (not an expect() message arg,
+    // which vitest ignores) so a failure names the files that regressed.
+    expect(offenders.join('\n')).toBe('')
   })
 
   it('the explicit-selection components exist', () => {
