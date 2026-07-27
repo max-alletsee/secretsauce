@@ -8,8 +8,9 @@ import BottomSheet from '@/components/BottomSheet.vue'
 import SegmentedTabs from '@/components/base/SegmentedTabs.vue'
 import BaseIcon from '@/components/base/BaseIcon.vue'
 import PourLoader from '@/components/base/PourLoader.vue'
-import { Camera } from '@lucide/vue'
+import { Camera, Image as ImageIcon } from '@lucide/vue'
 import { useImportPolling } from '@/composables/useImportPolling'
+import { compressImageIfNeeded, MAX_UPLOAD_BYTES } from '@/composables/useImageCompression'
 import type { RecipeData } from '@/types/importTask'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -24,7 +25,8 @@ const tabs = [
 ]
 
 const importUrl = ref('')
-const imageInputRef = ref<HTMLInputElement | null>(null)
+const cameraInputRef = ref<HTMLInputElement | null>(null)
+const libraryInputRef = ref<HTMLInputElement | null>(null)
 
 const { status: importStatus, error: importError, startPolling } = useImportPolling(
   (recipeId: string, recipeData?: RecipeData) => {
@@ -54,12 +56,22 @@ async function submitUrlImport() {
 }
 
 async function handleImageChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Reset so picking the same file twice in a row still fires a change event.
+  input.value = ''
   if (!file || isImporting.value) return
   importError.value = null
   importStatus.value = 'pending'
   try {
-    const { data } = await importTasksApi.importRecipeFromImage(file)
+    const upload = await compressImageIfNeeded(file)
+    if (upload.size > MAX_UPLOAD_BYTES) {
+      importStatus.value = 'failed'
+      importError.value =
+        'This photo is too large to import (max 9 MB after compression). Try a smaller photo.'
+      return
+    }
+    const { data } = await importTasksApi.importRecipeFromImage(upload)
     startPolling(data.task_id)
   } catch (err) {
     importStatus.value = 'failed'
@@ -111,10 +123,12 @@ function goToManualCreate() {
 
     <div v-else-if="activeTab === 'photo'" class="add-recipe-sheet__panel">
       <div class="add-recipe-sheet__image-row">
-        <!-- Hidden native file input -->
+        <!-- Two inputs, not one: capture="environment" opens the camera directly,
+             which suppresses the OS option to pick an existing photo. Omitting it
+             gives the normal library picker. -->
         <input
-          ref="imageInputRef"
-          data-testid="import-image-input"
+          ref="cameraInputRef"
+          data-testid="import-image-camera-input"
           type="file"
           accept="image/*"
           capture="environment"
@@ -122,12 +136,22 @@ function goToManualCreate() {
           :disabled="isImporting"
           @change="handleImageChange"
         />
+        <input
+          ref="libraryInputRef"
+          data-testid="import-image-library-input"
+          type="file"
+          accept="image/*"
+          class="add-recipe-sheet__image-input"
+          :disabled="isImporting"
+          @change="handleImageChange"
+        />
+
         <button
-          data-testid="import-image-btn"
+          data-testid="import-image-camera-btn"
           type="button"
           :disabled="isImporting"
           class="add-recipe-sheet__image-btn"
-          @click="imageInputRef?.click()"
+          @click="cameraInputRef?.click()"
         >
           <span v-if="isImporting" class="add-recipe-sheet__btn-loading">
             <span data-testid="import-spinner" aria-hidden="true">
@@ -136,7 +160,25 @@ function goToManualCreate() {
             Importing…
           </span>
           <span v-else class="add-recipe-sheet__btn-loading">
-            <BaseIcon :icon="Camera" /> Import from photo
+            <BaseIcon :icon="Camera" /> Take photo
+          </span>
+        </button>
+
+        <button
+          data-testid="import-image-library-btn"
+          type="button"
+          :disabled="isImporting"
+          class="add-recipe-sheet__image-btn"
+          @click="libraryInputRef?.click()"
+        >
+          <span v-if="isImporting" class="add-recipe-sheet__btn-loading">
+            <span data-testid="import-spinner" aria-hidden="true">
+              <PourLoader size="sm" label="Importing" />
+            </span>
+            Importing…
+          </span>
+          <span v-else class="add-recipe-sheet__btn-loading">
+            <BaseIcon :icon="ImageIcon" /> Choose from library
           </span>
         </button>
       </div>
@@ -214,13 +256,18 @@ function goToManualCreate() {
 }
 .add-recipe-sheet__image-row {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 .add-recipe-sheet__image-input {
   display: none;
 }
 .add-recipe-sheet__image-btn {
-  padding: var(--space-2) var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
   background: var(--color-surface-2);
   color: var(--color-text);
   border: 1px solid var(--color-border);
