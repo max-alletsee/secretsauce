@@ -59,16 +59,32 @@ export async function compressImageIfNeeded(
     if (!ctx) return file
 
     try {
+      let prevWidth = -1
+      let prevHeight = -1
+
       for (const maxEdge of DIMENSION_LADDER) {
         // Never upscale a photo that is already smaller than the budget.
         const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height))
-        canvas.width = Math.round(bitmap.width * scale)
-        canvas.height = Math.round(bitmap.height * scale)
+        const targetWidth = Math.round(bitmap.width * scale)
+        const targetHeight = Math.round(bitmap.height * scale)
+
+        // Once the long edge is already under a rung's budget, every smaller
+        // rung clamps to the same pixel size — skip the redundant re-encode.
+        if (targetWidth === prevWidth && targetHeight === prevHeight) continue
+        prevWidth = targetWidth
+        prevHeight = targetHeight
+
+        canvas.width = targetWidth
+        canvas.height = targetHeight
         ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
 
         for (const quality of QUALITY_LADDER) {
           const blob = await encode(canvas, quality)
-          if (blob && blob.size <= maxBytes) {
+          // A null blob means the encoder itself failed (e.g. canvas OOM on a
+          // low-end phone) — retrying at other qualities/dimensions will not
+          // help, so stop the whole ladder rather than burning every rung.
+          if (!blob) return file
+          if (blob.size <= maxBytes) {
             return new File([blob], toJpegName(file.name), {
               type: 'image/jpeg',
               lastModified: Date.now(),

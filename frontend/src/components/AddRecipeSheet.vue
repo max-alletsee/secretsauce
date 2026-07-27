@@ -10,7 +10,7 @@ import BaseIcon from '@/components/base/BaseIcon.vue'
 import PourLoader from '@/components/base/PourLoader.vue'
 import { Camera, Image as ImageIcon } from '@lucide/vue'
 import { useImportPolling } from '@/composables/useImportPolling'
-import { compressImageIfNeeded } from '@/composables/useImageCompression'
+import { compressImageIfNeeded, MAX_UPLOAD_BYTES } from '@/composables/useImageCompression'
 import type { RecipeData } from '@/types/importTask'
 
 const emit = defineEmits<{ (e: 'close'): void }>()
@@ -65,6 +65,12 @@ async function handleImageChange(event: Event) {
   importStatus.value = 'pending'
   try {
     const upload = await compressImageIfNeeded(file)
+    if (upload.size > MAX_UPLOAD_BYTES) {
+      importStatus.value = 'failed'
+      importError.value =
+        'This photo is too large to import (max 9 MB after compression). Try a smaller photo.'
+      return
+    }
     const { data } = await importTasksApi.importRecipeFromImage(upload)
     startPolling(data.task_id)
   } catch (err) {
@@ -165,7 +171,13 @@ function goToManualCreate() {
           class="add-recipe-sheet__image-btn"
           @click="libraryInputRef?.click()"
         >
-          <span class="add-recipe-sheet__btn-loading">
+          <span v-if="isImporting" class="add-recipe-sheet__btn-loading">
+            <span data-testid="import-spinner" aria-hidden="true">
+              <PourLoader size="sm" label="Importing" />
+            </span>
+            Importing…
+          </span>
+          <span v-else class="add-recipe-sheet__btn-loading">
             <BaseIcon :icon="ImageIcon" /> Choose from library
           </span>
         </button>

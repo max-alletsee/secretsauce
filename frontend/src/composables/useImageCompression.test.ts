@@ -117,4 +117,50 @@ describe('compressImageIfNeeded', () => {
   it('exports a limit below the backend 10 MB cap', () => {
     expect(MAX_UPLOAD_BYTES).toBeLessThan(10 * 1024 * 1024)
   })
+
+  it('skips redundant dimension rungs when the image is already small in pixels', async () => {
+    // Long edge (800) is below every DIMENSION_LADDER rung (2048/1536/1024), so
+    // scale clamps to 1 at each rung and the canvas size never changes after
+    // the first pass. Only the first rung's 3 quality passes should encode.
+    const toBlob = vi.fn((cb: (b: Blob | null) => void) => {
+      // Always too big, so the ladder runs to exhaustion.
+      cb(new Blob([new Uint8Array(9_000)], { type: 'image/jpeg' }))
+    })
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({ width: 800, height: 600, close: vi.fn() })),
+    )
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+      toBlob as unknown as HTMLCanvasElement['toBlob'],
+    )
+
+    const file = fileOfSize(9999, 'small-pixels.png', 'image/png')
+    const result = await compressImageIfNeeded(file, 1024)
+
+    expect(toBlob).toHaveBeenCalledTimes(3)
+    expect(result).toBe(file)
+  })
+
+  it('stops the whole ladder and returns the original file the moment toBlob yields null', async () => {
+    const toBlob = vi.fn((cb: (b: Blob | null) => void) => cb(null))
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({ width: 4032, height: 3024, close: vi.fn() })),
+    )
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D)
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+      toBlob as unknown as HTMLCanvasElement['toBlob'],
+    )
+
+    const file = fileOfSize(9999)
+    const result = await compressImageIfNeeded(file, 1024)
+
+    expect(result).toBe(file)
+    expect(toBlob).toHaveBeenCalledTimes(1)
+  })
 })
