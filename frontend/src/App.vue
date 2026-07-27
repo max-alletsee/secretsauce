@@ -56,13 +56,11 @@ const userMenuItems = computed(() => {
       <RouterView />
     </main>
 
-    <!-- Bottom tab bar (mobile only via CSS) -->
+    <!-- Bottom tab bar (mobile only via CSS).
+         Account deliberately lives only in the top bar on mobile: its menu
+         expands downward and would run off the bottom of the screen in a PWA. -->
     <nav class="bottom-nav" data-testid="bottom-nav">
       <TabBar :items="primaryLinks" class="bottom-nav__tabs" />
-      <div class="bottom-nav__account">
-        <UserMenu :items="userMenuItems" :size="24" />
-        <span class="bottom-nav__account-label">Account</span>
-      </div>
     </nav>
   </template>
   <template v-else>
@@ -119,30 +117,9 @@ const userMenuItems = computed(() => {
 .bottom-nav__tabs {
   flex: 1;
   /* TabBar already supplies its own background/border/safe-area padding;
-     strip those so the surrounding .bottom-nav row owns them once and the
-     account item matches flush without doubling the safe-area inset. */
+     strip those so the surrounding .bottom-nav row owns them once. */
   border-top: none;
   padding-bottom: 0;
-}
-.bottom-nav__account {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-1);
-  color: var(--color-text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1;
-}
-.bottom-nav__account-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 80px;
 }
 
 /* Mobile: hide top primary links, show bottom tab bar */

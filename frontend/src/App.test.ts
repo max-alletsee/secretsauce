@@ -53,14 +53,16 @@ describe('App nav', () => {
     expect(linkLabels).not.toContain('Settings')
   })
 
-  it('has an Account trigger in the bottom nav that opens the same menu items as desktop', async () => {
+  it('has no Account trigger in the bottom nav (its menu would open off-screen in a PWA)', () => {
     const wrapper = mount(App)
     const bottomNav = wrapper.find('[data-testid="bottom-nav"]')
-    const accountTrigger = bottomNav.find('button[aria-label="Account"]')
-    expect(accountTrigger.exists()).toBe(true)
-    await accountTrigger.trigger('click')
-    expect(bottomNav.text()).toContain('Settings')
-    expect(bottomNav.text()).toContain('Log out')
+    expect(bottomNav.find('button[aria-label="Account"]').exists()).toBe(false)
+    expect(bottomNav.text()).not.toContain('Account')
+  })
+
+  it('keeps the Account menu reachable from the top bar', () => {
+    const wrapper = mount(App)
+    expect(wrapper.find('.app-nav button[aria-label="Account"]').exists()).toBe(true)
   })
 
   it('hides nav when unauthenticated', () => {
