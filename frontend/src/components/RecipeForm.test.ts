@@ -140,6 +140,7 @@ describe('RecipeForm', () => {
           'description',
           'ingredients',
           'prep_time_minutes',
+          'recipe_source',
           'servings',
           'steps',
           'tags',
@@ -294,6 +295,188 @@ describe('RecipeForm', () => {
       const drawer = wrapper.findComponent(IngredientDrawer)
       expect(drawer.exists()).toBe(true)
       expect(drawer.props('ingredient')).toEqual({ name: 'sugar', quantity: '1', unit: 'cup' })
+    })
+  })
+
+  describe('recipe source', () => {
+    const validBase = {
+      title: 'Pancakes',
+      ingredients: [{ name: 'flour', quantity: '2', unit: 'cup' }],
+      steps: [{ order: 1, instruction: 'Mix it all together' }],
+    }
+
+    function submittedSource(wrapper: ReturnType<typeof mount>) {
+      const payload = wrapper.emitted('submit')?.[0]?.[0] as {
+        recipe_source: unknown
+      }
+      return payload.recipe_source
+    }
+
+    it('prefills the source input with the url from an imported recipe', () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'url', url: 'https://example.com/pancakes' },
+          },
+        },
+      })
+      const input = wrapper.find('[data-testid="source-input"]')
+        .element as HTMLInputElement
+      expect(input.value).toBe('https://example.com/pancakes')
+    })
+
+    // Regression guard: RecipeForm previously never emitted recipe_source, so
+    // editing an imported recipe dropped it from the payload entirely. It only
+    // survived because the backend coalesces null to the existing value.
+    it('round-trips an existing url source through submit without dropping it', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'url', url: 'https://example.com/pancakes' },
+          },
+        },
+      })
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'url',
+        url: 'https://example.com/pancakes',
+      })
+    })
+
+    it('classifies a typed http url as a url source', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('[data-testid="source-input"]').setValue('https://foo.test/r/1')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({ type: 'url', url: 'https://foo.test/r/1' })
+    })
+
+    it('classifies free text as a book source', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('[data-testid="source-input"]').setValue('Salt Fat Acid Heat')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'book',
+        book_title: 'Salt Fat Acid Heat',
+      })
+    })
+
+    it('prefills and preserves an existing page number when the book title is edited', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'book', book_title: 'Old Title', page: 142 },
+          },
+        },
+      })
+      const pageInput = wrapper.find('[data-testid="source-page-input"]')
+      expect((pageInput.element as HTMLInputElement).value).toBe('142')
+
+      await wrapper.find('[data-testid="source-input"]').setValue('New Title')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'book',
+        book_title: 'New Title',
+        page: 142,
+      })
+    })
+
+    it('lets the user enter a page number for a book source', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('[data-testid="source-input"]').setValue('Salt Fat Acid Heat')
+      await wrapper.find('[data-testid="source-page-input"]').setValue(142)
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'book',
+        book_title: 'Salt Fat Acid Heat',
+        page: 142,
+      })
+    })
+
+    it('lets the user change an existing page number', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'book', book_title: 'Salt Fat Acid Heat', page: 142 },
+          },
+        },
+      })
+      await wrapper.find('[data-testid="source-page-input"]').setValue(88)
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'book',
+        book_title: 'Salt Fat Acid Heat',
+        page: 88,
+      })
+    })
+
+    it('omits page when the book source has none', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('[data-testid="source-input"]').setValue('Salt Fat Acid Heat')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({
+        type: 'book',
+        book_title: 'Salt Fat Acid Heat',
+      })
+    })
+
+    it('hides the page input for a url source', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('[data-testid="source-input"]').setValue('Salt Fat Acid Heat')
+      expect(wrapper.find('[data-testid="source-page-input"]').exists()).toBe(true)
+
+      await wrapper.find('[data-testid="source-input"]').setValue('https://foo.test/r/1')
+      expect(wrapper.find('[data-testid="source-page-input"]').exists()).toBe(false)
+    })
+
+    // A page typed against a book, then switched to a link, must not ride
+    // along into the url payload.
+    it('drops a stale page when a book source is changed to a url', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'book', book_title: 'Salt Fat Acid Heat', page: 142 },
+          },
+        },
+      })
+      await wrapper.find('[data-testid="source-input"]').setValue('https://foo.test/r/1')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toEqual({ type: 'url', url: 'https://foo.test/r/1' })
+    })
+
+    it('emits a null source when the field is left empty', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toBeNull()
+    })
+
+    it('emits a null source when the user clears a previously set source', async () => {
+      const wrapper = mount(RecipeForm, {
+        props: {
+          initialData: {
+            ...validBase,
+            recipe_source: { type: 'url', url: 'https://example.com/pancakes' },
+          },
+        },
+      })
+      await wrapper.find('[data-testid="source-input"]').setValue('   ')
+      await wrapper.find('form').trigger('submit')
+      expect(submittedSource(wrapper)).toBeNull()
+    })
+
+    it('shows the detected type in the hint as the user types', async () => {
+      const wrapper = mount(RecipeForm, { props: { initialData: validBase } })
+      const hint = () => wrapper.find('[data-testid="source-hint"]').text()
+
+      await wrapper.find('[data-testid="source-input"]').setValue('https://foo.test')
+      expect(hint()).toContain('link')
+
+      await wrapper.find('[data-testid="source-input"]').setValue('My Cookbook')
+      expect(hint()).toContain('book')
     })
   })
 })

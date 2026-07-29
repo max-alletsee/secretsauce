@@ -1,7 +1,12 @@
 <!-- frontend/src/components/RecipeForm.vue -->
 <script setup lang="ts">
 import { ref, computed, watchEffect, toRaw } from 'vue'
-import type { Ingredient, Step, RecipeCreatePayload } from '@/types/recipe'
+import type { Ingredient, Step, RecipeCreatePayload, RecipeSource } from '@/types/recipe'
+import {
+  detectSourceType,
+  formatRecipeSourceInput,
+  parseRecipeSource,
+} from '@/composables/useRecipeSource'
 import TagSelector from './TagSelector.vue'
 import IngredientDrawer from './IngredientDrawer.vue'
 import StepDrawer from './StepDrawer.vue'
@@ -61,6 +66,14 @@ const ingredientRows = ref<IngredientRow[]>([])
 const stepRows = ref<StepRow[]>([])
 const tags = ref<string[]>([])
 const visibility = ref<'private' | 'shared'>('private')
+// Source is edited as a single freeform string (url or book title) whose type
+// is inferred on submit. `sourcePage` is a separate input, revealed only when
+// the text resolves to a book — a page number is meaningless for a url.
+const sourceInput = ref('')
+const sourcePage = ref<number | undefined>(undefined)
+// Retained purely so the import-review styling can tell whether the source
+// was prefilled by an import.
+const initialSource = ref<RecipeSource | null>(null)
 
 watchEffect(() => {
   const d = props.initialData
@@ -84,7 +97,15 @@ watchEffect(() => {
   stepRows.value = initialSteps.map((step) => ({ localId: makeLocalId(), step }))
   tags.value = d.tags ? [...d.tags] : []
   visibility.value = d.visibility ?? 'private'
+  initialSource.value = d.recipe_source ? structuredClone(toRaw(d.recipe_source)) : null
+  sourceInput.value = formatRecipeSourceInput(initialSource.value)
+  sourcePage.value =
+    initialSource.value?.type === 'book' ? (initialSource.value.page ?? undefined) : undefined
 })
+
+// Drives the "Detected: …" hint and the conditional page input, so the type
+// inference isn't invisible to the user.
+const detectedSourceType = computed(() => detectSourceType(sourceInput.value))
 
 const isTitleValid = computed(() => title.value.trim().length > 0)
 const isIngredientsValid = computed(() => ingredientRows.value.length > 0)
@@ -207,6 +228,7 @@ function submit() {
     ingredients: ingredientRows.value.map((row) => row.ingredient),
     steps: stepRows.value.map((row) => row.step),
     tags: tags.value,
+    recipe_source: parseRecipeSource(sourceInput.value, sourcePage.value ?? null),
     visibility: visibility.value,
   })
 }
@@ -331,6 +353,41 @@ function submit() {
       <legend>Tags</legend>
       <TagSelector v-model="tags" />
     </fieldset>
+
+    <!-- Source -->
+    <div
+      class="recipe-form__field"
+      :class="{ 'recipe-form__field--imported': isImportReview && !!initialSource }"
+    >
+      <label for="rf-source">Source</label>
+      <input
+        id="rf-source"
+        v-model="sourceInput"
+        type="text"
+        inputmode="url"
+        placeholder="Link or book title"
+        data-testid="source-input"
+        aria-describedby="rf-source-hint"
+      />
+      <p id="rf-source-hint" class="recipe-form__note" data-testid="source-hint">
+        <template v-if="detectedSourceType === 'url'">Detected: link</template>
+        <template v-else-if="detectedSourceType === 'book'">Detected: book or other</template>
+        <template v-else>Paste the URL you imported from, or type a cookbook title.</template>
+      </p>
+
+      <!-- Page only applies to book sources, so it stays hidden for links. -->
+      <div v-if="detectedSourceType === 'book'" class="recipe-form__source-page">
+        <label for="rf-source-page">Page</label>
+        <input
+          id="rf-source-page"
+          v-model.number="sourcePage"
+          type="number"
+          min="1"
+          placeholder="optional"
+          data-testid="source-page-input"
+        />
+      </div>
+    </div>
 
     <!-- Visibility -->
     <div class="recipe-form__field">
@@ -465,6 +522,25 @@ input[aria-invalid='true'] {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   margin: 0;
+}
+/* Informational helper text (not a validation error) — muted rather than
+   --color-danger, so it reads as guidance next to the red __hint styling. */
+.recipe-form__note {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+/* Page is a short numeric value — don't let it stretch to the full form
+   width like the text inputs above it. */
+.recipe-form__source-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.recipe-form__source-page input {
+  width: 8rem;
 }
 .recipe-form__section {
   border: 1px solid var(--color-border);

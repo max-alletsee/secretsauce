@@ -424,6 +424,65 @@ describe('RecipeDetailView', () => {
       expect(progressBarAfter.props('value')).toBe(0)
     })
   })
+
+  describe('recipe source', () => {
+    function mountWithSource(recipe_source: unknown) {
+      mockRecipeStore({
+        currentRecipe: makeRecipe({
+          current_version: {
+            ...makeRecipe().current_version,
+            recipe_source: recipe_source as never,
+          },
+        }),
+      })
+      return mount(RecipeDetailView, { global: { stubs: globalStubs } })
+    }
+
+    it('does not render the source line when there is no source', () => {
+      const wrapper = mountWithSource(null)
+      expect(wrapper.find('[data-testid="recipe-source"]').exists()).toBe(false)
+    })
+
+    it('renders a url source as a link showing the hostname', () => {
+      const wrapper = mountWithSource({
+        type: 'url',
+        url: 'https://www.seriouseats.com/recipes/carbonara',
+      })
+      const source = wrapper.find('[data-testid="recipe-source"]')
+      expect(source.exists()).toBe(true)
+
+      const link = source.find('a')
+      expect(link.text()).toBe('seriouseats.com')
+      expect(link.attributes('href')).toBe(
+        'https://www.seriouseats.com/recipes/carbonara',
+      )
+      expect(link.attributes('target')).toBe('_blank')
+      expect(link.attributes('rel')).toBe('noopener noreferrer')
+    })
+
+    it('renders a book source as plain text with the page number', () => {
+      const wrapper = mountWithSource({
+        type: 'book',
+        book_title: 'Salt Fat Acid Heat',
+        page: 142,
+      })
+      const source = wrapper.find('[data-testid="recipe-source"]')
+      expect(source.text()).toContain('Salt Fat Acid Heat, p. 142')
+      expect(source.find('a').exists()).toBe(false)
+    })
+
+    it('renders a book source without a page when none is set', () => {
+      const wrapper = mountWithSource({ type: 'book', book_title: 'Grandma’s notes' })
+      expect(wrapper.find('[data-testid="recipe-source"]').text()).toContain(
+        'Grandma’s notes',
+      )
+    })
+
+    it('hides the source line when the stored source has no usable value', () => {
+      const wrapper = mountWithSource({ type: 'url', url: '' })
+      expect(wrapper.find('[data-testid="recipe-source"]').exists()).toBe(false)
+    })
+  })
 })
 
 async function flushPromises() {

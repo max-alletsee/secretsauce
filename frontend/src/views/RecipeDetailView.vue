@@ -11,6 +11,7 @@ import Stepper from '@/components/base/Stepper.vue'
 import IconButton from '@/components/base/IconButton.vue'
 import ConfirmDialog from '@/components/base/ConfirmDialog.vue'
 import { formatIngredient } from '@/composables/useFormatIngredient'
+import { formatRecipeSourceLabel } from '@/composables/useRecipeSource'
 import { scaleQuantity } from '@/composables/useScaledQuantity'
 import PourLoader from '@/components/base/PourLoader.vue'
 import ProgressBar from '@/components/base/ProgressBar.vue'
@@ -87,6 +88,15 @@ function toggleStep(order: number) {
   }
   checkedSteps.value = next
 }
+
+// Attribution shown in the footer. `sourceLabel` is empty when there's no
+// source, or when the stored object has its type set but the matching field
+// blank — so the footer hides rather than rendering an empty link.
+const recipeSource = computed(() => recipe.value?.current_version.recipe_source ?? null)
+const sourceLabel = computed(() => formatRecipeSourceLabel(recipeSource.value))
+const sourceUrl = computed(() =>
+  recipeSource.value?.type === 'url' ? (recipeSource.value.url ?? '') : '',
+)
 
 const doneStepsCount = computed(() => checkedSteps.value.size)
 const totalStepsCount = computed(() => recipe.value?.current_version.steps.length ?? 0)
@@ -357,6 +367,18 @@ async function handleRestore(versionId: string) {
         </div>
       </section>
 
+      <p v-if="sourceLabel" class="recipe-detail__source" data-testid="recipe-source">
+        <span class="recipe-detail__source-label">Source:</span>
+        <a
+          v-if="sourceUrl"
+          :href="sourceUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="recipe-detail__source-link"
+        >{{ sourceLabel }}</a>
+        <span v-else>{{ sourceLabel }}</span>
+      </p>
+
       <VersionHistoryPanel
         v-if="recipeStore.versions.length"
         :versions="recipeStore.versions"
@@ -394,6 +416,23 @@ async function handleRestore(versionId: string) {
   text-align: center;
   padding: var(--space-8) 0;
   color: var(--color-text-muted);
+}
+/* Attribution line: present but deliberately quiet, so it never competes
+   with the cooking content above it. */
+.recipe-detail__source {
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+.recipe-detail__source-label {
+  margin-right: var(--space-1);
+}
+.recipe-detail__source-link {
+  color: var(--color-primary);
 }
 .recipe-detail__header {
   display: flex;
